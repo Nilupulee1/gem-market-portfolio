@@ -3,6 +3,58 @@ import { AuthRequest } from '../middleware/auth';
 import Auction from '../models/Auction';
 import Gem from '../models/Gem';
 import { AuctionStatus, GemStatus } from '../types';
+import cloudinary from '../config/cloudinary';
+
+const extractCloudinaryPublicId = (url: string) => {
+  try {
+    const assetUrl = new URL(url);
+    const uploadIndex = assetUrl.pathname.indexOf('/upload/');
+
+    if (uploadIndex === -1) return null;
+
+    const assetPath = assetUrl.pathname.slice(uploadIndex + '/upload/'.length).replace(/^v\d+\//, '');
+    const publicId = assetPath.replace(/\.[^/.]+$/, '');
+
+    return publicId ? decodeURIComponent(publicId) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getCertificateAccessUrl = (certificate?: { url?: string; mimeType?: string }) => {
+  const certificateUrl = certificate?.url;
+  if (!certificateUrl) return certificateUrl;
+
+  const normalizedUrl = certificateUrl.toLowerCase();
+  const isPdfCertificate =
+    certificate?.mimeType === 'application/pdf' ||
+    normalizedUrl.includes('.pdf') ||
+    normalizedUrl.includes('application/pdf');
+
+  if (!isPdfCertificate) {
+    return certificateUrl;
+  }
+
+  const publicId = extractCloudinaryPublicId(certificateUrl);
+  if (!publicId) {
+    return certificateUrl;
+  }
+
+  return cloudinary.utils.private_download_url(publicId, 'pdf', {
+    resource_type: 'image',
+    type: 'upload',
+  });
+};
+
+const withCertificateAccessUrl = <T extends { certificate?: { url?: string; mimeType?: string } }>(gem: T): T => ({
+  ...gem,
+  certificate: gem.certificate
+    ? {
+        ...gem.certificate,
+        accessUrl: getCertificateAccessUrl(gem.certificate),
+      }
+    : gem.certificate,
+});
 
 export const createAuction = async (req: AuthRequest, res: Response) => {
   try {
@@ -56,7 +108,10 @@ export const createAuction = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({
       message: 'Auction created successfully',
-      auction
+      auction: {
+        ...auction.toObject(),
+        gem: withCertificateAccessUrl((auction.gem as any)?.toObject?.() || auction.gem),
+      }
     });
   } catch (error: any) {
     console.error('❌ Error creating auction:', error);
@@ -149,7 +204,10 @@ export const getActiveAuctions = async (req: AuthRequest, res: Response) => {
 
     console.log('✅ Found auctions:', auctions.length);
 
-    res.json({ auctions });
+    res.json({ auctions: auctions.map((auction) => ({
+      ...auction.toObject(),
+      gem: withCertificateAccessUrl((auction.gem as any)?.toObject?.() || auction.gem),
+    })) });
   } catch (error: any) {
     console.error('❌ Error fetching auctions:', error);
     res.status(500).json({ 
@@ -172,7 +230,10 @@ export const getMyAuctions = async (req: AuthRequest, res: Response) => {
 
     console.log('✅ Found my auctions:', auctions.length);
 
-    res.json({ auctions });
+    res.json({ auctions: auctions.map((auction) => ({
+      ...auction.toObject(),
+      gem: withCertificateAccessUrl((auction.gem as any)?.toObject?.() || auction.gem),
+    })) });
   } catch (error: any) {
     console.error('❌ Error fetching my auctions:', error);
     res.status(500).json({ 
@@ -194,7 +255,12 @@ export const getAuctionById = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Auction not found' });
     }
 
-    res.json({ auction });
+    res.json({
+      auction: {
+        ...auction.toObject(),
+        gem: withCertificateAccessUrl((auction.gem as any)?.toObject?.() || auction.gem),
+      }
+    });
   } catch (error: any) {
     console.error('❌ Error fetching auction:', error);
     res.status(500).json({ 
