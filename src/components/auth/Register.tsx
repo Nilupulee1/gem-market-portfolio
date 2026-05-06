@@ -2,13 +2,11 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { authAPI } from '../../api/axios';
-import { Eye, EyeOff, Gem } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { UserRole } from '../../types';
 import { AxiosError } from 'axios';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
 
-// Import images
-import diamond from '../../assets/diamond.webp';
 import logo from '../../assets/logo.png';
 
 
@@ -79,86 +77,107 @@ const Register = () => {
   return (
     <Container fluid className="auth-container p-0">
       <Row className="g-0 min-vh-100">
-        <Col lg={6} className="d-none d-lg-flex align-items-center auth-panel position-relative overflow-hidden">
-          <img 
-            src={diamond} 
-            alt="Diamond Background" 
-            className="position-absolute w-100 h-100"
-            style={{ objectFit: 'cover', opacity: 0.35 }}
-          />
-
-          <div className="auth-side-content">
-            <p className="hero-eyebrow mb-3">Create Your Verified Account</p>
-            <h1 className="mb-3" style={{ fontSize: '2.5rem', lineHeight: 1.2 }}>
-              Join a Trusted Marketplace for Certified Gems
-            </h1>
-            <p className="mb-0" style={{ color: '#cad4df', fontSize: '1.05rem' }}>
-              Build your buyer or seller profile to access secure transactions and curated gemstone portfolios.
-            </p>
-            <Gem size={26} className="mt-4" style={{ color: '#d4b07b' }} />
+        <Col lg={6} className="d-none d-lg-block position-relative overflow-hidden auth-visual-col">
+          <img src="/images/auth-bg.jpg" alt="Luxury gemstones" className="auth-visual-image" />
+          <div className="auth-visual-overlay" />
+          <div className="auth-visual-content">
+            <div>
+              <p className="auth-kicker">Create your verified account</p>
+              <h1 className="auth-visual-title">Join a Trusted Marketplace for Certified Gems</h1>
+              <p className="auth-visual-copy">
+                Build your buyer or seller profile to access secure transactions and curated gemstone portfolios.
+              </p>
+            </div>
+            <div className="auth-stat-grid">
+              <div className="auth-stat-card">
+                <p className="auth-stat-value">10K+</p>
+                <p className="auth-stat-label">Verified Gems</p>
+              </div>
+              <div className="auth-stat-card">
+                <p className="auth-stat-value">500+</p>
+                <p className="auth-stat-label">Trusted Sellers</p>
+              </div>
+            </div>
+            <p className="auth-visual-foot">&copy; {new Date().getFullYear()} GemFolio. All rights reserved.</p>
           </div>
         </Col>
 
-        <Col lg={6} className="d-flex align-items-center justify-content-center p-4 p-md-5 bg-white">
+        <Col lg={6} className="d-flex align-items-center justify-content-center auth-form-col">
           <div className="auth-form-wrap">
-            <div className="text-center mb-4">
-              <img src={logo} alt="GemFolio" style={{ height: '58px' }} />
-              <h2 className="h2 fw-bold mt-2 mb-2" style={{ color: '#1c2a3b' }}>Create an Account</h2>
-              <p className="mb-0" style={{ color: '#687585' }}>
-                Create your account to buy, sell, or verify authentic gems securely.
-              </p>
+            <div className="auth-mobile-brand d-lg-none mb-4">
+              <Link to="/" className="auth-brand-link">
+                <img src={logo} alt="GemFolio" className="auth-brand-logo" />
+                <span className="auth-brand-name">GemFolio</span>
+              </Link>
             </div>
 
             <div className="auth-card p-4 p-md-5">
+              <div className="text-center mb-4">
+                <h2 className="h2 fw-bold mt-2 mb-2" style={{ color: '#1c2a3b' }}>Create Account</h2>
+                <p className="mb-0" style={{ color: '#687585' }}>
+                  Enter your information to get started.
+                </p>
+              </div>
+
               {error && (
                 <Alert variant="danger" dismissible onClose={() => setError('')}>
                   {error}
                 </Alert>
               )}
 
-              <Form onSubmit={handleSubmit}>
+              <Form onSubmit={handleSubmit} className="auth-form-stack">
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>First Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    placeholder="Enter your first name"
-                    required
-                    size="lg"
-                  />
+                  <div className="auth-input-wrap">
+                    <User size={16} className="auth-input-icon" />
+                    <Form.Control
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      placeholder="Enter your first name"
+                      required
+                      size="lg"
+                    />
+                  </div>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Last Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    placeholder="Enter your last name"
-                    required
-                    size="lg"
-                  />
+                  <div className="auth-input-wrap">
+                    <User size={16} className="auth-input-icon" />
+                    <Form.Control
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      placeholder="Enter your last name"
+                      required
+                      size="lg"
+                    />
+                  </div>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Enter your email"
-                    required
-                    size="lg"
-                  />
+                  <div className="auth-input-wrap">
+                    <Mail size={16} className="auth-input-icon" />
+                    <Form.Control
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="name@example.com"
+                      required
+                      size="lg"
+                    />
+                  </div>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Password</Form.Label>
                   <div className="position-relative">
+                    <Lock size={16} className="auth-password-icon" />
                     <Form.Control
                       type={showPassword ? 'text' : 'password'}
                       name="password"
@@ -167,15 +186,15 @@ const Register = () => {
                       placeholder="Create password"
                       required
                       size="lg"
+                      className="auth-password-field"
                     />
                     <Button
                       variant="link"
-                      className="position-absolute end-0 top-50 translate-middle-y text-muted"
-                      style={{ zIndex: 10, textDecoration: 'none' }}
+                      className="auth-password-toggle"
                       onClick={() => setShowPassword(!showPassword)}
                       type="button"
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </Button>
                   </div>
                   <Form.Text className="text-muted">Must be at least 8 characters.</Form.Text>

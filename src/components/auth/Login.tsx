@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { authAPI } from '../../api/axios';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
-import diamond from '../../assets/diamond.jpg';
 import logo from '../../assets/logo.png';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -51,76 +51,95 @@ const Login = () => {
   return (
     <Container fluid className="auth-container p-0">
       <Row className="g-0 min-vh-100">
-        <Col lg={6} className="d-none d-lg-flex align-items-center auth-panel position-relative overflow-hidden">
-          <img 
-            src={diamond} 
-            alt="Diamond Background" 
-            className="position-absolute w-100 h-100"
-            style={{ objectFit: 'cover', opacity: 0.35 }}
-          />
-          <div className="auth-side-content">
-            <p className="hero-eyebrow mb-3">Buyer and Seller Access</p>
-            <h1 className="mb-3" style={{ fontSize: '2.6rem', lineHeight: 1.2 }}>
-              Secure Sign In for the GemFolio Marketplace
-            </h1>
-            <p className="mb-0" style={{ color: '#cad4df', fontSize: '1.05rem' }}>
-              Continue to your verified account and manage listings, bidding, and portfolio data in one place.
-            </p>
+        <Col lg={6} className="d-none d-lg-block position-relative overflow-hidden auth-visual-col">
+          <img src="/images/auth-bg.jpg" alt="Luxury gemstones" className="auth-visual-image" />
+          <div className="auth-visual-overlay" />
+          <div className="auth-visual-content">
+            <div>
+              <p className="auth-kicker">Buyer and seller access</p>
+              <h1 className="auth-visual-title">Secure Sign In for the GemFolio Marketplace</h1>
+              <p className="auth-visual-copy">
+                Continue to your verified account and manage listings, bidding, and portfolio data in one place.
+              </p>
+            </div>
+            <p className="auth-visual-foot">&copy; {new Date().getFullYear()} GemFolio. All rights reserved.</p>
           </div>
         </Col>
 
-        <Col lg={6} className="d-flex align-items-center justify-content-center p-4 p-md-5 bg-white">
+        <Col lg={6} className="d-flex align-items-center justify-content-center auth-form-col">
           <div className="auth-form-wrap">
-            <div className="text-center mb-4">
-              <img src={logo} alt="GemFolio" style={{ height: '58px' }} />
-              <h1 className="h2 fw-bold mt-2 mb-2" style={{ color: '#1c2a3b' }}>Sign In</h1>
-              <p className="mb-0" style={{ color: '#687585' }}>
-                Welcome back! Please enter your details.
-              </p>
+            <div className="auth-mobile-brand d-lg-none mb-4">
+              <Link to="/" className="auth-brand-link">
+                <img src={logo} alt="GemFolio" className="auth-brand-logo" />
+                <span className="auth-brand-name">GemFolio</span>
+              </Link>
             </div>
 
             <div className="auth-card p-4 p-md-5">
+              <div className="text-center mb-4">
+                <h1 className="h2 fw-bold mt-2 mb-2" style={{ color: '#1c2a3b' }}>Sign In</h1>
+                <p className="mb-0" style={{ color: '#687585' }}>
+                  Enter your credentials to access your account.
+                </p>
+              </div>
+
               {error && (
                 <Alert variant="danger" dismissible onClose={() => setError('')}>
                   {error}
                 </Alert>
               )}
 
-              <Form onSubmit={handleSubmit}>
+              <Form onSubmit={handleSubmit} className="auth-form-stack">
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Email Address</Form.Label>
-                  <Form.Control
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    size="lg"
-                  />
+                  <div className="auth-input-wrap">
+                    <Mail size={16} className="auth-input-icon" />
+                    <Form.Control
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      required
+                      size="lg"
+                    />
+                  </div>
                 </Form.Group>
 
-                <Form.Group className="mb-4">
+                <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Password</Form.Label>
                   <div className="position-relative">
+                    <Lock className="auth-password-icon" size={16} />
                     <Form.Control
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Enter your password"
                       required
                       size="lg"
+                      className="auth-password-field"
                     />
                     <Button
                       variant="link"
-                      className="position-absolute end-0 top-50 translate-middle-y text-muted"
-                      style={{ zIndex: 10 }}
+                      className="auth-password-toggle"
                       onClick={() => setShowPassword(!showPassword)}
                       type="button"
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </Button>
                   </div>
                 </Form.Group>
+
+                <div className="d-flex align-items-center justify-content-between mb-4 auth-meta-row">
+                  <Form.Check
+                    type="checkbox"
+                    id="remember"
+                    label="Remember me for 30 days"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                    className="auth-remember-check"
+                  />
+                  <Link to="/register" className="auth-mini-link">Create account</Link>
+                </div>
 
                 <Button
                   variant="primary"

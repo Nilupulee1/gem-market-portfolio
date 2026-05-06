@@ -1,20 +1,26 @@
-export enum UserRole {
-  SELLER = 'seller',
-  BUYER = 'buyer',
-  ADMIN = 'admin'
-}
+export const UserRole = {
+  SELLER: 'seller',
+  BUYER: 'buyer',
+  ADMIN: 'admin',
+} as const;
 
-export enum GemStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected'
-}
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
-export enum AuctionStatus {
-  ACTIVE = 'active',
-  ENDED = 'ended',
-  CANCELLED = 'cancelled'
-}
+export const GemStatus = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+} as const;
+
+export type GemStatus = (typeof GemStatus)[keyof typeof GemStatus];
+
+export const AuctionStatus = {
+  ACTIVE: 'active',
+  ENDED: 'ended',
+  CANCELLED: 'cancelled',
+} as const;
+
+export type AuctionStatus = (typeof AuctionStatus)[keyof typeof AuctionStatus];
 
 export interface User {
   id: string;
@@ -46,6 +52,8 @@ export interface Gem {
   images: string[];
   certificate: {
     url: string;
+    mimeType?: string;
+    accessUrl?: string;
     authority: string;
     certificateNumber: string;
   };

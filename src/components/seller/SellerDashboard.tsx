@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Nav, Button, Badge, ListGroup } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
 import { gemAPI } from '../../api/axios';
@@ -11,17 +11,20 @@ import type { Gem } from "../../types";
 
 
 type TabType = 'dashboard' | 'portfolio' | 'auctions' | 'addGem';
+type ListingFilter = 'all' | 'approved' | 'pending' | 'rejected';
 
 const SellerDashboard = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [listingFilter, setListingFilter] = useState<ListingFilter>('all');
   const [myGems, setMyGems] = useState<Gem[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalValue: 0,
+    totalCarat: 0,
     activeListings: 0,
     pendingVerification: 0,
+    rejectedListings: 0,
   });
 
   useEffect(() => {
@@ -35,14 +38,17 @@ const SellerDashboard = () => {
       const gems = response.data.gems;
       setMyGems(gems);
 
-      // Calculate stats
+      // Calculate stats from actual records only
       const approved = gems.filter((g: Gem) => g.status === 'approved');
       const pending = gems.filter((g: Gem) => g.status === 'pending');
+      const rejected = gems.filter((g: Gem) => g.status === 'rejected');
+      const totalCarat = gems.reduce((sum: number, gem: Gem) => sum + Number(gem.carat || 0), 0);
       
       setStats({
-        totalValue: 63500, // This would be calculated from actual gem values
+        totalCarat,
         activeListings: approved.length,
         pendingVerification: pending.length,
+        rejectedListings: rejected.length,
       });
     } catch (error) {
       console.error('Error fetching gems:', error);
@@ -51,26 +57,36 @@ const SellerDashboard = () => {
     }
   };
 
-  const recentActivities = [
-    {
-      type: 'success',
-      icon: '✓',
-      message: 'Your "Royal Blue Tanzanite" has been approved.',
-      time: '2 hours ago',
-    },
-    {
-      type: 'info',
-      icon: 'i',
-      message: 'New bid of ₨.12,500 on your "Sunset Padparadscha"',
-      time: '1 day ago',
-    },
-    {
-      type: 'danger',
-      icon: '✕',
-      message: 'Listing for "Rough Diamond Cluster" was rejected.',
-      time: '3 days ago',
-    },
-  ];
+  const recentActivities = useMemo(() => {
+    return [...myGems]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5)
+      .map((gem) => {
+        const isApproved = gem.status === 'approved';
+        const isRejected = gem.status === 'rejected';
+        const type = isApproved ? 'success' : isRejected ? 'danger' : 'info';
+        const icon = isApproved ? '✓' : isRejected ? '✕' : 'i';
+        const statusText = isApproved ? 'approved' : isRejected ? 'rejected' : 'submitted for review';
+
+        return {
+          type,
+          icon,
+          message: `Gem "${gem.type}" was ${statusText}.`,
+          time: new Date(gem.updatedAt).toLocaleString(),
+        };
+      });
+  }, [myGems]);
+
+  const dashboardListedGems = useMemo(() => {
+    const filtered = myGems.filter((gem) => {
+      if (listingFilter === 'all') {
+        return true;
+      }
+      return gem.status === listingFilter;
+    });
+
+    return filtered.slice(0, 4);
+  }, [myGems, listingFilter]);
 
   const handleSignOut = () => {
     logout();
@@ -105,13 +121,13 @@ const SellerDashboard = () => {
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <div>
                         <p className="text-muted mb-1 small">Total Portfolio Value</p>
-                        <h3 className="mb-0">Rs.{stats.totalValue.toLocaleString()}</h3>
+                        <h3 className="mb-0">{stats.totalCarat.toFixed(2)} ct</h3>
                       </div>
                       <div className="stat-icon bg-primary bg-opacity-10">
                         <TrendingUp className="text-primary" size={24} />
                       </div>
                     </div>
-                    <small className="text-success">↑ 12.5%</small>
+                    <small className="text-muted">Based on {myGems.length} gems</small>
                   </Card.Body>
                 </Card>
               </Col>
@@ -160,24 +176,36 @@ const SellerDashboard = () => {
                       <h5 className="mb-0">My Listings</h5>
                       <div>
                         <Button 
-                          variant="link" 
+                          variant={listingFilter === 'pending' ? 'primary' : 'link'}
                           size="sm"
-                          className={`me-2 ${activeTab === 'dashboard' ? 'text-primary' : 'text-muted'}`}
+                          className={`me-2 ${listingFilter === 'pending' ? '' : 'text-muted'}`}
+                          onClick={() => setListingFilter('pending')}
                         >
                           Pending
                         </Button>
                         <Button 
-                          variant="primary" 
+                          variant={listingFilter === 'approved' ? 'primary' : 'link'}
                           size="sm"
+                          className={listingFilter === 'approved' ? '' : 'text-muted'}
+                          onClick={() => setListingFilter('approved')}
                         >
                           Approved
                         </Button>
                         <Button 
-                          variant="link" 
+                          variant={listingFilter === 'rejected' ? 'primary' : 'link'}
                           size="sm"
                           className="ms-2 text-muted"
+                          onClick={() => setListingFilter('rejected')}
                         >
                           Rejected
+                        </Button>
+                        <Button 
+                          variant={listingFilter === 'all' ? 'primary' : 'link'} 
+                          size="sm"
+                          className="ms-2"
+                          onClick={() => setListingFilter('all')}
+                        >
+                          All
                         </Button>
                       </div>
                     </div>
@@ -200,9 +228,13 @@ const SellerDashboard = () => {
                           Add Your First Gem
                         </Button>
                       </div>
+                    ) : dashboardListedGems.length === 0 ? (
+                      <div className="text-center py-5 text-muted">
+                        No gems found for selected status.
+                      </div>
                     ) : (
                       <Row className="g-3">
-                        {myGems.slice(0, 4).map((gem) => (
+                        {dashboardListedGems.map((gem) => (
                           <Col md={6} key={gem._id}>
                             <Card className="surface-muted">
                               <div 
@@ -228,11 +260,11 @@ const SellerDashboard = () => {
                                   Carat: {gem.carat} | Origin: {gem.origin}
                                 </p>
                                 <div className="d-flex justify-content-between">
-                                  <Button variant="outline-primary" size="sm">
+                                  <Button variant="outline-primary" size="sm" onClick={() => setActiveTab('portfolio')}>
                                     View Details
                                   </Button>
-                                  <Button variant="outline-secondary" size="sm">
-                                    Edit
+                                  <Button variant="outline-secondary" size="sm" onClick={() => setActiveTab('portfolio')}>
+                                    Manage
                                   </Button>
                                 </div>
                               </Card.Body>
@@ -251,7 +283,9 @@ const SellerDashboard = () => {
                   <Card.Body>
                     <h5 className="mb-3">Recent Activity</h5>
                     <ListGroup variant="flush">
-                      {recentActivities.map((activity, index) => (
+                      {recentActivities.length === 0 ? (
+                        <ListGroup.Item className="px-0 text-muted">No recent gem activity</ListGroup.Item>
+                      ) : recentActivities.map((activity, index) => (
                         <ListGroup.Item key={index} className="px-0">
                           <div className="d-flex align-items-start">
                             <div 

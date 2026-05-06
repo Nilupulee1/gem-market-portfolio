@@ -4,6 +4,7 @@ import { Check, X, Eye } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
 import type { Gem } from '../../types';
 import { AxiosError } from 'axios';
+import PdfViewer from '../common/PdfViewer';
 
 interface PendingGemsProps {
   onApprove: () => void;
@@ -87,6 +88,19 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
       month: 'short', 
       day: 'numeric' 
     });
+  };
+
+  const getCertificateAccessUrl = (gem: Gem) => {
+    return gem.certificate?.accessUrl || gem.certificate?.url || '';
+  };
+
+  const isPdfCertificate = (gem: Gem) => {
+    const normalizedUrl = (gem.certificate?.url || '').toLowerCase();
+    return (
+      gem.certificate?.mimeType === 'application/pdf' ||
+      normalizedUrl.includes('.pdf') ||
+      normalizedUrl.includes('application/pdf')
+    );
   };
 
   return (
@@ -174,7 +188,7 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
                         <div className="fw-semibold text-primary">{gem.certificate.authority}</div>
                         <small className="text-muted d-block">{gem.certificate.certificateNumber}</small>
                         <a 
-                          href={gem.certificate.url} 
+                          href={getCertificateAccessUrl(gem)} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-primary small"
@@ -325,13 +339,26 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
                     <strong>Certificate Number:</strong> {selectedGem.certificate.certificateNumber}
                   </p>
                   <a 
-                    href={selectedGem.certificate.url} 
+                    href={getCertificateAccessUrl(selectedGem)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="btn btn-outline-primary btn-sm"
                   >
-                    View Certificate Document
+                    Open Certificate
                   </a>
+                </div>
+
+                <div className="border rounded p-2 bg-light mb-3">
+                  {isPdfCertificate(selectedGem) ? (
+                    <PdfViewer url={getCertificateAccessUrl(selectedGem)} />
+                  ) : (
+                    <img
+                      src={selectedGem.certificate.url}
+                      alt="Certificate"
+                      className="w-100 rounded"
+                      style={{ maxHeight: '240px', objectFit: 'contain' }}
+                    />
+                  )}
                 </div>
 
                 <hr className="my-3" />

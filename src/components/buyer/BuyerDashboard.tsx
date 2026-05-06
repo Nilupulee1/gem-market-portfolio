@@ -1,294 +1,613 @@
-import { useMemo, useState } from 'react';
-import { Container, Row, Col, Card, Nav, Button, Table, Form, InputGroup } from 'react-bootstrap';
-import { LayoutDashboard, Gavel, Heart, History, Search, Eye } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Bell,
+  Compass,
+  Gavel,
+  Heart,
+  LayoutDashboard,
+  LogOut,
+  Search,
+  Settings,
+  ShieldCheck,
+  Sparkle,
+  Timer,
+  X,
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { auctionAPI, buyerAPI } from '../../api/axios';
+import { useAuthStore } from '../../store/authStore';
+import type { Auction } from '../../types';
+import logo from '../../assets/logo.png';
+import './BuyerDashboard.css';
 
-type BuyerTab = 'overview' | 'auctions' | 'watchlist' | 'history';
+type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist';
 
-interface WatchlistGem {
-  id: string;
-  name: string;
-  origin: string;
-  currentBid: number;
-  status: 'active' | 'ended';
+interface BuyerStats {
+  auctionsParticipated: number;
+  activeBids: number;
+  wonAuctions: number;
+  totalBidsPlaced: number;
 }
 
-interface BidItem {
-  id: string;
-  gemName: string;
-  amount: number;
-  timeLeft: string;
-  status: 'leading' | 'outbid' | 'won';
+interface BuyerDashboardPayload {
+  stats: BuyerStats;
+  recentBids: Array<{
+    auctionId: string;
+    amount: number;
+    timestamp: string;
+    currentBid: number;
+    isWinning: boolean;
+    endTime: string;
+    gem: Auction['gem'];
+  }>;
+  recentWins: Auction[];
 }
 
-const watchlistData: WatchlistGem[] = [
-  { id: 'g1', name: 'Ceylon Blue Sapphire', origin: 'Sri Lanka', currentBid: 125000, status: 'active' },
-  { id: 'g2', name: 'Colombian Emerald', origin: 'Colombia', currentBid: 98000, status: 'active' },
-  { id: 'g3', name: 'Ruby Pigeon Blood', origin: 'Myanmar', currentBid: 210000, status: 'ended' },
-];
+interface ActiveBidItem {
+  auction: Auction;
+  myHighestBid: number;
+  bidsPlacedByMe: number;
+  isWinning: boolean;
+  remainingTimeMs: number;
+}
 
-const bidData: BidItem[] = [
-  { id: 'b1', gemName: 'Ceylon Blue Sapphire', amount: 125000, timeLeft: '03h 14m', status: 'leading' },
-  { id: 'b2', gemName: 'Padparadscha Sapphire', amount: 89000, timeLeft: '01h 10m', status: 'outbid' },
-  { id: 'b3', gemName: 'Natural Alexandrite', amount: 145000, timeLeft: 'Auction Ended', status: 'won' },
-];
+const watchlistStorageKey = 'buyer-watchlist-auction-ids';
 
 const formatCurrency = (value: number) => `Rs.${value.toLocaleString()}`;
 
+const formatRemaining = (endTime: string) => {
+  const ms = new Date(endTime).getTime() - Date.now();
+  if (ms <= 0) {
+    return 'Ended';
+  }
+
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((ms / (1000 * 60)) % 60);
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  }
+  return `${hours}h ${minutes}m`;
+};
+
+const parseWatchlist = () => {
+  const raw = localStorage.getItem(watchlistStorageKey);
+  if (!raw) {
+    return [] as string[];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveWatchlist = (ids: string[]) => {
+  localStorage.setItem(watchlistStorageKey, JSON.stringify(ids));
+};
+
 const BuyerDashboard = () => {
-  const [activeTab, setActiveTab] = useState<BuyerTab>('overview');
-  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
 
-  const filteredWatchlist = useMemo(
-    () => watchlistData.filter((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase())),
-    [searchTerm]
-  );
+  const [view, setView] = useState<BuyerView>('dashboard');
+  const [query, setQuery] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
 
-  const renderStatus = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <span className="status-pill active">Active</span>;
-      case 'ended':
-        return <span className="status-pill ended">Ended</span>;
-      case 'leading':
-        return <span className="status-pill approved">Leading</span>;
-      case 'outbid':
-        return <span className="status-pill warning">Outbid</span>;
-      case 'won':
-        return <span className="status-pill verified">Won</span>;
-      default:
-        return <span className="status-pill default">-</span>;
+  const [loading, setLoading] = useState(true);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [placingBid, setPlacingBid] = useState(false);
+
+  const [allAuctions, setAllAuctions] = useState<Auction[]>([]);
+  const [dashboard, setDashboard] = useState<BuyerDashboardPayload | null>(null);
+  const [activeBids, setActiveBids] = useState<ActiveBidItem[]>([]);
+  const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
+
+  const [watchlistIds, setWatchlistIds] = useState<string[]>(parseWatchlist);
+
+  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
+  const [bidAmount, setBidAmount] = useState('');
+  const isBuyerAccount = user?.role === 'buyer';
+
+  const refreshData = async () => {
+    if (!isBuyerAccount) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const [activeRes, dashboardRes, activeBidsRes, wonRes] = await Promise.all([
+        auctionAPI.getActiveAuctions(),
+        buyerAPI.getDashboard(),
+        buyerAPI.getActiveBids(),
+        buyerAPI.getWonAuctions(),
+      ]);
+
+      setAllAuctions(activeRes.data.auctions || []);
+      setDashboard(dashboardRes.data);
+      setActiveBids(activeBidsRes.data.activeBids || []);
+      setWonAuctions(wonRes.data.wonAuctions || []);
+    } catch (error) {
+      console.error('Failed to load buyer dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'auctions':
-        return (
-          <Card className="content-card animate-fade-up">
-            <Card.Body className="p-4">
-              <div className="dashboard-title">
-                <h4 className="fw-bold">Live Auctions</h4>
-                <p>Track your bids and current auction positions in real time.</p>
-              </div>
-              <div className="table-responsive">
-                <Table hover className="align-middle surface-table mb-0">
-                  <thead>
-                    <tr>
-                      <th>Auction</th>
-                      <th>Your Bid</th>
-                      <th>Time Remaining</th>
-                      <th>Status</th>
-                      <th className="text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bidData.map((bid) => (
-                      <tr key={bid.id}>
-                        <td className="fw-semibold">{bid.gemName}</td>
-                        <td>{formatCurrency(bid.amount)}</td>
-                        <td>{bid.timeLeft}</td>
-                        <td>{renderStatus(bid.status)}</td>
-                        <td className="text-center">
-                          <Button size="sm" variant="outline-primary">
-                            <Eye size={14} className="me-1" />
-                            View
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-            </Card.Body>
-          </Card>
-        );
-      case 'watchlist':
-        return (
-          <Card className="content-card animate-fade-up">
-            <Card.Body className="p-4">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <div className="dashboard-title mb-0">
-                  <h4 className="fw-bold">Watchlist</h4>
-                  <p>Curated gems you are tracking before placing bids.</p>
-                </div>
-                <InputGroup style={{ maxWidth: '320px' }}>
-                  <InputGroup.Text className="bg-white">
-                    <Search size={16} />
-                  </InputGroup.Text>
-                  <Form.Control
-                    placeholder="Search watchlist"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </InputGroup>
-              </div>
-              <Row className="g-3">
-                {filteredWatchlist.map((item) => (
-                  <Col md={6} xl={4} key={item.id}>
-                    <Card className="surface-muted h-100">
-                      <Card.Body>
-                        <h6 className="fw-semibold mb-2">{item.name}</h6>
-                        <small className="text-muted d-block mb-1">Origin: {item.origin}</small>
-                        <small className="text-muted d-block mb-3">Current Bid: {formatCurrency(item.currentBid)}</small>
-                        <div className="d-flex justify-content-between align-items-center">
-                          {renderStatus(item.status)}
-                          <Button size="sm" variant="outline-primary">Open</Button>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            </Card.Body>
-          </Card>
-        );
-      case 'history':
-        return (
-          <Card className="content-card animate-fade-up">
-            <Card.Body className="p-4">
-              <div className="dashboard-title">
-                <h4 className="fw-bold">Transaction History</h4>
-                <p>View your concluded auctions and purchase records.</p>
-              </div>
-              <div className="table-responsive">
-                <Table hover className="align-middle surface-table mb-0">
-                  <thead>
-                    <tr>
-                      <th>Gemstone</th>
-                      <th>Final Amount</th>
-                      <th>Result</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Natural Alexandrite</td>
-                      <td>{formatCurrency(145000)}</td>
-                      <td>{renderStatus('won')}</td>
-                      <td>Apr 09, 2026</td>
-                    </tr>
-                    <tr>
-                      <td>Madagascar Ruby</td>
-                      <td>{formatCurrency(110000)}</td>
-                      <td>{renderStatus('outbid')}</td>
-                      <td>Apr 03, 2026</td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </div>
-            </Card.Body>
-          </Card>
-        );
-      default:
-        return (
-          <>
-            <div className="dashboard-title animate-fade-up">
-              <h4 className="fw-bold">Buyer Overview</h4>
-              <p>Monitor bids, watchlist opportunities, and active auctions from one workspace.</p>
-            </div>
-            <Row className="g-4 mb-4">
-              <Col md={4}>
-                <Card className="stat-card h-100 animate-fade-up delay-1">
-                  <Card.Body>
-                    <small className="text-muted">Active Bids</small>
-                    <h3 className="mb-1 mt-2">8</h3>
-                    <span className="status-pill approved">2 Leading</span>
-                  </Card.Body>
-                </Card>
-              </Col>
-              <Col md={4}>
-                <Card className="stat-card h-100 animate-fade-up delay-2">
-                  <Card.Body>
-                    <small className="text-muted">Watchlist Gems</small>
-                    <h3 className="mb-1 mt-2">14</h3>
-                    <span className="status-pill info">5 Ending Soon</span>
-                  </Card.Body>
-                </Card>
-              </Col>
-              <Col md={4}>
-                <Card className="stat-card h-100 animate-fade-up delay-3">
-                  <Card.Body>
-                    <small className="text-muted">Completed Purchases</small>
-                    <h3 className="mb-1 mt-2">6</h3>
-                    <span className="status-pill verified">Verified Receipts</span>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
+  useEffect(() => {
+    refreshData();
+  }, [isBuyerAccount]);
 
-            <Card className="content-card animate-fade-up">
-              <Card.Body className="p-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="mb-0">Recent Bid Activity</h5>
-                  <Button variant="outline-primary" size="sm" onClick={() => setActiveTab('auctions')}>
-                    View All
-                  </Button>
+  const uniqueTypes = useMemo(() => {
+    const typeSet = new Set(allAuctions.map((item) => item.gem.type));
+    return ['all', ...Array.from(typeSet)];
+  }, [allAuctions]);
+
+  const filteredAuctions = useMemo(() => {
+    return allAuctions.filter((item) => {
+      const queryValue = query.trim().toLowerCase();
+      const matchesQuery =
+        queryValue.length === 0 ||
+        item.gem.type.toLowerCase().includes(queryValue) ||
+        item.gem.origin.toLowerCase().includes(queryValue) ||
+        item.gem.color.toLowerCase().includes(queryValue);
+      const matchesType = selectedType === 'all' || item.gem.type === selectedType;
+      return matchesQuery && matchesType;
+    });
+  }, [allAuctions, query, selectedType]);
+
+  const watchedAuctions = useMemo(
+    () => allAuctions.filter((item) => watchlistIds.includes(item._id)),
+    [allAuctions, watchlistIds]
+  );
+
+  const toggleWatchlist = (auctionId: string) => {
+    const updated = watchlistIds.includes(auctionId)
+      ? watchlistIds.filter((id) => id !== auctionId)
+      : [...watchlistIds, auctionId];
+    setWatchlistIds(updated);
+    saveWatchlist(updated);
+  };
+
+  const openDetails = async (auctionId: string) => {
+    try {
+      setLoadingDetails(true);
+      const response = await auctionAPI.getAuctionById(auctionId);
+      setSelectedAuction(response.data.auction);
+      const minBid = response.data.auction.currentBid + response.data.auction.minimumBidIncrement;
+      setBidAmount(String(minBid));
+    } catch (error) {
+      console.error('Failed to fetch auction details:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const closeDetails = () => {
+    setSelectedAuction(null);
+    setBidAmount('');
+  };
+
+  const placeBid = async () => {
+    if (!selectedAuction) {
+      return;
+    }
+
+    const amount = Number(bidAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return;
+    }
+
+    try {
+      setPlacingBid(true);
+      await auctionAPI.placeBid({ auctionId: selectedAuction._id, amount });
+      await openDetails(selectedAuction._id);
+      await refreshData();
+    } catch (error) {
+      console.error('Failed to place bid:', error);
+    } finally {
+      setPlacingBid(false);
+    }
+  };
+
+  const handleSignOut = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const renderDashboard = () => {
+    const stats = dashboard?.stats;
+
+    return (
+      <>
+        <div className="section-head">
+          <div>
+            <h3>Welcome back, {user?.name?.split(' ')[0]}!</h3>
+            <p className="mb-0 text-secondary">You have {stats?.activeBids || 0} active bids</p>
+          </div>
+        </div>
+
+        <div className="buyer-grid3">
+          <article className="quick-card">
+            <div className="quick-icon"><Gavel size={18} /></div>
+            <div>View Bids</div>
+            <strong>{stats?.totalBidsPlaced || 0} bids</strong>
+          </article>
+          <article className="quick-card">
+            <div className="quick-icon"><Heart size={18} /></div>
+            <div>My Watchlist</div>
+            <strong>{watchlistIds.length} items</strong>
+          </article>
+          <article className="quick-card">
+            <div className="quick-icon"><Sparkle size={18} /></div>
+            <div>Recent Dealings</div>
+            <strong>{stats?.wonAuctions || 0} wins</strong>
+          </article>
+        </div>
+
+        <section className="block-card">
+          <div className="section-head">
+            <h3>Your Watched Auctions</h3>
+            <button type="button" onClick={() => setView('watchlist')}>View All</button>
+          </div>
+          {watchedAuctions.length === 0 ? (
+            <p className="empty-note">No watched auctions yet. Add some from Marketplace.</p>
+          ) : (
+            watchedAuctions.slice(0, 3).map((auction) => (
+              <div key={auction._id} className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2">
+                <div className="d-flex align-items-center gap-2">
+                  <img src={auction.gem.images[0]} alt={auction.gem.type} width={52} height={42} style={{ objectFit: 'cover', borderRadius: 8 }} />
+                  <div>
+                    <strong>{auction.gem.type}</strong>
+                    <p className="m-0 text-secondary">{auction.gem.carat} ct</p>
+                  </div>
                 </div>
-                <div className="table-responsive">
-                  <Table hover className="align-middle surface-table mb-0">
-                    <thead>
-                      <tr>
-                        <th>Gemstone</th>
-                        <th>Your Bid</th>
-                        <th>Time Left</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bidData.slice(0, 3).map((bid) => (
-                        <tr key={bid.id}>
-                          <td className="fw-semibold">{bid.gemName}</td>
-                          <td>{formatCurrency(bid.amount)}</td>
-                          <td>{bid.timeLeft}</td>
-                          <td>{renderStatus(bid.status)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                <div className="text-end">
+                  <p className="m-0 text-secondary small">Current Bid</p>
+                  <strong>{formatCurrency(auction.currentBid)}</strong>
                 </div>
-              </Card.Body>
-            </Card>
-          </>
-        );
+              </div>
+            ))
+          )}
+        </section>
+
+        <section className="block-card">
+          <div className="section-head">
+            <h3>Pick Up Where You Left Off</h3>
+            <button type="button" onClick={() => setView('marketplace')}>View All</button>
+          </div>
+          <div className="market-grid">
+            {filteredAuctions.slice(0, 3).map((auction) => (
+              <article className="market-card" key={auction._id}>
+                <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
+                <div className="market-body">
+                  <strong>{auction.gem.type}</strong>
+                  <p className="market-meta">{auction.gem.origin}</p>
+                  <div className="bid-price">{formatCurrency(auction.currentBid)}</div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </>
+    );
+  };
+
+  const renderMarketplace = () => (
+    <>
+      <div className="section-head">
+        <div>
+          <h3>Browse Gems</h3>
+          <p className="mb-0 text-secondary">Showing {filteredAuctions.length} gems</p>
+        </div>
+      </div>
+
+      <div className="control-row">
+        <input
+          className="buyer-search"
+          placeholder="Search gems..."
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)}>
+          {uniqueTypes.map((type) => (
+            <option key={type} value={type}>{type === 'all' ? 'All Types' : type}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="market-grid">
+        {filteredAuctions.map((auction) => {
+          const inWatchlist = watchlistIds.includes(auction._id);
+          return (
+            <motion.article key={auction._id} whileHover={{ y: -5 }} className="market-card">
+              <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
+              <div className="market-body">
+                <strong>{auction.gem.type}</strong>
+                <p className="market-meta">{auction.gem.origin} - {auction.gem.carat} ct</p>
+                <p className="market-meta">{auction.gem.cut} - {auction.gem.color}</p>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="bid-price">{formatCurrency(auction.currentBid)}</span>
+                  <span className="text-secondary small"><Timer size={14} /> {formatRemaining(auction.endTime)}</span>
+                </div>
+                <div className="d-flex gap-2">
+                  <button className="watch-btn" type="button" onClick={() => toggleWatchlist(auction._id)}>
+                    <Heart size={15} fill={inWatchlist ? 'currentColor' : 'none'} /> {inWatchlist ? 'Watched' : 'Watch'}
+                  </button>
+                  <button className="bid-btn" type="button" onClick={() => openDetails(auction._id)}>Open</button>
+                </div>
+              </div>
+            </motion.article>
+          );
+        })}
+      </div>
+    </>
+  );
+
+  const renderAuctions = () => (
+    <>
+      <div className="section-head">
+        <h3>My Auction Activity</h3>
+      </div>
+
+      <section className="block-card">
+        <h5 className="mb-3">Active Bids</h5>
+        {activeBids.length === 0 ? (
+          <p className="empty-note">You have no active bids at the moment.</p>
+        ) : (
+          activeBids.map((item) => (
+            <div key={item.auction._id} className="d-flex justify-content-between border rounded-3 p-2 mb-2">
+              <div>
+                <strong>{item.auction.gem.type}</strong>
+                <p className="m-0 text-secondary">Highest by you: {formatCurrency(item.myHighestBid)}</p>
+                <small className={item.isWinning ? 'text-success' : 'text-danger'}>{item.isWinning ? 'Currently Leading' : 'Outbid'}</small>
+              </div>
+              <div className="text-end">
+                <p className="m-0">{formatCurrency(item.auction.currentBid)}</p>
+                <small className="text-secondary">{formatRemaining(item.auction.endTime)}</small>
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+
+      <section className="block-card">
+        <h5 className="mb-3">Won Auctions</h5>
+        {wonAuctions.length === 0 ? (
+          <p className="empty-note">No won auctions yet.</p>
+        ) : (
+          wonAuctions.map((auction) => (
+            <div key={auction._id} className="d-flex justify-content-between border rounded-3 p-2 mb-2">
+              <div>
+                <strong>{auction.gem.type}</strong>
+                <p className="m-0 text-secondary">Seller: {auction.seller.name}</p>
+              </div>
+              <div className="text-end">
+                <strong>{formatCurrency(auction.currentBid)}</strong>
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+    </>
+  );
+
+  const renderWatchlist = () => (
+    <>
+      <div className="section-head">
+        <div>
+          <h3>My Watchlist</h3>
+          <p className="mb-0 text-secondary">{watchedAuctions.length} gems in your watchlist</p>
+        </div>
+      </div>
+      <div className="market-grid">
+        {watchedAuctions.map((auction) => (
+          <article className="market-card" key={auction._id}>
+            <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
+            <div className="market-body">
+              <strong>{auction.gem.type}</strong>
+              <p className="market-meta">{auction.gem.origin} � {auction.gem.carat} ct</p>
+              <p className="market-meta">Current Bid</p>
+              <div className="bid-price">{formatCurrency(auction.currentBid)}</div>
+              <div className="d-flex gap-2 mt-2">
+                <button className="alert-btn" type="button" onClick={() => toggleWatchlist(auction._id)}>
+                  <X size={15} /> Remove
+                </button>
+                <button className="bid-btn" type="button" onClick={() => openDetails(auction._id)}>
+                  Open
+                </button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      {watchedAuctions.length === 0 && <p className="empty-note">No items in watchlist.</p>}
+    </>
+  );
+
+  const renderBody = () => {
+    if (!isBuyerAccount) {
+      return (
+        <div className="block-card p-4">
+          <h3 className="mb-2">Buyer access required</h3>
+          <p className="text-secondary mb-0">
+            You are currently signed in as <strong>{user?.role || 'unknown'}</strong>. Switch to a buyer account to view dashboard data, active bids, and won auctions.
+          </p>
+        </div>
+      );
+    }
+
+    if (loading) {
+      return <p className="empty-note">Loading buyer workspace...</p>;
+    }
+
+    switch (view) {
+      case 'marketplace':
+        return renderMarketplace();
+      case 'auctions':
+        return renderAuctions();
+      case 'watchlist':
+        return renderWatchlist();
+      default:
+        return renderDashboard();
     }
   };
 
   return (
-    <Container fluid className="dashboard-shell">
-      <Row className="g-0">
-        <Col lg={2} className="pe-lg-3">
-          <Card className="sidebar-card mb-4">
-            <Card.Body className="text-center py-4">
-              <div
-                className="rounded-circle bg-primary bg-opacity-10 mx-auto mb-3 d-flex align-items-center justify-content-center"
-                style={{ width: '80px', height: '80px' }}
-              >
-                <span className="display-6">💎</span>
+    <div className="buyer-shell">
+      <aside className="buyer-sidebar">
+        <div className="buyer-brand">
+          <img src={logo} alt="GemFolio" />
+          <h1>GemFolio</h1>
+        </div>
+
+        <div className="buyer-profile">
+          <div className="buyer-avatar">{user?.name?.slice(0, 1).toUpperCase() || 'B'}</div>
+          <div>
+            <strong>{user?.name || 'Buyer'}</strong>
+            <p className="buyer-role">Buyer</p>
+          </div>
+        </div>
+
+        <nav className="buyer-nav">
+          <button type="button" className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>
+            <LayoutDashboard size={16} /> Dashboard
+          </button>
+          <button type="button" className={view === 'marketplace' ? 'active' : ''} onClick={() => setView('marketplace')}>
+            <Compass size={16} /> Marketplace
+          </button>
+          <button type="button" className={view === 'auctions' ? 'active' : ''} onClick={() => setView('auctions')}>
+            <Gavel size={16} /> Auctions
+          </button>
+          <button type="button" className={view === 'watchlist' ? 'active' : ''} onClick={() => setView('watchlist')}>
+            <Heart size={16} /> My Watchlist
+          </button>
+        </nav>
+
+        <div className="buyer-sidebar-bottom">
+          <button type="button" className="ghost-btn w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+            <Settings size={16} /> Settings
+          </button>
+          <button type="button" className="alert-btn w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
+            <LogOut size={16} /> Sign Out
+          </button>
+        </div>
+      </aside>
+
+      <main className="buyer-content">
+        <div className="buyer-topbar">
+          <input
+            className="buyer-search"
+            placeholder="Search for gems, auctions..."
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button className="ghost-btn" type="button"><Search size={16} /></button>
+          <button className="ghost-btn" type="button"><Bell size={16} /></button>
+          <button className="ghost-btn" type="button"><ShieldCheck size={16} /></button>
+        </div>
+
+        {renderBody()}
+      </main>
+
+      {(selectedAuction || loadingDetails) && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-sheet">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <strong>{selectedAuction?.gem.type || 'Loading details...'}</strong>
+              <button className="ghost-btn" type="button" onClick={closeDetails}><X size={15} /></button>
+            </div>
+
+            {loadingDetails || !selectedAuction ? (
+              <p className="empty-note">Loading auction details...</p>
+            ) : (
+              <div className="modal-grid">
+                <div>
+                  <img className="modal-photo" src={selectedAuction.gem.images[0]} alt={selectedAuction.gem.type} />
+                  <div className="metric-row mt-2">
+                    <div className="metric">
+                      <p>Certified Authentic</p>
+                      <strong>{selectedAuction.gem.certificate.authority}</strong>
+                    </div>
+                    <div className="metric">
+                      <p>Certificate No</p>
+                      <strong>{selectedAuction.gem.certificate.certificateNumber}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="metric-row">
+                    <div className="metric"><p>Carat</p><strong>{selectedAuction.gem.carat} ct</strong></div>
+                    <div className="metric"><p>Cut</p><strong>{selectedAuction.gem.cut}</strong></div>
+                    <div className="metric"><p>Color</p><strong>{selectedAuction.gem.color}</strong></div>
+                    <div className="metric"><p>Origin</p><strong>{selectedAuction.gem.origin}</strong></div>
+                  </div>
+
+                  <p className="text-secondary">{selectedAuction.gem.description}</p>
+
+                  <section className="block-card">
+                    <p className="m-0 text-secondary">Current Bid</p>
+                    <div className="bid-price">{formatCurrency(selectedAuction.currentBid)}</div>
+                    <p className="text-secondary small">
+                      Minimum increment: {formatCurrency(selectedAuction.minimumBidIncrement)}
+                    </p>
+
+                    <div className="d-flex gap-2">
+                      <input
+                        className="buyer-search"
+                        value={bidAmount}
+                        onChange={(event) => setBidAmount(event.target.value)}
+                        type="number"
+                        min={selectedAuction.currentBid + selectedAuction.minimumBidIncrement}
+                      />
+                      <button className="bid-btn" type="button" disabled={placingBid} onClick={placeBid}>
+                        {placingBid ? 'Placing...' : 'Place Bid'}
+                      </button>
+                    </div>
+
+                    <div className="d-flex gap-2 mt-2">
+                      <button
+                        className="ghost-btn flex-fill"
+                        type="button"
+                        onClick={() => setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement))}
+                      >
+                        Min Bid
+                      </button>
+                      <button
+                        className="ghost-btn flex-fill"
+                        type="button"
+                        onClick={() => setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement * 2))}
+                      >
+                        +2x Increment
+                      </button>
+                    </div>
+                  </section>
+
+                  <section className="block-card">
+                    <h6>Bid History</h6>
+                    {selectedAuction.bids.length === 0 ? (
+                      <p className="text-secondary mb-0">No bids yet.</p>
+                    ) : (
+                      selectedAuction.bids.slice().reverse().slice(0, 5).map((bid, index) => (
+                        <div key={`${bid.timestamp}-${index}`} className="d-flex justify-content-between border-bottom py-2">
+                          <span>{bid.bidder.name}</span>
+                          <strong>{formatCurrency(bid.amount)}</strong>
+                        </div>
+                      ))
+                    )}
+                  </section>
+                </div>
               </div>
-              <h6 className="mb-1">Buyer Workspace</h6>
-              <span className="profile-chip">Verified Buyer</span>
-            </Card.Body>
-          </Card>
-
-          <Nav className="flex-column">
-            <Nav.Link className={`sidebar-nav-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
-              <LayoutDashboard size={18} /> Overview
-            </Nav.Link>
-            <Nav.Link className={`sidebar-nav-link ${activeTab === 'auctions' ? 'active' : ''}`} onClick={() => setActiveTab('auctions')}>
-              <Gavel size={18} /> Live Auctions
-            </Nav.Link>
-            <Nav.Link className={`sidebar-nav-link ${activeTab === 'watchlist' ? 'active' : ''}`} onClick={() => setActiveTab('watchlist')}>
-              <Heart size={18} /> Watchlist
-            </Nav.Link>
-            <Nav.Link className={`sidebar-nav-link ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
-              <History size={18} /> History
-            </Nav.Link>
-          </Nav>
-        </Col>
-
-        <Col lg={10}>{renderContent()}</Col>
-      </Row>
-    </Container>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

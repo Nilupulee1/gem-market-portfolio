@@ -55,6 +55,16 @@ export const gemAPI = {
   getApprovedGems: (params?: Record<string, string | number>) =>
   axiosInstance.get('/gems/approved', { params }),
   getGemById: (id: string) => axiosInstance.get(`/gems/${id}`),
+  updateGem: (id: string, data: Partial<{
+    type: string;
+    carat: number;
+    cut: string;
+    clarity: string;
+    color: string;
+    origin: string;
+    description: string;
+  }>) => axiosInstance.patch(`/gems/${id}`, data),
+  deleteGem: (id: string) => axiosInstance.delete(`/gems/${id}`),
 };
 
 export const auctionAPI = {
@@ -75,4 +85,11 @@ export const adminAPI = {
     axiosInstance.post('/admin/gems/review', data),
   getAllUsers: () => axiosInstance.get('/admin/users'),
   getStatistics: () => axiosInstance.get('/admin/statistics'),
+};
+
+export const buyerAPI = {
+  getDashboard: () => axiosInstance.get('/buyer/dashboard'),
+  getBidHistory: () => axiosInstance.get('/buyer/bid-history'),
+  getActiveBids: () => axiosInstance.get('/buyer/active-bids'),
+  getWonAuctions: () => axiosInstance.get('/buyer/won-auctions'),
 };

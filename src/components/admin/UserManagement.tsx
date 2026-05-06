@@ -1,6 +1,28 @@
-import { useState, useEffect } from 'react';
-import { Card, Table, Button, Modal, Form, InputGroup } from 'react-bootstrap';
-import { Search, UserX, UserCheck } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Avatar,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Chip,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Select,
+  SelectItem,
+  Spinner,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
+} from '@nextui-org/react';
+import { Search, UserX, UserCheck, Users } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
 import type { AdminUser } from '../../types/admin';
 
@@ -33,32 +55,28 @@ const UserManagement = () => {
     setShowDetailsModal(true);
   };
 
-  const getRoleBadge = (role: string) => {
+  const getRoleChip = (role: string) => {
     switch (role) {
       case 'admin':
-        return <span className="status-pill danger">Admin</span>;
+        return <Chip color="danger" variant="flat" size="sm">Admin</Chip>;
       case 'seller':
-        return <span className="status-pill info">Seller</span>;
+        return <Chip color="primary" variant="flat" size="sm">Seller</Chip>;
       case 'buyer':
-        return <span className="status-pill verified">Buyer</span>;
+        return <Chip color="success" variant="flat" size="sm">Buyer</Chip>;
       default:
-        return <span className="status-pill default text-capitalize">{role}</span>;
+        return <Chip variant="flat" size="sm" className="capitalize">{role}</Chip>;
     }
   };
 
-  const getStatusBadge = (isVerified: boolean) => {
-    return isVerified ? (
-      <span className="status-pill verified">
-        <UserCheck size={14} className="me-1" />
-        Verified
-      </span>
-    ) : (
-      <span className="status-pill warning">
-        <UserX size={14} className="me-1" />
-        Unverified
-      </span>
-    );
+  const getStatusChip = (isVerified: boolean) => {
+    return isVerified ? <Chip color="success" variant="dot" size="sm">Verified</Chip> : <Chip color="warning" variant="dot" size="sm">Unverified</Chip>;
   };
+
+  const stats = useMemo(() => ({
+    sellers: users.filter((user) => user.role === 'seller').length,
+    buyers: users.filter((user) => user.role === 'buyer').length,
+    admins: users.filter((user) => user.role === 'admin').length,
+  }), [users]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -77,177 +95,194 @@ const UserManagement = () => {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <div className="dashboard-title animate-fade-up">
         <h4 className="fw-bold">User Management</h4>
         <p>Manage all registered users on the platform</p>
       </div>
 
-      <Card className="content-card animate-fade-up delay-1">
-        <Card.Body className="p-4">
-          <div className="d-flex gap-3 mb-4">
-            <InputGroup style={{ maxWidth: '400px' }}>
-              <InputGroup.Text className="bg-white">
-                <Search size={18} className="text-muted" />
-              </InputGroup.Text>
-              <Form.Control
-                placeholder="Search by name or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </InputGroup>
+      <div className="grid gap-4 md:grid-cols-3 animate-fade-up delay-1">
+        <Card className="content-card">
+          <CardBody className="flex items-center gap-3 p-4">
+            <div className="rounded-2xl bg-primary/10 p-3 text-primary">
+              <Users size={20} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm text-muted-foreground">Total Users</p>
+              <h5 className="mb-0 fw-bold">{users.length}</h5>
+            </div>
+          </CardBody>
+        </Card>
+        <Card className="content-card">
+          <CardBody className="flex items-center gap-3 p-4">
+            <div className="rounded-2xl bg-success/10 p-3 text-success">
+              <UserCheck size={20} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm text-muted-foreground">Verified</p>
+              <h5 className="mb-0 fw-bold">{users.filter((user) => user.isVerified).length}</h5>
+            </div>
+          </CardBody>
+        </Card>
+        <Card className="content-card">
+          <CardBody className="flex items-center gap-3 p-4">
+            <div className="rounded-2xl bg-warning/10 p-3 text-warning-600">
+              <UserX size={20} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm text-muted-foreground">Pending Verification</p>
+              <h5 className="mb-0 fw-bold">{users.filter((user) => !user.isVerified).length}</h5>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
 
-            <Form.Select 
-              style={{ width: 'auto' }}
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-            >
-              <option value="all">All Roles</option>
-              <option value="admin">Admin</option>
-              <option value="seller">Seller</option>
-              <option value="buyer">Buyer</option>
-            </Form.Select>
+      <Card className="content-card animate-fade-up delay-2">
+        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between p-4 pb-0">
+          <div>
+            <p className="mb-1 text-sm text-muted-foreground">Directory</p>
+            <h5 className="mb-0 fw-bold">Registered accounts</h5>
           </div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center w-full md:w-auto">
+            <Input
+              aria-label="Search users"
+              placeholder="Search by name or email"
+              value={searchTerm}
+              onValueChange={setSearchTerm}
+              startContent={<Search size={16} className="text-muted-foreground" />}
+              className="md:min-w-[280px]"
+              variant="bordered"
+            />
+            <Select
+              aria-label="Filter users by role"
+              selectedKeys={[filterRole]}
+              onSelectionChange={(keys) => setFilterRole(String(Array.from(keys)[0] ?? 'all'))}
+              className="md:w-48"
+              variant="bordered"
+              defaultSelectedKeys={["all"]}
+            >
+              <SelectItem key="all">All Roles</SelectItem>
+              <SelectItem key="admin">Admin</SelectItem>
+              <SelectItem key="seller">Seller</SelectItem>
+              <SelectItem key="buyer">Buyer</SelectItem>
+            </Select>
+          </div>
+        </CardHeader>
 
+        <CardBody className="p-4 pt-2">
           {loading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
+            <div className="flex items-center justify-center py-16">
+              <Spinner color="primary" size="lg" label="Loading users" />
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-5">
-              <p className="text-muted">No users found</p>
+            <div className="py-16 text-center text-muted-foreground">
+              No users found
             </div>
           ) : (
-            <div className="table-responsive">
-              <Table hover className="align-middle surface-table">
-                <thead>
-                  <tr>
-                    <th className="border-0 py-3">User</th>
-                    <th className="border-0 py-3">Email</th>
-                    <th className="border-0 py-3">Role</th>
-                    <th className="border-0 py-3">Status</th>
-                    <th className="border-0 py-3">Joined</th>
-                    <th className="border-0 py-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((user) => (
-                    <tr key={user._id}>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <div 
-                            className="rounded-circle bg-primary bg-opacity-10 me-3 d-flex align-items-center justify-content-center"
-                            style={{ width: '40px', height: '40px' }}
-                          >
-                            <span className="fw-bold text-primary">
-                              {user.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="fw-semibold">{user.name}</div>
+            <Table
+              aria-label="Registered users"
+              removeWrapper
+              classNames={{ th: 'bg-default-100 text-foreground font-semibold' }}
+            >
+              <TableHeader>
+                <TableColumn>USER</TableColumn>
+                <TableColumn>EMAIL</TableColumn>
+                <TableColumn>ROLE</TableColumn>
+                <TableColumn>STATUS</TableColumn>
+                <TableColumn>JOINED</TableColumn>
+                <TableColumn className="text-center">ACTIONS</TableColumn>
+              </TableHeader>
+              <TableBody items={filteredUsers} emptyContent="No users found">
+                {(user) => (
+                  <TableRow key={user._id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={user.name} size="sm" className="flex-shrink-0" />
+                        <div>
+                          <p className="mb-0 fw-semibold">{user.name}</p>
+                          <p className="mb-0 text-xs text-muted-foreground">{user._id}</p>
                         </div>
-                      </td>
-                      <td>{user.email}</td>
-                      <td>{getRoleBadge(user.role)}</td>
-                      <td>{getStatusBadge(user.isVerified)}</td>
-                      <td>
-                        <small>{formatDate(user.createdAt)}</small>
-                      </td>
-                      <td className="text-center">
-                        <Button 
-                          variant="outline-primary" 
-                          size="sm"
-                          onClick={() => handleViewUser(user)}
-                        >
-                          View Details
+                      </div>
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{getRoleChip(user.role)}</TableCell>
+                    <TableCell>{getStatusChip(user.isVerified)}</TableCell>
+                    <TableCell>{formatDate(user.createdAt)}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-center">
+                        <Button color="primary" variant="flat" size="sm" onPress={() => handleViewUser(user)}>
+                          View details
                         </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           )}
 
-          <div className="mt-3 d-flex justify-content-between align-items-center">
-            <small className="text-muted">
+          <div className="mt-4 flex flex-col gap-3 border-t pt-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+            <span>
               Showing {filteredUsers.length} of {users.length} users
-            </small>
-            <div className="d-flex gap-2">
-              <span className="status-pill info">
-                Sellers: {users.filter(u => u.role === 'seller').length}
-              </span>
-              <span className="status-pill verified">
-                Buyers: {users.filter(u => u.role === 'buyer').length}
-              </span>
-              <span className="status-pill danger">
-                Admins: {users.filter(u => u.role === 'admin').length}
-              </span>
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Chip variant="flat" color="primary">Sellers: {stats.sellers}</Chip>
+              <Chip variant="flat" color="success">Buyers: {stats.buyers}</Chip>
+              <Chip variant="flat" color="danger">Admins: {stats.admins}</Chip>
             </div>
           </div>
-        </Card.Body>
+        </CardBody>
       </Card>
 
-      <Modal 
-        show={showDetailsModal} 
-        onHide={() => setShowDetailsModal(false)}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>User Details</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedUser && (
-            <div>
-              <div className="text-center mb-4">
-                <div 
-                  className="rounded-circle bg-primary bg-opacity-10 mx-auto mb-3 d-flex align-items-center justify-content-center"
-                  style={{ width: '80px', height: '80px' }}
-                >
-                  <span className="display-6 fw-bold text-primary">
-                    {selectedUser.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <h5 className="mb-1">{selectedUser.name}</h5>
-                <p className="text-muted mb-2">{selectedUser.email}</p>
-                <div className="d-flex gap-2 justify-content-center">
-                  {getRoleBadge(selectedUser.role)}
-                  {getStatusBadge(selectedUser.isVerified)}
-                </div>
-              </div>
+      <Modal isOpen={showDetailsModal} onOpenChange={setShowDetailsModal} placement="center">
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">User Details</ModalHeader>
+              <ModalBody>
+                {selectedUser && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <Avatar name={selectedUser.name} size="lg" className="h-20 w-20 text-xl" />
+                      <div>
+                        <h5 className="mb-1 fw-bold">{selectedUser.name}</h5>
+                        <p className="mb-2 text-muted-foreground">{selectedUser.email}</p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {getRoleChip(selectedUser.role)}
+                          {getStatusChip(selectedUser.isVerified)}
+                        </div>
+                      </div>
+                    </div>
 
-              <hr />
-
-              <div className="mb-3">
-                <strong>User ID:</strong>
-                <p className="text-muted small mb-0">{selectedUser._id}</p>
-              </div>
-
-              <div className="mb-3">
-                <strong>Joined:</strong>
-                <p className="text-muted mb-0">{formatDate(selectedUser.createdAt)}</p>
-              </div>
-
-              <div className="mb-3">
-                <strong>Account Type:</strong>
-                <p className="text-muted mb-0 text-capitalize">{selectedUser.role}</p>
-              </div>
-
-              <div className="mb-3">
-                <strong>Verification Status:</strong>
-                <p className="text-muted mb-0">
-                  {selectedUser.isVerified ? 'Verified Account' : 'Unverified Account'}
-                </p>
-              </div>
-            </div>
+                    <div className="grid gap-3 rounded-2xl border bg-default-50 p-4 text-sm">
+                      <div>
+                        <p className="mb-1 text-muted-foreground">User ID</p>
+                        <p className="mb-0 break-all">{selectedUser._id}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-muted-foreground">Joined</p>
+                        <p className="mb-0">{formatDate(selectedUser.createdAt)}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-muted-foreground">Account Type</p>
+                        <p className="mb-0 capitalize">{selectedUser.role}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-muted-foreground">Verification Status</p>
+                        <p className="mb-0">{selectedUser.isVerified ? 'Verified Account' : 'Unverified Account'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button color="primary" variant="flat" onPress={onClose}>
+                  Close
+                </Button>
+              </ModalFooter>
+            </>
           )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
+        </ModalContent>
       </Modal>
     </div>
   );

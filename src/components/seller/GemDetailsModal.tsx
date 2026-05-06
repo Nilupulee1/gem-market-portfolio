@@ -1,5 +1,6 @@
 import { Modal, Button, Row, Col, Badge } from 'react-bootstrap';
 import type { Gem } from '../../types';
+import PdfViewer from '../common/PdfViewer';
 
 interface GemDetailsModalProps {
   show: boolean;
@@ -9,6 +10,14 @@ interface GemDetailsModalProps {
 
 const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
   if (!gem) return null;
+
+  const certificateUrl = gem.certificate?.url || '';
+  const certificateAccessUrl = gem.certificate?.accessUrl || certificateUrl;
+  const normalizedUrl = certificateUrl.toLowerCase();
+  const isPdfCertificate =
+    gem.certificate?.mimeType === 'application/pdf' ||
+    normalizedUrl.includes('.pdf') ||
+    normalizedUrl.includes('application/pdf');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -90,14 +99,28 @@ const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
               <div className="mb-2">
                 <strong>Certificate Number:</strong> {gem.certificate.certificateNumber}
               </div>
-              <a 
-                href={gem.certificate.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn btn-outline-primary btn-sm"
-              >
-                View Certificate
-              </a>
+              <div className="border rounded p-2 bg-light mt-3">
+                {isPdfCertificate ? (
+                  <PdfViewer url={certificateAccessUrl} />
+                ) : (
+                  <img
+                    src={certificateAccessUrl}
+                    alt="Certificate"
+                    className="w-100 rounded"
+                    style={{ maxHeight: '240px', objectFit: 'contain' }}
+                  />
+                )}
+              </div>
+              <div className="mt-2">
+                <a
+                  href={certificateAccessUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline-primary btn-sm"
+                >
+                  Open Certificate
+                </a>
+              </div>
             </div>
 
             {gem.adminFeedback && (
