@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Row, Col, Card, Button, Form, Table, InputGroup, Pagination, Modal } from 'react-bootstrap';
-import { Search, Download, Plus, Eye, Trash2 } from 'lucide-react';
+import { Search, Plus, Eye, Trash2 } from 'lucide-react';
 import type { Gem, Auction } from '../../types';
 import { gemAPI, auctionAPI } from '../../api/axios';
 import CreateAuctionModal from './CreateAuctionModal';
@@ -13,11 +13,12 @@ const AuctionsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGem, setSelectedGem] = useState<Gem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [sortBy, setSortBy] = useState('End date');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('endDate');
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
 
   useEffect(() => {
     fetchAuctions();
@@ -56,8 +57,8 @@ const AuctionsPage = () => {
   };
 
   const handleViewDetails = (auction: Auction) => {
-    console.log('View auction details:', auction);
-    alert('View auction details - Coming soon!');
+    setSelectedAuction(auction);
+    setShowViewModal(true);
   };
 
   const handleDelete = (auction: Auction) => {
@@ -100,6 +101,52 @@ const AuctionsPage = () => {
     return `Rs.${amount.toLocaleString()}`;
   };
 
+  const toTimestamp = (dateValue?: string) => {
+    if (!dateValue) return 0;
+    const time = Date.parse(dateValue);
+    return Number.isNaN(time) ? 0 : time;
+  };
+
+  const filteredAuctions = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    const filtered = auctions.filter((auction) => {
+      const gemType = auction.gem?.type?.toLowerCase() || '';
+      const auctionId = auction._id?.toLowerCase() || '';
+      const winnerName = auction.winner?.name?.toLowerCase() || '';
+      const certificateNumber = auction.gem?.certificate?.certificateNumber?.toLowerCase() || '';
+
+      const matchesSearch =
+        !normalizedSearch ||
+        gemType.includes(normalizedSearch) ||
+        auctionId.includes(normalizedSearch) ||
+        winnerName.includes(normalizedSearch) ||
+        certificateNumber.includes(normalizedSearch);
+
+      const matchesRole =
+        roleFilter === 'all' ||
+        (roleFilter === 'seller') ||
+        (roleFilter === 'buyer' && Boolean(auction.winner));
+
+      const normalizedStatus = auction.status?.toLowerCase() || '';
+      const matchesStatus = statusFilter === 'all' || normalizedStatus === statusFilter;
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortBy === 'startDate') {
+        return toTimestamp(b.startTime) - toTimestamp(a.startTime);
+      }
+      if (sortBy === 'bidAmount') {
+        return b.currentBid - a.currentBid;
+      }
+      return toTimestamp(b.endTime) - toTimestamp(a.endTime);
+    });
+
+    return sorted;
+  }, [auctions, roleFilter, searchTerm, sortBy, statusFilter]);
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4 animate-fade-up">
@@ -139,33 +186,29 @@ const AuctionsPage = () => {
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
-                <option>Role: All</option>
-                <option>Seller</option>
-                <option>Buyer</option>
+                <option value="all">Role: All</option>
+                <option value="seller">Seller</option>
+                <option value="buyer">Buyer</option>
               </Form.Select>
               <Form.Select 
                 style={{ width: 'auto' }}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <option>Status: All</option>
-                <option>Active</option>
-                <option>Ended</option>
-                <option>Canceled</option>
+                <option value="all">Status: All</option>
+                <option value="active">Active</option>
+                <option value="ended">Ended</option>
+                <option value="cancelled">Canceled</option>
               </Form.Select>
               <Form.Select 
                 style={{ width: 'auto' }}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
-                <option>Sort By: End date</option>
-                <option>Sort By: Start date</option>
-                <option>Sort By: Bid amount</option>
+                <option value="endDate">Sort By: End date</option>
+                <option value="startDate">Sort By: Start date</option>
+                <option value="bidAmount">Sort By: Bid amount</option>
               </Form.Select>
-              <Button variant="primary" className="d-flex align-items-center">
-                <Download size={16} className="me-2" />
-                Export as CSV
-              </Button>
             </Col>
           </Row>
 
@@ -182,12 +225,14 @@ const AuctionsPage = () => {
                 <span className="visually-hidden">Loading...</span>
               </div>
             </div>
-          ) : auctions.length === 0 ? (
+          ) : filteredAuctions.length === 0 ? (
             <div className="text-center py-5">
-              <p className="text-muted mb-3">No auctions found</p>
-              <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-                Create Your First Auction
-              </Button>
+              <p className="text-muted mb-3">No auctions found for the selected filters</p>
+              {auctions.length === 0 && (
+                <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                  Create Your First Auction
+                </Button>
+              )}
             </div>
           ) : (
             <>
@@ -204,7 +249,7 @@ const AuctionsPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {auctions.map((auction) => (
+                    {filteredAuctions.map((auction) => (
                       <tr key={auction._id}>
                         <td>
                           <div className="d-flex align-items-center">
@@ -268,7 +313,7 @@ const AuctionsPage = () => {
 
               {/* Pagination */}
               <div className="d-flex justify-content-between align-items-center mt-3">
-                <small className="text-muted">Showing 1-{auctions.length} of {auctions.length}</small>
+                <small className="text-muted">Showing 1-{filteredAuctions.length} of {auctions.length}</small>
                 <Pagination className="mb-0">
                   <Pagination.Prev disabled />
                   <Pagination.Item active>{1}</Pagination.Item>
@@ -316,6 +361,44 @@ const AuctionsPage = () => {
           </Button>
           <Button variant="danger" onClick={handleDeleteConfirm}>
             Delete Auction
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* View Details Modal */}
+      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Auction Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedAuction && (
+            <Row className="g-3">
+              <Col md={4}>
+                <img
+                  src={selectedAuction.gem?.images?.[0] || 'https://via.placeholder.com/300'}
+                  alt={selectedAuction.gem?.type}
+                  className="w-100 rounded"
+                  style={{ objectFit: 'cover', maxHeight: '220px' }}
+                />
+              </Col>
+              <Col md={8}>
+                <h5 className="mb-3">{selectedAuction.gem?.type || 'N/A'}</h5>
+                <p className="mb-1"><strong>Auction ID:</strong> {selectedAuction._id}</p>
+                <p className="mb-1"><strong>Certificate No:</strong> {selectedAuction.gem?.certificate?.certificateNumber || '-'}</p>
+                <p className="mb-1"><strong>Start Price:</strong> {formatCurrency(selectedAuction.startPrice)}</p>
+                <p className="mb-1"><strong>Current/Final Bid:</strong> {formatCurrency(selectedAuction.currentBid)}</p>
+                <p className="mb-1"><strong>Minimum Increment:</strong> {formatCurrency(selectedAuction.minimumBidIncrement)}</p>
+                <p className="mb-1"><strong>Start Date:</strong> {formatDate(selectedAuction.startTime)}</p>
+                <p className="mb-1"><strong>End Date:</strong> {formatDate(selectedAuction.endTime)}</p>
+                <p className="mb-1"><strong>Winner:</strong> {selectedAuction.winner?.name || 'Not decided'}</p>
+                <p className="mb-0"><strong>Status:</strong> {getStatusBadge(selectedAuction.status)}</p>
+              </Col>
+            </Row>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowViewModal(false)}>
+            Close
           </Button>
         </Modal.Footer>
       </Modal>
