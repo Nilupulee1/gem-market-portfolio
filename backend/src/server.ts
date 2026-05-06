@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './config/env';
 import express from 'express';
 import cors from 'cors';
 import { connectDatabase } from './config/database';
@@ -10,9 +10,19 @@ import buyerRoutes from './routes/buyerRoutes';
 
 const app = express();
 
+const isLocalDevOrigin = (origin: string) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
 // CORS Configuration
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || isLocalDevOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked origin: ${origin}`));
+  },
   credentials: true
 }));
 
