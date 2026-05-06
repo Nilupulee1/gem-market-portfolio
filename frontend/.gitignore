@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # Dependency directories
 node_modules/
+.pnpm-store/
 
 # Build output
 dist/
@@ -28,6 +29,9 @@ out/
 
 # Coverage
 coverage/
+
+# TypeScript
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/
