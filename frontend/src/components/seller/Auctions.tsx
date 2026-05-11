@@ -20,6 +20,18 @@ const AuctionsPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
 
+  const auctionStats = useMemo(() => {
+    const totalBids = auctions.reduce((sum, auction) => sum + (auction.bids?.length || 0), 0);
+    const activeAuctions = auctions.filter((auction) => auction.status === 'active').length;
+    const endedAuctions = auctions.filter((auction) => auction.status === 'ended').length;
+
+    return {
+      totalAuctions: auctions.length,
+      activeAuctions,
+      endedAuctions,
+      totalBids,
+    };
+  }, [auctions]);
   useEffect(() => {
     fetchAuctions();
     fetchMyGems();
@@ -101,6 +113,51 @@ const AuctionsPage = () => {
     return `Rs.${amount.toLocaleString()}`;
   };
 
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getLeadingBidderName = (auction?: Auction | null) => {
+    const latestBid = auction?.bids?.[auction.bids.length - 1];
+    return latestBid?.bidder?.name || auction?.winner?.name || 'No bids yet';
+  };
+
+  const getUniqueBidders = (auction?: Auction | null) => {
+    if (!auction?.bids?.length) {
+      return [] as Array<{ bidderId: string; name: string; email: string; bidCount: number; highestBid: number }>;
+    }
+
+    const bidderMap = new Map<string, { bidderId: string; name: string; email: string; bidCount: number; highestBid: number }>();
+
+    auction.bids.forEach((bid) => {
+      const bidderId = bid.bidder?._id || bid.bidder?.email || bid.bidder?.name;
+      if (!bidderId) {
+        return;
+      }
+
+      const current = bidderMap.get(bidderId) || {
+        bidderId,
+        name: bid.bidder?.name || 'Unknown bidder',
+        email: bid.bidder?.email || '-',
+        bidCount: 0,
+        highestBid: 0,
+      };
+
+      current.bidCount += 1;
+      current.highestBid = Math.max(current.highestBid, bid.amount);
+      bidderMap.set(bidderId, current);
+    });
+
+    return Array.from(bidderMap.values()).sort((a, b) => b.highestBid - a.highestBid);
+  };
+
   const toTimestamp = (dateValue?: string) => {
     if (!dateValue) return 0;
     const time = Date.parse(dateValue);
@@ -152,11 +209,11 @@ const AuctionsPage = () => {
       <div className="d-flex justify-content-between align-items-center mb-4 animate-fade-up">
         <div className="dashboard-title mb-0">
           <h2 className="mb-1 fw-bold">Auctions</h2>
-          <p>Review all your past auctions</p>
+          <p>Review all your past auctions and bidder activity</p>
         </div>
         <Button 
           variant="primary" 
-          className="d-flex align-items-center px-4"
+          className="d-flex align-items-center px-4 auction-primary-btn"
           onClick={() => setShowCreateModal(true)}
         >
           <Plus size={18} className="me-2" />
@@ -164,7 +221,30 @@ const AuctionsPage = () => {
         </Button>
       </div>
 
-      <Card className="content-card animate-fade-up delay-1">
+      <div className="auction-summary-grid animate-fade-up delay-1 mb-4">
+        <div className="auction-summary-card">
+          <span className="auction-summary-label">Total auctions</span>
+          <strong className="auction-summary-value">{auctionStats.totalAuctions}</strong>
+          <small>All seller listings</small>
+        </div>
+        <div className="auction-summary-card">
+          <span className="auction-summary-label">Active auctions</span>
+          <strong className="auction-summary-value">{auctionStats.activeAuctions}</strong>
+          <small>Open for bidding</small>
+        </div>
+        <div className="auction-summary-card">
+          <span className="auction-summary-label">Ended auctions</span>
+          <strong className="auction-summary-value">{auctionStats.endedAuctions}</strong>
+          <small>Winner decided</small>
+        </div>
+        <div className="auction-summary-card">
+          <span className="auction-summary-label">Total bids</span>
+          <strong className="auction-summary-value">{auctionStats.totalBids}</strong>
+          <small>Across all auctions</small>
+        </div>
+      </div>
+
+      <Card className="content-card auction-panel animate-fade-up delay-2">
         <Card.Body className="p-4">
           {/* Filters and Search */}
           <Row className="mb-4 align-items-center">
@@ -366,34 +446,172 @@ const AuctionsPage = () => {
       </Modal>
 
       {/* View Details Modal */}
-      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg">
+      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg" dialogClassName="auction-modal">
         <Modal.Header closeButton>
           <Modal.Title>Auction Details</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedAuction && (
-            <Row className="g-3">
-              <Col md={4}>
-                <img
-                  src={selectedAuction.gem?.images?.[0] || 'https://via.placeholder.com/300'}
-                  alt={selectedAuction.gem?.type}
-                  className="w-100 rounded"
-                  style={{ objectFit: 'cover', maxHeight: '220px' }}
-                />
-              </Col>
-              <Col md={8}>
-                <h5 className="mb-3">{selectedAuction.gem?.type || 'N/A'}</h5>
-                <p className="mb-1"><strong>Auction ID:</strong> {selectedAuction._id}</p>
-                <p className="mb-1"><strong>Certificate No:</strong> {selectedAuction.gem?.certificate?.certificateNumber || '-'}</p>
-                <p className="mb-1"><strong>Start Price:</strong> {formatCurrency(selectedAuction.startPrice)}</p>
-                <p className="mb-1"><strong>Current/Final Bid:</strong> {formatCurrency(selectedAuction.currentBid)}</p>
-                <p className="mb-1"><strong>Minimum Increment:</strong> {formatCurrency(selectedAuction.minimumBidIncrement)}</p>
-                <p className="mb-1"><strong>Start Date:</strong> {formatDate(selectedAuction.startTime)}</p>
-                <p className="mb-1"><strong>End Date:</strong> {formatDate(selectedAuction.endTime)}</p>
-                <p className="mb-1"><strong>Winner:</strong> {selectedAuction.winner?.name || 'Not decided'}</p>
-                <p className="mb-0"><strong>Status:</strong> {getStatusBadge(selectedAuction.status)}</p>
-              </Col>
-            </Row>
+            <>
+              <Row className="g-4 auction-details-hero p-3">
+                <Col md={4} className="d-flex align-items-start">
+                  <img
+                    src={selectedAuction.gem?.images?.[0] || 'https://via.placeholder.com/300'}
+                    alt={selectedAuction.gem?.type}
+                    className="w-100 rounded"
+                    style={{ objectFit: 'cover', maxHeight: '220px' }}
+                  />
+                </Col>
+                <Col md={8}>
+                  <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <h5 className="mb-0">{selectedAuction.gem?.type || 'N/A'}</h5>
+                    <span className="status-pill info text-capitalize">{selectedAuction.status}</span>
+                  </div>
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <div className="auction-details-card h-100">
+                        <span className="auction-details-label">Auction ID</span>
+                        <div className="fw-semibold text-break">{selectedAuction._id}</div>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="auction-details-card h-100">
+                        <span className="auction-details-label">Certificate No</span>
+                        <div className="fw-semibold text-break">{selectedAuction.gem?.certificate?.certificateNumber || '-'}</div>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="auction-details-card">
+                        <span className="auction-details-label">Start Price</span>
+                        <div className="fw-semibold">{formatCurrency(selectedAuction.startPrice)}</div>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="auction-details-card">
+                        <span className="auction-details-label">Final Bid</span>
+                        <div className="fw-semibold">{formatCurrency(selectedAuction.currentBid)}</div>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="auction-details-card">
+                        <span className="auction-details-label">Minimum Increment</span>
+                        <div className="fw-semibold">{formatCurrency(selectedAuction.minimumBidIncrement)}</div>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="auction-details-card">
+                        <span className="auction-details-label">End Date</span>
+                        <div className="fw-semibold">{formatDate(selectedAuction.endTime)}</div>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="auction-details-card">
+                        <span className="auction-details-label">Winner</span>
+                        <div className="fw-semibold">{selectedAuction.winner?.name || getLeadingBidderName(selectedAuction)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+
+              <hr className="my-4" />
+
+              <Row className="g-4 mt-1">
+                <Col md={5}>
+                  <h6 className="fw-bold mb-3">Winner Summary</h6>
+                  {selectedAuction.winner ? (
+                    <div className="auction-details-card">
+                      <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                          <p className="mb-1"><strong>{selectedAuction.winner.name}</strong></p>
+                          <p className="mb-1 text-muted">{selectedAuction.winner.email}</p>
+                        </div>
+                        <span className="auction-bid-flag winner">Winner</span>
+                      </div>
+                      <p className="mb-1">Winning bid: <strong>{formatCurrency(selectedAuction.currentBid)}</strong></p>
+                      <p className="mb-0 text-muted small">Finalized from the highest submitted bid.</p>
+                    </div>
+                  ) : (
+                    <div className="auction-details-card">
+                      <p className="mb-0 text-muted">
+                        Winner has not been decided yet. Current leader: <strong>{getLeadingBidderName(selectedAuction)}</strong>
+                      </p>
+                    </div>
+                  )}
+                </Col>
+
+                <Col md={7}>
+                  <h6 className="fw-bold mb-3">All Bidders</h6>
+                  {selectedAuction.bids.length === 0 ? (
+                    <div className="auction-details-card text-muted">No bids have been placed on this auction.</div>
+                  ) : (
+                    <div className="auction-bid-table border rounded-3 overflow-hidden">
+                      <Table responsive className="mb-0 align-middle">
+                        <thead className="table-light">
+                          <tr>
+                            <th className="border-0">Bidder</th>
+                            <th className="border-0">Email</th>
+                            <th className="border-0">Amount</th>
+                            <th className="border-0">Time</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedAuction.bids.slice().reverse().map((bid, index) => {
+                            const isTopBid = index === 0;
+                            return (
+                              <tr key={`${bid.timestamp}-${index}`}>
+                                <td>
+                                  <div className="fw-semibold d-flex align-items-center gap-2">
+                                    {bid.bidder?.name || 'Unknown bidder'}
+                                    {isTopBid && <span className="auction-bid-flag top">Top bid</span>}
+                                  </div>
+                                </td>
+                                <td>{bid.bidder?.email || '-'}</td>
+                                <td className="fw-semibold">{formatCurrency(bid.amount)}</td>
+                                <td>{formatDateTime(bid.timestamp)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </Col>
+              </Row>
+
+              <Row className="g-4 mt-2">
+                <Col>
+                  <h6 className="fw-bold mb-3">Bidder Summary</h6>
+                  {getUniqueBidders(selectedAuction).length === 0 ? (
+                    <div className="auction-details-card text-muted">No bidder summary available.</div>
+                  ) : (
+                    <Row className="g-3">
+                      {getUniqueBidders(selectedAuction).map((bidder) => (
+                        <Col md={6} key={bidder.bidderId}>
+                          <div className="auction-details-card h-100">
+                            <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                              <div>
+                                <div className="fw-semibold">{bidder.name}</div>
+                                <small className="text-muted">{bidder.email}</small>
+                              </div>
+                              {selectedAuction.winner?._id === bidder.bidderId && <span className="auction-bid-flag winner">Winner</span>}
+                            </div>
+                            <div className="d-flex justify-content-between">
+                              <small className="text-muted">Bids placed</small>
+                              <strong>{bidder.bidCount}</strong>
+                            </div>
+                            <div className="d-flex justify-content-between mt-1">
+                              <small className="text-muted">Highest bid</small>
+                              <strong>{formatCurrency(bidder.highestBid)}</strong>
+                            </div>
+                          </div>
+                        </Col>
+                      ))}
+                    </Row>
+                  )}
+                </Col>
+              </Row>
+            </>
           )}
         </Modal.Body>
         <Modal.Footer>
