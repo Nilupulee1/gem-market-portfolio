@@ -16,7 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { auctionAPI, buyerAPI, gemAPI } from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
-import type { Auction } from '../../types';
+import type { Auction, Gem } from '../../types';
 import logo from '../../assets/logo.png';
 import AuctionBid from './AuctionBid';
 import GemDetails from './GemDetails';
@@ -68,6 +68,34 @@ interface ActiveBidItem {
 }
 
 const watchlistStorageKey = 'buyer-watchlist-auction-ids';
+const buyerDashboardCacheKey = 'buyer-dashboard-cache';
+
+type BuyerDashboardCache = {
+  allAuctions: Auction[];
+  approvedGems: Gem[];
+  dashboard: BuyerDashboardPayload | null;
+  activeBids: ActiveBidItem[];
+  wonAuctions: Auction[];
+  bidHistory: BidHistoryItem[];
+};
+
+const loadBuyerDashboardCache = (): BuyerDashboardCache | null => {
+  const raw = localStorage.getItem(buyerDashboardCacheKey);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as BuyerDashboardCache;
+    return parsed && Array.isArray(parsed.allAuctions) && Array.isArray(parsed.approvedGems) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveBuyerDashboardCache = (cache: BuyerDashboardCache) => {
+  localStorage.setItem(buyerDashboardCacheKey, JSON.stringify(cache));
+};
 
 const formatCurrency = (value: number) => `Rs.${value.toLocaleString()}`;
 
@@ -142,20 +170,22 @@ const getLeadingBidderName = (auction?: Auction | null) => {
 const BuyerDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const cachedBuyerDashboard = loadBuyerDashboardCache();
 
   const [view, setView] = useState<BuyerView>('dashboard');
   const [query, setQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedBuyerDashboard);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [placingBid, setPlacingBid] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  const [allAuctions, setAllAuctions] = useState<Auction[]>([]);
-  const [dashboard, setDashboard] = useState<BuyerDashboardPayload | null>(null);
-  const [activeBids, setActiveBids] = useState<ActiveBidItem[]>([]);
-  const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
-  const [bidHistory, setBidHistory] = useState<BidHistoryItem[]>([]);
+  const [allAuctions, setAllAuctions] = useState<Auction[]>(cachedBuyerDashboard?.allAuctions || []);
+  const [approvedGems, setApprovedGems] = useState<Gem[]>(cachedBuyerDashboard?.approvedGems || []);
+  const [dashboard, setDashboard] = useState<BuyerDashboardPayload | null>(cachedBuyerDashboard?.dashboard || null);
+  const [activeBids, setActiveBids] = useState<ActiveBidItem[]>(cachedBuyerDashboard?.activeBids || []);
+  const [wonAuctions, setWonAuctions] = useState<Auction[]>(cachedBuyerDashboard?.wonAuctions || []);
+  const [bidHistory, setBidHistory] = useState<BidHistoryItem[]>(cachedBuyerDashboard?.bidHistory || []);
   const [watchlistIds, setWatchlistIds] = useState<string[]>(parseWatchlist);
 
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
@@ -170,14 +200,11 @@ const BuyerDashboard = () => {
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const refreshData = async () => {
-    if (!isBuyerAccount) {
-      setLoading(false);
-      return;
-    }
-
+  const refreshData = async (isInitialLoad: boolean = false) => {
     try {
-      setLoading(true);
+      if (isInitialLoad && !cachedBuyerDashboard) {
+        setLoading(true);
+      }
       const [activeRes, dashboardRes, activeBidsRes, wonRes] = await Promise.all([
         auctionAPI.getActiveAuctions(),
         buyerAPI.getDashboard(),
@@ -187,10 +214,24 @@ const BuyerDashboard = () => {
       const bidHistoryRes = await buyerAPI.getBidHistory();
 
       setAllAuctions(activeRes.data.auctions || []);
+      
+      const approvedGemsRes = await gemAPI.getApprovedGems();
+      setApprovedGems(approvedGemsRes.data.gems || []);
+      
       setDashboard(dashboardRes.data);
       setActiveBids(activeBidsRes.data.activeBids || []);
       setWonAuctions(wonRes.data.wonAuctions || []);
-      setBidHistory(bidHistoryRes.data.bidHistory || []);
+      const nextBidHistory = bidHistoryRes.data.bidHistory || [];
+      setBidHistory(nextBidHistory);
+
+      saveBuyerDashboardCache({
+        allAuctions: activeRes.data.auctions || [],
+        approvedGems: approvedGemsRes.data.gems || [],
+        dashboard: dashboardRes.data,
+        activeBids: activeBidsRes.data.activeBids || [],
+        wonAuctions: wonRes.data.wonAuctions || [],
+        bidHistory: nextBidHistory,
+      });
     } catch (error) {
       console.error('Failed to load buyer dashboard data:', error);
     } finally {
@@ -199,13 +240,14 @@ const BuyerDashboard = () => {
   };
 
   useEffect(() => {
-    refreshData();
-  }, [isBuyerAccount]);
+    refreshData(true);
+  }, []);
 
   const uniqueTypes = useMemo(() => {
     const typeSet = new Set(allAuctions.map((item) => item.gem.type));
+    approvedGems.forEach((gem) => typeSet.add(gem.type));
     return ['all', ...Array.from(typeSet)];
-  }, [allAuctions]);
+  }, [allAuctions, approvedGems]);
 
   const filteredAuctions = useMemo(() => {
     return allAuctions.filter((item) => {
@@ -252,6 +294,22 @@ const BuyerDashboard = () => {
       }
     } catch (error) {
       console.error('Failed to fetch auction details:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const openGemDetails = async (gemId: string) => {
+    try {
+      setLoadingDetails(true);
+      setBidFeedback(null);
+      setShowBidConfirm(false);
+      // Clear any selected auction since this is a direct gem view
+      setSelectedAuction(null);
+      const gemResponse = await gemAPI.getGemById(gemId);
+      setSelectedGemDetails(gemResponse.data.gem || gemResponse.data);
+    } catch (error) {
+      console.error('Failed to fetch gem details:', error);
     } finally {
       setLoadingDetails(false);
     }
@@ -397,6 +455,26 @@ const BuyerDashboard = () => {
             <button type="button" onClick={() => setView('marketplace')}>View All</button>
           </div>
           <div className="market-grid">
+            {approvedGems.slice(0, 1).map((gem) => (
+              <article className="market-card" key={`gem-${gem._id}`}>
+                <img className="market-image" src={gem.images[0]} alt={gem.type} />
+                <div className="market-body">
+                  <strong>{gem.type}</strong>
+                  <p className="market-meta">{gem.origin}</p>
+                  <div className="d-flex justify-content-between align-items-center gap-2">
+                    <div style={{ fontSize: '12px', backgroundColor: '#e8f5e9', padding: '4px 8px', borderRadius: '4px', color: '#2e7d32' }}>
+                      Direct Sale
+                    </div>
+                  </div>
+                  <p className="market-meta mb-0">By: <strong>{gem.seller.name}</strong></p>
+                  <div className="market-actions">
+                    <button className="bid-btn" type="button" style={{ width: '100%' }}>
+                      Contact Seller
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
             {filteredAuctions.slice(0, 3).map((auction) => (
               <article className="market-card" key={auction._id}>
                 <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
@@ -524,6 +602,7 @@ const BuyerDashboard = () => {
         return (
           <Marketplace
             auctions={filteredAuctions}
+            approvedGems={approvedGems}
             query={query}
             selectedType={selectedType}
             uniqueTypes={uniqueTypes}
@@ -533,6 +612,7 @@ const BuyerDashboard = () => {
             onTypeChange={setSelectedType}
             onToggleWatchlist={toggleWatchlist}
             onOpenDetails={openDetails}
+            onOpenGemDetails={openGemDetails}
             formatCurrency={formatCurrency}
             formatRemaining={formatRemaining}
             getLeadingBidderName={getLeadingBidderName}

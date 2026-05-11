@@ -13,27 +13,62 @@ import type { Gem } from "../../types";
 type TabType = 'dashboard' | 'portfolio' | 'auctions' | 'addGem';
 type ListingFilter = 'all' | 'approved' | 'pending' | 'rejected';
 
+const sellerDashboardCacheKey = 'seller-dashboard-cache';
+
+type SellerDashboardCache = {
+  myGems: Gem[];
+  stats: {
+    totalCarat: number;
+    activeListings: number;
+    pendingVerification: number;
+    rejectedListings: number;
+  };
+};
+
+const loadSellerDashboardCache = (): SellerDashboardCache | null => {
+  const raw = localStorage.getItem(sellerDashboardCacheKey);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as SellerDashboardCache;
+    return Array.isArray(parsed.myGems) && parsed.stats ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveSellerDashboardCache = (cache: SellerDashboardCache) => {
+  localStorage.setItem(sellerDashboardCacheKey, JSON.stringify(cache));
+};
+
 const SellerDashboard = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [listingFilter, setListingFilter] = useState<ListingFilter>('all');
-  const [myGems, setMyGems] = useState<Gem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalCarat: 0,
-    activeListings: 0,
-    pendingVerification: 0,
-    rejectedListings: 0,
-  });
+  const cachedSellerDashboard = loadSellerDashboardCache();
+  const [myGems, setMyGems] = useState<Gem[]>(cachedSellerDashboard?.myGems || []);
+  const [loading, setLoading] = useState(!cachedSellerDashboard);
+  const [stats, setStats] = useState(
+    cachedSellerDashboard?.stats || {
+      totalCarat: 0,
+      activeListings: 0,
+      pendingVerification: 0,
+      rejectedListings: 0,
+    }
+  );
 
   useEffect(() => {
-    fetchMyGems();
+    fetchMyGems(true);
   }, []);
 
-  const fetchMyGems = async () => {
+  const fetchMyGems = async (isInitialLoad: boolean = false) => {
     try {
-      setLoading(true);
+      if (isInitialLoad && !cachedSellerDashboard) {
+        setLoading(true);
+      }
       const response = await gemAPI.getMyGems();
       const gems = response.data.gems;
       setMyGems(gems);
@@ -44,12 +79,15 @@ const SellerDashboard = () => {
       const rejected = gems.filter((g: Gem) => g.status === 'rejected');
       const totalCarat = gems.reduce((sum: number, gem: Gem) => sum + Number(gem.carat || 0), 0);
       
-      setStats({
+      const nextStats = {
         totalCarat,
         activeListings: approved.length,
         pendingVerification: pending.length,
         rejectedListings: rejected.length,
-      });
+      };
+
+      setStats(nextStats);
+      saveSellerDashboardCache({ myGems: gems, stats: nextStats });
     } catch (error) {
       console.error('Error fetching gems:', error);
     } finally {
