@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Bell,
   Compass,
@@ -19,7 +18,9 @@ import { auctionAPI, buyerAPI, gemAPI } from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
 import type { Auction } from '../../types';
 import logo from '../../assets/logo.png';
-import PdfViewer from '../common/PdfViewer';
+import AuctionBid from './AuctionBid';
+import GemDetails from './GemDetails';
+import Marketplace from './Marketplace';
 import './BuyerDashboard.css';
 
 type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist';
@@ -69,6 +70,17 @@ interface ActiveBidItem {
 const watchlistStorageKey = 'buyer-watchlist-auction-ids';
 
 const formatCurrency = (value: number) => `Rs.${value.toLocaleString()}`;
+
+const formatDateTime = (value: string) => {
+  const date = new Date(value);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
 const getCertificateAccessUrl = (certificate?: { url?: string; accessUrl?: string }) => {
   return certificate?.accessUrl || certificate?.url || '';
@@ -120,6 +132,11 @@ const parseWatchlist = () => {
 
 const saveWatchlist = (ids: string[]) => {
   localStorage.setItem(watchlistStorageKey, JSON.stringify(ids));
+};
+
+const getLeadingBidderName = (auction?: Auction | null) => {
+  const latestBid = auction?.bids?.[auction.bids.length - 1];
+  return latestBid?.bidder?.name || 'No bids yet';
 };
 
 const BuyerDashboard = () => {
@@ -390,6 +407,7 @@ const BuyerDashboard = () => {
                     <div className="bid-price">{formatCurrency(auction.currentBid)}</div>
                     <span className="auction-timer"><Timer size={14} /> {formatRemaining(auction.endTime, nowMs)}</span>
                   </div>
+                  <p className="market-meta mb-0">Current leader: <strong>{getLeadingBidderName(auction)}</strong></p>
                   <div className="market-actions">
                     <button className="watch-btn" type="button" onClick={() => toggleWatchlist(auction._id)}>
                       <Heart size={15} fill={watchlistIds.includes(auction._id) ? 'currentColor' : 'none'} />
@@ -405,57 +423,6 @@ const BuyerDashboard = () => {
       </>
     );
   };
-
-  const renderMarketplace = () => (
-    <>
-      <div className="section-head">
-        <div>
-          <h3>Browse Gems</h3>
-          <p className="mb-0 text-secondary">Showing {filteredAuctions.length} gems</p>
-        </div>
-      </div>
-
-      <div className="control-row">
-        <input
-          className="buyer-search"
-          placeholder="Search gems..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)}>
-          {uniqueTypes.map((type) => (
-            <option key={type} value={type}>{type === 'all' ? 'All Types' : type}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="market-grid">
-        {filteredAuctions.map((auction) => {
-          const inWatchlist = watchlistIds.includes(auction._id);
-          return (
-            <motion.article key={auction._id} whileHover={{ y: -5 }} className="market-card">
-              <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
-              <div className="market-body">
-                <strong>{auction.gem.type}</strong>
-                <p className="market-meta">{auction.gem.origin} - {auction.gem.carat} ct</p>
-                <p className="market-meta">{auction.gem.cut} - {auction.gem.color}</p>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="bid-price">{formatCurrency(auction.currentBid)}</span>
-                  <span className="auction-timer"><Timer size={14} /> {formatRemaining(auction.endTime, nowMs)}</span>
-                </div>
-                <div className="market-actions">
-                  <button className="watch-btn" type="button" onClick={() => toggleWatchlist(auction._id)}>
-                    <Heart size={15} fill={inWatchlist ? 'currentColor' : 'none'} /> {inWatchlist ? 'Watched' : 'Watch'}
-                  </button>
-                  <button className="bid-btn" type="button" onClick={() => openDetails(auction._id)}>View Details</button>
-                </div>
-              </div>
-            </motion.article>
-          );
-        })}
-      </div>
-    </>
-  );
 
   const renderAuctions = () => (
     <>
@@ -554,7 +521,23 @@ const BuyerDashboard = () => {
 
     switch (view) {
       case 'marketplace':
-        return renderMarketplace();
+        return (
+          <Marketplace
+            auctions={filteredAuctions}
+            query={query}
+            selectedType={selectedType}
+            uniqueTypes={uniqueTypes}
+            watchlistIds={watchlistIds}
+            nowMs={nowMs}
+            onQueryChange={setQuery}
+            onTypeChange={setSelectedType}
+            onToggleWatchlist={toggleWatchlist}
+            onOpenDetails={openDetails}
+            formatCurrency={formatCurrency}
+            formatRemaining={formatRemaining}
+            getLeadingBidderName={getLeadingBidderName}
+          />
+        );
       case 'auctions':
         return renderAuctions();
       case 'watchlist':
@@ -621,195 +604,43 @@ const BuyerDashboard = () => {
         {renderBody()}
       </main>
 
-      {(selectedAuction || loadingDetails) && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-sheet">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <strong>{selectedAuction?.gem.type || 'Loading details...'}</strong>
-              <button className="ghost-btn" type="button" onClick={closeDetails}><X size={15} /></button>
-            </div>
+      <GemDetails
+        selectedAuction={selectedAuction}
+        selectedGemDetails={selectedGemDetails}
+        loading={loadingDetails}
+        bidAmount={bidAmount}
+        bidFeedback={bidFeedback}
+        placingBid={placingBid}
+        bidHistory={bidHistory}
+        onClose={closeDetails}
+        onBidAmountChange={setBidAmount}
+        onRequestBidConfirmation={requestBidConfirmation}
+        onSetMinimumBid={() => {
+          if (selectedAuction) {
+            setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement));
+          }
+        }}
+        onSetDoubleBid={() => {
+          if (selectedAuction) {
+            setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement * 2));
+          }
+        }}
+        formatCurrency={formatCurrency}
+        formatDateTime={formatDateTime}
+        getLeadingBidderName={getLeadingBidderName}
+        getCertificateAccessUrl={getCertificateAccessUrl}
+        isPdfCertificate={isPdfCertificate}
+      />
 
-            {loadingDetails || !selectedAuction ? (
-              <p className="empty-note">Loading auction details...</p>
-            ) : (
-              <div className="modal-grid">
-                <div>
-                  <img className="modal-photo" src={selectedAuction.gem.images[0]} alt={selectedAuction.gem.type} />
-                  <div className="metric-row mt-2">
-                    <div className="metric">
-                      <p>Certified Authentic</p>
-                      <strong>{selectedAuction.gem.certificate.authority}</strong>
-                    </div>
-                    <div className="metric">
-                      <p>Certificate No</p>
-                      <strong>{selectedAuction.gem.certificate.certificateNumber}</strong>
-                    </div>
-                  </div>
-
-                  <div className="metric cert-preview-card mt-2">
-                    <p>Certificate Preview</p>
-                    <strong>{(selectedGemDetails || selectedAuction.gem).certificate.authority}</strong>
-                    <div className="certificate-frame mt-2">
-                      {isPdfCertificate((selectedGemDetails || selectedAuction.gem).certificate) ? (
-                        <PdfViewer url={getCertificateAccessUrl((selectedGemDetails || selectedAuction.gem).certificate)} />
-                      ) : (
-                        <img
-                          src={getCertificateAccessUrl((selectedGemDetails || selectedAuction.gem).certificate)}
-                          alt="Certificate"
-                          className="w-100 rounded"
-                        />
-                      )}
-                    </div>
-                    <a
-                      className="btn btn-outline-primary btn-sm mt-2"
-                      href={getCertificateAccessUrl((selectedGemDetails || selectedAuction.gem).certificate)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open Certificate
-                    </a>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="metric-row">
-                    <div className="metric"><p>Carat</p><strong>{selectedAuction.gem.carat} ct</strong></div>
-                    <div className="metric"><p>Cut</p><strong>{selectedAuction.gem.cut}</strong></div>
-                    <div className="metric"><p>Color</p><strong>{selectedAuction.gem.color}</strong></div>
-                    <div className="metric"><p>Origin</p><strong>{selectedAuction.gem.origin}</strong></div>
-                  </div>
-
-                  <p className="text-secondary">{selectedAuction.gem.description}</p>
-
-                  <section className="block-card">
-                    {bidFeedback && (
-                      <div className={`alert ${bidFeedback.type === 'success' ? 'alert-success' : 'alert-warning'}`} role="alert">
-                        {bidFeedback.message}
-                      </div>
-                    )}
-
-                    <p className="m-0 text-secondary">Current Bid</p>
-                    <div className="bid-price">{formatCurrency(selectedAuction.currentBid)}</div>
-                    <p className="text-secondary small">
-                      Minimum increment: {formatCurrency(selectedAuction.minimumBidIncrement)}
-                    </p>
-
-                    <div className="d-flex gap-2">
-                      <input
-                        className="buyer-search"
-                        value={bidAmount}
-                        onChange={(event) => setBidAmount(event.target.value)}
-                        type="number"
-                        min={selectedAuction.currentBid + selectedAuction.minimumBidIncrement}
-                      />
-                      <button className="bid-btn" type="button" disabled={placingBid} onClick={requestBidConfirmation}>
-                        {placingBid ? 'Placing...' : 'Place Bid'}
-                      </button>
-                    </div>
-
-                    <p className="text-secondary small mt-2 mb-0">
-                      Your bid will be reviewed in a confirmation step before submission.
-                    </p>
-
-                    <div className="d-flex gap-2 mt-2">
-                      <button
-                        className="ghost-btn flex-fill"
-                        type="button"
-                        onClick={() => setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement))}
-                      >
-                        Min Bid
-                      </button>
-                      <button
-                        className="ghost-btn flex-fill"
-                        type="button"
-                        onClick={() => setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement * 2))}
-                      >
-                        +2x Increment
-                      </button>
-                    </div>
-                  </section>
-
-                  <section className="block-card">
-                    <h6>Gem History</h6>
-                    <div className="d-flex flex-column gap-2">
-                      <div className="d-flex justify-content-between border-bottom py-2">
-                        <span className="text-secondary">Auction status</span>
-                        <strong>{selectedAuction.status}</strong>
-                      </div>
-                      <div className="d-flex justify-content-between border-bottom py-2">
-                        <span className="text-secondary">Auction started</span>
-                        <strong>{new Date(selectedAuction.startTime).toLocaleString()}</strong>
-                      </div>
-                      <div className="d-flex justify-content-between border-bottom py-2">
-                        <span className="text-secondary">Auction ends</span>
-                        <strong>{new Date(selectedAuction.endTime).toLocaleString()}</strong>
-                      </div>
-                      <div className="d-flex justify-content-between border-bottom py-2">
-                        <span className="text-secondary">Certificate</span>
-                        <strong>{(selectedGemDetails || selectedAuction.gem).certificate.certificateNumber}</strong>
-                      </div>
-                    </div>
-
-                    <h6 className="mt-3">Bid History</h6>
-                    {selectedAuction.bids.length === 0 ? (
-                      <p className="text-secondary mb-0">No bids yet.</p>
-                    ) : (
-                      selectedAuction.bids.slice().reverse().slice(0, 5).map((bid, index) => (
-                        <div key={`${bid.timestamp}-${index}`} className="d-flex justify-content-between border-bottom py-2">
-                          <span>{bid.bidder.name}</span>
-                          <strong>{formatCurrency(bid.amount)}</strong>
-                        </div>
-                      ))
-                    )}
-
-                    <h6 className="mt-3">Your Gem History</h6>
-                    {bidHistory.filter((entry) => entry.auctionId === selectedAuction._id).length === 0 ? (
-                      <p className="text-secondary mb-0">No personal bid history for this gem.</p>
-                    ) : (
-                      bidHistory
-                        .filter((entry) => entry.auctionId === selectedAuction._id)
-                        .slice(0, 5)
-                        .map((entry, index) => (
-                          <div key={`${entry.timestamp}-${index}`} className="d-flex justify-content-between border-bottom py-2">
-                            <span>{new Date(entry.timestamp).toLocaleString()}</span>
-                            <strong>{formatCurrency(entry.amount)}</strong>
-                          </div>
-                        ))
-                    )}
-                  </section>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {showBidConfirm && selectedAuction && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-sheet modal-sheet-sm">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <strong>Confirm Your Bid</strong>
-              <button className="ghost-btn" type="button" onClick={() => setShowBidConfirm(false)}><X size={15} /></button>
-            </div>
-
-            <p className="text-secondary mb-2">
-              You are about to place <strong>{formatCurrency(Number(bidAmount) || 0)}</strong> on <strong>{selectedAuction.gem.type}</strong>.
-            </p>
-            <p className="text-secondary mb-3">
-              Current leading bid is {formatCurrency(selectedAuction.currentBid)} and the minimum next bid is {formatCurrency(selectedAuction.currentBid + selectedAuction.minimumBidIncrement)}.
-            </p>
-
-            <div className="d-flex gap-2 justify-content-end">
-              <button className="ghost-btn" type="button" onClick={() => setShowBidConfirm(false)}>
-                Cancel
-              </button>
-              <button className="bid-btn" type="button" disabled={placingBid} onClick={placeBid}>
-                {placingBid ? 'Placing...' : 'Confirm Bid'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AuctionBid
+        show={showBidConfirm}
+        selectedAuction={selectedAuction}
+        bidAmount={bidAmount}
+        placingBid={placingBid}
+        onCancel={() => setShowBidConfirm(false)}
+        onConfirm={placeBid}
+        formatCurrency={formatCurrency}
+      />
     </div>
   );
 };

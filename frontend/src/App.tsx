@@ -9,7 +9,7 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import SellerDashboard from './components/seller/SellerDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
-import BuyerDashboard from './components/buyer/BuyerDashboard';
+import BuyerPage from './pages/BuyerPage';
 import { UserRole } from './types';
 import {
   ArrowRight,
@@ -498,7 +498,7 @@ const AppLayout = () => {
           path="/buyer/*"
           element={
             <ProtectedRoute allowedRoles={[UserRole.BUYER]}>
-              <BuyerDashboard />
+              <BuyerPage />
             </ProtectedRoute>
           }
         />
