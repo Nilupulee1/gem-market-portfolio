@@ -15,6 +15,7 @@ interface MarketplaceProps {
   onToggleWatchlist: (auctionId: string) => void;
   onOpenDetails: (auctionId: string) => void;
   onOpenGemDetails: (gemId: string) => void;
+  onOpenSellerContact: (seller: { name: string; email: string }, gemName: string) => void;
   formatCurrency: (value: number) => string;
   formatRemaining: (endTime: string, nowMs: number) => string;
   getLeadingBidderName: (auction?: Auction | null) => string;
@@ -33,6 +34,7 @@ const Marketplace = ({
   onToggleWatchlist,
   onOpenDetails,
   onOpenGemDetails,
+  onOpenSellerContact,
   formatCurrency,
   formatRemaining,
   getLeadingBidderName,
@@ -103,13 +105,7 @@ const Marketplace = ({
                     className="bid-btn"
                     type="button"
                     style={{ flex: 1 }}
-                    onClick={() => {
-                      if (gem.seller?.email) {
-                        window.location.href = `mailto:${gem.seller.email}?subject=Inquiry about ${encodeURIComponent(gem.type)}`;
-                      } else {
-                        alert('Seller contact not available');
-                      }
-                    }}
+                    onClick={() => onOpenSellerContact(gem.seller, gem.type)}
                   >
                     Contact Seller
                   </button>

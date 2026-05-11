@@ -21,6 +21,7 @@ import logo from '../../assets/logo.png';
 import AuctionBid from './AuctionBid';
 import GemDetails from './GemDetails';
 import Marketplace from './Marketplace';
+import SellerContactModal from './SellerContactModal';
 import './BuyerDashboard.css';
 
 type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist';
@@ -193,6 +194,8 @@ const BuyerDashboard = () => {
   const [bidAmount, setBidAmount] = useState('');
   const [showBidConfirm, setShowBidConfirm] = useState(false);
   const [bidFeedback, setBidFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<{ name: string; email: string; phone?: string } | null>(null);
+  const [selectedGemForContact, setSelectedGemForContact] = useState<{ name: string; id: string } | null>(null);
   const isBuyerAccount = user?.role === 'buyer';
 
   useEffect(() => {
@@ -321,6 +324,16 @@ const BuyerDashboard = () => {
     setBidAmount('');
     setShowBidConfirm(false);
     setBidFeedback(null);
+  };
+
+  const openSellerContact = (seller: { name: string; email: string }, gemName: string) => {
+    setSelectedSeller(seller);
+    setSelectedGemForContact({ name: gemName, id: '' });
+  };
+
+  const closeSellerContact = () => {
+    setSelectedSeller(null);
+    setSelectedGemForContact(null);
   };
 
   const requestBidConfirmation = () => {
@@ -468,7 +481,12 @@ const BuyerDashboard = () => {
                   </div>
                   <p className="market-meta mb-0">By: <strong>{gem.seller.name}</strong></p>
                   <div className="market-actions">
-                    <button className="bid-btn" type="button" style={{ width: '100%' }}>
+                    <button
+                      className="bid-btn"
+                      type="button"
+                      style={{ width: '100%' }}
+                      onClick={() => openSellerContact(gem.seller, gem.type)}
+                    >
                       Contact Seller
                     </button>
                   </div>
@@ -613,6 +631,7 @@ const BuyerDashboard = () => {
             onToggleWatchlist={toggleWatchlist}
             onOpenDetails={openDetails}
             onOpenGemDetails={openGemDetails}
+            onOpenSellerContact={openSellerContact}
             formatCurrency={formatCurrency}
             formatRemaining={formatRemaining}
             getLeadingBidderName={getLeadingBidderName}
@@ -721,6 +740,14 @@ const BuyerDashboard = () => {
         onConfirm={placeBid}
         formatCurrency={formatCurrency}
       />
+
+      {selectedSeller && selectedGemForContact && (
+        <SellerContactModal
+          seller={selectedSeller}
+          gemName={selectedGemForContact.name}
+          onClose={closeSellerContact}
+        />
+      )}
     </div>
   );
 };

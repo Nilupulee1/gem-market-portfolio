@@ -26,6 +26,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
   // Step 2: Media Upload
   const [images, setImages] = useState<File[]>([]);
   const [certificate, setCertificate] = useState<File | null>(null);
+  const [certificateAuthority, setCertificateAuthority] = useState('');
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   // Step 3: Listing Type
@@ -145,7 +146,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
       formDataToSend.append('color', formData.color);
       formDataToSend.append('origin', formData.origin);
       formDataToSend.append('description', formData.story);
-      formDataToSend.append('certificateAuthority', 'GIA');
+      formDataToSend.append('certificateAuthority', certificateAuthority);
       formDataToSend.append('certificateNumber', formData.gemName);
 
       images.forEach(image => {
@@ -430,6 +431,22 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                       <small className="text-success">✓ {certificate.name}</small>
                     </div>
                   )}
+                </div>
+
+                <div className="mb-4">
+                  <h5 className="fw-bold mb-3">Certificate Authority</h5>
+                  <p className="text-muted small">
+                    Enter the certifying lab name that issued the certificate for this gem.
+                  </p>
+                  <Form.Group>
+                    <Form.Control
+                      type="text"
+                      value={certificateAuthority}
+                      onChange={(e) => setCertificateAuthority(e.target.value)}
+                      placeholder="e.g. GIA (Gemological Institute of America)"
+                      className="surface-muted"
+                    />
+                  </Form.Group>
                 </div>
 
                 <div className="d-flex justify-content-between">
