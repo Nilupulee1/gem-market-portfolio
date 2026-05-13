@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Row, Col, Card, Button, Form, Table, InputGroup, Pagination, Modal } from 'react-bootstrap';
-import { Search, Plus, Eye, Trash2 } from 'lucide-react';
+import { Row, Col, Card, Button, Form, Modal, InputGroup, Alert } from 'react-bootstrap';
+import { Search, Plus, Eye, Trash2, TrendingUp, Clock, Target, Users } from 'lucide-react';
 import type { Gem, Auction } from '../../types';
 import { gemAPI, auctionAPI } from '../../api/axios';
 import CreateAuctionModal from './CreateAuctionModal';
@@ -91,26 +91,9 @@ const AuctionsPage = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return <span className="status-pill active">Active</span>;
-      case 'ended':
-        return <span className="status-pill ended">Ended</span>;
-      case 'cancelled':
-        return <span className="status-pill cancelled">Canceled</span>;
-      default:
-        return <span className="status-pill info">Active</span>;
-    }
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return `Rs.${amount.toLocaleString()}`;
   };
 
   const formatDateTime = (dateString: string) => {
@@ -127,35 +110,6 @@ const AuctionsPage = () => {
   const getLeadingBidderName = (auction?: Auction | null) => {
     const latestBid = auction?.bids?.[auction.bids.length - 1];
     return latestBid?.bidder?.name || auction?.winner?.name || 'No bids yet';
-  };
-
-  const getUniqueBidders = (auction?: Auction | null) => {
-    if (!auction?.bids?.length) {
-      return [] as Array<{ bidderId: string; name: string; email: string; bidCount: number; highestBid: number }>;
-    }
-
-    const bidderMap = new Map<string, { bidderId: string; name: string; email: string; bidCount: number; highestBid: number }>();
-
-    auction.bids.forEach((bid) => {
-      const bidderId = bid.bidder?._id || bid.bidder?.email || bid.bidder?.name;
-      if (!bidderId) {
-        return;
-      }
-
-      const current = bidderMap.get(bidderId) || {
-        bidderId,
-        name: bid.bidder?.name || 'Unknown bidder',
-        email: bid.bidder?.email || '-',
-        bidCount: 0,
-        highestBid: 0,
-      };
-
-      current.bidCount += 1;
-      current.highestBid = Math.max(current.highestBid, bid.amount);
-      bidderMap.set(bidderId, current);
-    });
-
-    return Array.from(bidderMap.values()).sort((a, b) => b.highestBid - a.highestBid);
   };
 
   const toTimestamp = (dateValue?: string) => {
@@ -206,203 +160,339 @@ const AuctionsPage = () => {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4 animate-fade-up">
-        <div className="dashboard-title mb-0">
-          <h2 className="mb-1 fw-bold">Auctions</h2>
-          <p>Review all your past auctions and bidder activity</p>
+      {/* Header Section */}
+      <div className="d-flex justify-content-between align-items-start mb-5">
+        <div className="dashboard-title">
+          <h4 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Your Auctions</h4>
+          <p style={{ color: '#7c8aa3', margin: 0 }}>Manage and monitor your active and past auctions</p>
         </div>
         <Button 
-          variant="primary" 
-          className="d-flex align-items-center px-4 auction-primary-btn"
+          className="btn-primary d-flex align-items-center gap-2"
           onClick={() => setShowCreateModal(true)}
+          style={{ whiteSpace: 'nowrap' }}
         >
-          <Plus size={18} className="me-2" />
+          <Plus size={18} />
           Create Auction
         </Button>
       </div>
 
-      <div className="auction-summary-grid animate-fade-up delay-1 mb-4">
-        <div className="auction-summary-card">
-          <span className="auction-summary-label">Total auctions</span>
-          <strong className="auction-summary-value">{auctionStats.totalAuctions}</strong>
-          <small>All seller listings</small>
-        </div>
-        <div className="auction-summary-card">
-          <span className="auction-summary-label">Active auctions</span>
-          <strong className="auction-summary-value">{auctionStats.activeAuctions}</strong>
-          <small>Open for bidding</small>
-        </div>
-        <div className="auction-summary-card">
-          <span className="auction-summary-label">Ended auctions</span>
-          <strong className="auction-summary-value">{auctionStats.endedAuctions}</strong>
-          <small>Winner decided</small>
-        </div>
-        <div className="auction-summary-card">
-          <span className="auction-summary-label">Total bids</span>
-          <strong className="auction-summary-value">{auctionStats.totalBids}</strong>
-          <small>Across all auctions</small>
-        </div>
-      </div>
+      {/* Stats Cards */}
+      <Row className="g-4 mb-5">
+        <Col md={6} lg={3}>
+          <Card className="stat-card h-100">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Total Auctions
+                  </p>
+                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#1a2332', marginBottom: 0 }}>
+                    {auctionStats.totalAuctions}
+                  </h3>
+                </div>
+                <div className="stat-icon" style={{ background: 'rgba(31, 79, 130, 0.1)' }}>
+                  <Target size={24} style={{ color: '#1f4f82' }} />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
 
-      <Card className="content-card auction-panel animate-fade-up delay-2">
+        <Col md={6} lg={3}>
+          <Card className="stat-card h-100">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Active Now
+                  </p>
+                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#1a2332', marginBottom: 0 }}>
+                    {auctionStats.activeAuctions}
+                  </h3>
+                </div>
+                <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                  <Clock size={24} style={{ color: '#10b981' }} />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col md={6} lg={3}>
+          <Card className="stat-card h-100">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Ended
+                  </p>
+                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#1a2332', marginBottom: 0 }}>
+                    {auctionStats.endedAuctions}
+                  </h3>
+                </div>
+                <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+                  <TrendingUp size={24} style={{ color: '#f59e0b' }} />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col md={6} lg={3}>
+          <Card className="stat-card h-100">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Total Bids
+                  </p>
+                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#1a2332', marginBottom: 0 }}>
+                    {auctionStats.totalBids}
+                  </h3>
+                </div>
+                <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
+                  <Users size={24} style={{ color: '#ef4444' }} />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Main Content Card */}
+      <Card className="content-card">
         <Card.Body className="p-4">
-          {/* Filters and Search */}
-          <Row className="mb-4 align-items-center">
-            <Col md={5}>
-              <InputGroup>
-                <InputGroup.Text className="bg-white">
-                  <Search size={18} className="text-muted" />
-                </InputGroup.Text>
-                <Form.Control
-                  placeholder="Search by gem name, auction ID or winner"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </InputGroup>
-            </Col>
-            <Col md={7} className="d-flex gap-3 justify-content-end mt-3 mt-md-0">
-              <Form.Select 
-                style={{ width: 'auto' }}
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-              >
-                <option value="all">Role: All</option>
-                <option value="seller">Seller</option>
-                <option value="buyer">Buyer</option>
-              </Form.Select>
-              <Form.Select 
-                style={{ width: 'auto' }}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">Status: All</option>
-                <option value="active">Active</option>
-                <option value="ended">Ended</option>
-                <option value="cancelled">Canceled</option>
-              </Form.Select>
-              <Form.Select 
-                style={{ width: 'auto' }}
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="endDate">Sort By: End date</option>
-                <option value="startDate">Sort By: Start date</option>
-                <option value="bidAmount">Sort By: Bid amount</option>
-              </Form.Select>
-            </Col>
-          </Row>
+          {/* Search and Filters */}
+          <div className="mb-4">
+            <Row className="g-3 align-items-end">
+              <Col md={5}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a2332', marginBottom: '8px' }}>
+                  Search Auctions
+                </div>
+                <InputGroup>
+                  <InputGroup.Text className="bg-white border-end-0">
+                    <Search size={18} style={{ color: '#7c8aa3' }} />
+                  </InputGroup.Text>
+                  <Form.Control
+                    placeholder="Search by gem name, ID or winner..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="border-start-0"
+                  />
+                </InputGroup>
+              </Col>
+              <Col md={7}>
+                <Row className="g-2">
+                  <Col xs={6} sm={4}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#7c8aa3', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Status
+                    </div>
+                    <Form.Select 
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      style={{ fontSize: '13px', fontWeight: 500 }}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="ended">Ended</option>
+                      <option value="cancelled">Cancelled</option>
+                    </Form.Select>
+                  </Col>
+                  <Col xs={6} sm={4}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#7c8aa3', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Sort By
+                    </div>
+                    <Form.Select 
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      style={{ fontSize: '13px', fontWeight: 500 }}
+                    >
+                      <option value="endDate">End Date</option>
+                      <option value="startDate">Start Date</option>
+                      <option value="bidAmount">Bid Amount</option>
+                    </Form.Select>
+                  </Col>
+                  <Col xs={12} sm={4}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#7c8aa3', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Role
+                    </div>
+                    <Form.Select 
+                      value={roleFilter}
+                      onChange={(e) => setRoleFilter(e.target.value)}
+                      style={{ fontSize: '13px', fontWeight: 500 }}
+                    >
+                      <option value="all">All Roles</option>
+                      <option value="seller">Seller</option>
+                      <option value="buyer">Buyer</option>
+                    </Form.Select>
+                  </Col>
+                </Row>
+              </Col>
+            </Row>
+          </div>
 
-          {/* Auctions Table */}
+          <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
+
+          {/* Content */}
           {errorMessage && (
-            <div className="alert alert-warning" role="alert">
+            <Alert variant="danger" className="mb-4">
               {errorMessage}
-            </div>
+            </Alert>
           )}
 
           {loading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
+            <div className="spinner-custom">
+              <div className="spinner-border" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
             </div>
           ) : filteredAuctions.length === 0 ? (
-            <div className="text-center py-5">
-              <p className="text-muted mb-3">No auctions found for the selected filters</p>
+            <div className="empty-state">
+              <div className="empty-state-icon">🎯</div>
+              <div className="empty-state-title">
+                {auctions.length === 0 ? 'No Auctions Yet' : 'No Results Found'}
+              </div>
+              <div className="empty-state-text">
+                {auctions.length === 0 
+                  ? 'Start by creating your first auction to attract bidders'
+                  : 'Try adjusting your filters or search terms'
+                }
+              </div>
               {auctions.length === 0 && (
-                <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                <Button 
+                  className="btn-primary"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  <Plus size={16} className="me-2" style={{ display: 'inline' }} />
                   Create Your First Auction
                 </Button>
               )}
             </div>
           ) : (
-            <>
-              <div className="table-responsive">
-                <Table hover className="align-middle surface-table">
-                  <thead>
-                    <tr>
-                      <th className="border-0 py-3">Gem Details</th>
-                      <th className="border-0 py-3">Winner</th>
-                      <th className="border-0 py-3">Auction End Date</th>
-                      <th className="border-0 py-3">Final Bid</th>
-                      <th className="border-0 py-3 text-center">Action</th>
-                      <th className="border-0 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAuctions.map((auction) => (
-                      <tr key={auction._id}>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div 
-                              className="rounded me-3 surface-muted"
-                              style={{ 
-                                width: '50px', 
-                                height: '50px',
-                                overflow: 'hidden'
-                              }}
-                            >
-                              <img 
-                                src={auction.gem?.images?.[0] || 'https://via.placeholder.com/50'}
-                                alt={auction.gem?.type}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = 'https://via.placeholder.com/50';
-                                }}
-                              />
-                            </div>
-                            <div>
-                              <div className="fw-semibold">{auction.gem?.type || '-'}</div>
-                              <small className="text-muted">
-                                {auction.gem?.certificate?.certificateNumber || '-'}
-                              </small>
-                            </div>
-                          </div>
-                        </td>
-                        <td>{auction.winner?.name || '-'}</td>
-                        <td>{formatDate(auction.endTime)}</td>
-                        <td className="fw-semibold">{formatCurrency(auction.currentBid)}</td>
-                        <td className="text-center">
-                          <div className="d-flex gap-2 justify-content-center">
-                            <Button 
-                              variant="link" 
-                              size="sm" 
-                              className="p-1 text-success"
-                              title="View Details"
-                              onClick={() => handleViewDetails(auction)}
-                            >
-                              <Eye size={18} />
-                            </Button>
-                            <Button 
-                              variant="link" 
-                              size="sm" 
-                              className="p-1 text-danger"
-                              title="Delete"
-                              onClick={() => handleDelete(auction)}
-                            >
-                              <Trash2 size={18} />
-                            </Button>
-                          </div>
-                        </td>
-                        <td>{getStatusBadge(auction.status)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
+            <div>
+              {/* Auction Cards Grid */}
+              <Row className="g-4 mb-4">
+                {filteredAuctions.map((auction) => (
+                  <Col md={6} lg={4} key={auction._id}>
+                    <Card 
+                      className="gem-card h-100"
+                      style={{ cursor: 'pointer', position: 'relative' }}
+                      onClick={() => handleViewDetails(auction)}
+                    >
+                      {/* Image */}
+                      <div className="gem-image-container">
+                        <img
+                          src={auction.gem?.images?.[0] || 'https://via.placeholder.com/300x200'}
+                          alt={auction.gem?.type}
+                          className="gem-image"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://via.placeholder.com/300x200';
+                          }}
+                        />
+                        <div className={`gem-status-badge gem-status-${auction.status}`}>
+                          {auction.status}
+                        </div>
+                      </div>
 
-              {/* Pagination */}
-              <div className="d-flex justify-content-between align-items-center mt-3">
-                <small className="text-muted">Showing 1-{filteredAuctions.length} of {auctions.length}</small>
-                <Pagination className="mb-0">
-                  <Pagination.Prev disabled />
-                  <Pagination.Item active>{1}</Pagination.Item>
-                  <Pagination.Item>{2}</Pagination.Item>
-                  <Pagination.Item>{3}</Pagination.Item>
-                  <Pagination.Next />
-                </Pagination>
+                      {/* Content */}
+                      <div className="gem-card-body">
+                        <div className="gem-type" style={{ marginBottom: '12px' }}>
+                          {auction.gem?.type || 'Unknown Gem'}
+                        </div>
+
+                        {/* Auction Info */}
+                        <div style={{ marginBottom: '16px' }}>
+                          <div style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '6px' }}>
+                            <strong>Current Bid:</strong> Rs.{auction.currentBid?.toLocaleString() || 0}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '6px' }}>
+                            <strong>Starting:</strong> Rs.{auction.startPrice?.toLocaleString() || 0}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '6px' }}>
+                            <strong>Bids:</strong> {auction.bids?.length || 0}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#7c8aa3' }}>
+                            <strong>Ends:</strong> {formatDate(auction.endTime)}
+                          </div>
+                        </div>
+
+                        {/* Winner/Leader Info */}
+                        {auction.winner || (auction.bids && auction.bids.length > 0) ? (
+                          <div style={{ 
+                            padding: '12px', 
+                            background: '#f8f9fa', 
+                            borderRadius: '8px', 
+                            marginBottom: '16px',
+                            fontSize: '12px'
+                          }}>
+                            <div style={{ color: '#7c8aa3', marginBottom: '4px' }}>
+                              {auction.winner ? 'Winner' : 'Leading Bidder'}
+                            </div>
+                            <div style={{ fontWeight: 600, color: '#1a2332' }}>
+                              {auction.winner?.name || getLeadingBidderName(auction)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            padding: '12px', 
+                            background: '#fef3c7', 
+                            borderRadius: '8px', 
+                            marginBottom: '16px',
+                            fontSize: '12px',
+                            color: '#92400e'
+                          }}>
+                            No bids yet
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <Button 
+                            className="btn-primary"
+                            size="sm"
+                            style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewDetails(auction);
+                            }}
+                          >
+                            <Eye size={14} className="me-1" style={{ display: 'inline' }} />
+                            Details
+                          </Button>
+                          <Button 
+                            className="btn-secondary"
+                            size="sm"
+                            style={{ fontSize: '13px', fontWeight: 600 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(auction);
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+
+              {/* Results Info */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                paddingTop: '16px',
+                borderTop: '1px solid #e5e7eb',
+                fontSize: '13px',
+                color: '#7c8aa3'
+              }}>
+                <span>
+                  Showing <strong>{filteredAuctions.length}</strong> of <strong>{auctions.length}</strong> auctions
+                </span>
               </div>
-            </>
+            </div>
           )}
         </Card.Body>
       </Card>
@@ -422,203 +512,238 @@ const AuctionsPage = () => {
       {/* Delete Confirmation Modal */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
+          <Modal.Title>Delete Auction</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p>Are you sure you want to delete this auction?</p>
+          <p style={{ marginBottom: '16px' }}>
+            Are you sure you want to delete this auction? This action cannot be undone.
+          </p>
           {selectedAuction && (
-            <div className="alert alert-warning">
-              <strong>{selectedAuction.gem?.type}</strong>
-              <br />
-              <small>Current Bid: {formatCurrency(selectedAuction.currentBid)}</small>
+            <div style={{ 
+              padding: '16px', 
+              background: '#fee2e2', 
+              borderRadius: '8px',
+              borderLeft: '4px solid #ef4444'
+            }}>
+              <div style={{ fontWeight: 600, color: '#1a2332', marginBottom: '8px' }}>
+                {selectedAuction.gem?.type}
+              </div>
+              <div style={{ fontSize: '13px', color: '#7f1d1d' }}>
+                Current Bid: Rs.{selectedAuction.currentBid?.toLocaleString() || 0}
+              </div>
+              <div style={{ fontSize: '13px', color: '#7f1d1d' }}>
+                Bids: {selectedAuction.bids?.length || 0}
+              </div>
             </div>
           )}
-          <p className="text-muted mb-0">This action cannot be undone.</p>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+        <Modal.Footer style={{ gap: '12px' }}>
+          <Button 
+            variant="secondary" 
+            onClick={() => setShowDeleteModal(false)}
+          >
             Cancel
           </Button>
-          <Button variant="danger" onClick={handleDeleteConfirm}>
+          <Button 
+            style={{ background: '#ef4444', border: 'none' }}
+            onClick={handleDeleteConfirm}
+          >
             Delete Auction
           </Button>
         </Modal.Footer>
       </Modal>
 
       {/* View Details Modal */}
-      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg" dialogClassName="auction-modal">
-        <Modal.Header closeButton>
-          <Modal.Title>Auction Details</Modal.Title>
+      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg">
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #1f4f82 0%, #4b6ea8 100%)', color: 'white', border: 'none' }}>
+          <Modal.Title style={{ fontWeight: 700 }}>Auction Details</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ padding: '24px' }}>
           {selectedAuction && (
-            <>
-              <Row className="g-4 auction-details-hero p-3">
-                <Col md={4} className="d-flex align-items-start">
+            <div>
+              {/* Top Section - Gem and Key Info */}
+              <Row className="g-4 mb-4">
+                <Col md={4}>
                   <img
                     src={selectedAuction.gem?.images?.[0] || 'https://via.placeholder.com/300'}
                     alt={selectedAuction.gem?.type}
-                    className="w-100 rounded"
-                    style={{ objectFit: 'cover', maxHeight: '220px' }}
+                    style={{ width: '100%', borderRadius: '12px', objectFit: 'cover' }}
                   />
                 </Col>
                 <Col md={8}>
-                  <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-                    <h5 className="mb-0">{selectedAuction.gem?.type || 'N/A'}</h5>
-                    <span className="status-pill info text-capitalize">{selectedAuction.status}</span>
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <h5 style={{ margin: 0, fontWeight: 700, color: '#1a2332' }}>
+                        {selectedAuction.gem?.type}
+                      </h5>
+                      <span className={`gem-status-badge gem-status-${selectedAuction.status}`}>
+                        {selectedAuction.status}
+                      </span>
+                    </div>
+                    <p style={{ color: '#7c8aa3', margin: 0, fontSize: '13px' }}>
+                      Certificate: {selectedAuction.gem?.certificate?.certificateNumber || 'N/A'}
+                    </p>
                   </div>
-                  <div className="row g-3">
-                    <div className="col-md-6">
-                      <div className="auction-details-card h-100">
-                        <span className="auction-details-label">Auction ID</span>
-                        <div className="fw-semibold text-break">{selectedAuction._id}</div>
+
+                  {/* Key Metrics Grid */}
+                  <Row className="g-2">
+                    <Col xs={6}>
+                      <div style={{ 
+                        padding: '12px', 
+                        background: '#f8f9fa', 
+                        borderRadius: '8px',
+                        borderLeft: '3px solid #1f4f82'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#7c8aa3', fontWeight: 600, marginBottom: '4px' }}>
+                          START PRICE
+                        </div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a2332' }}>
+                          Rs.{selectedAuction.startPrice?.toLocaleString() || 0}
+                        </div>
                       </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="auction-details-card h-100">
-                        <span className="auction-details-label">Certificate No</span>
-                        <div className="fw-semibold text-break">{selectedAuction.gem?.certificate?.certificateNumber || '-'}</div>
+                    </Col>
+                    <Col xs={6}>
+                      <div style={{ 
+                        padding: '12px', 
+                        background: '#f8f9fa', 
+                        borderRadius: '8px',
+                        borderLeft: '3px solid #10b981'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#7c8aa3', fontWeight: 600, marginBottom: '4px' }}>
+                          CURRENT BID
+                        </div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a2332' }}>
+                          Rs.{selectedAuction.currentBid?.toLocaleString() || 0}
+                        </div>
                       </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="auction-details-card">
-                        <span className="auction-details-label">Start Price</span>
-                        <div className="fw-semibold">{formatCurrency(selectedAuction.startPrice)}</div>
+                    </Col>
+                    <Col xs={6}>
+                      <div style={{ 
+                        padding: '12px', 
+                        background: '#f8f9fa', 
+                        borderRadius: '8px',
+                        borderLeft: '3px solid #f59e0b'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#7c8aa3', fontWeight: 600, marginBottom: '4px' }}>
+                          MIN INCREMENT
+                        </div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a2332' }}>
+                          Rs.{selectedAuction.minimumBidIncrement?.toLocaleString() || 0}
+                        </div>
                       </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="auction-details-card">
-                        <span className="auction-details-label">Final Bid</span>
-                        <div className="fw-semibold">{formatCurrency(selectedAuction.currentBid)}</div>
+                    </Col>
+                    <Col xs={6}>
+                      <div style={{ 
+                        padding: '12px', 
+                        background: '#f8f9fa', 
+                        borderRadius: '8px',
+                        borderLeft: '3px solid #ef4444'
+                      }}>
+                        <div style={{ fontSize: '11px', color: '#7c8aa3', fontWeight: 600, marginBottom: '4px' }}>
+                          TOTAL BIDS
+                        </div>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: '#1a2332' }}>
+                          {selectedAuction.bids?.length || 0}
+                        </div>
                       </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="auction-details-card">
-                        <span className="auction-details-label">Minimum Increment</span>
-                        <div className="fw-semibold">{formatCurrency(selectedAuction.minimumBidIncrement)}</div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="auction-details-card">
-                        <span className="auction-details-label">End Date</span>
-                        <div className="fw-semibold">{formatDate(selectedAuction.endTime)}</div>
-                      </div>
-                    </div>
-                    <div className="col-md-6">
-                      <div className="auction-details-card">
-                        <span className="auction-details-label">Winner</span>
-                        <div className="fw-semibold">{selectedAuction.winner?.name || getLeadingBidderName(selectedAuction)}</div>
-                      </div>
-                    </div>
-                  </div>
+                    </Col>
+                  </Row>
                 </Col>
               </Row>
 
-              <hr className="my-4" />
+              <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
 
-              <Row className="g-4 mt-1">
+              {/* Winner and Bidders */}
+              <Row className="g-4">
                 <Col md={5}>
-                  <h6 className="fw-bold mb-3">Winner Summary</h6>
-                  {selectedAuction.winner ? (
-                    <div className="auction-details-card">
-                      <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
-                        <div>
-                          <p className="mb-1"><strong>{selectedAuction.winner.name}</strong></p>
-                          <p className="mb-1 text-muted">{selectedAuction.winner.email}</p>
-                        </div>
-                        <span className="auction-bid-flag winner">Winner</span>
+                  <h6 style={{ fontWeight: 700, marginBottom: '16px', color: '#1a2332' }}>
+                    {selectedAuction.winner ? '🏆 Winner' : '👑 Leading Bidder'}
+                  </h6>
+                  {selectedAuction.winner || (selectedAuction.bids && selectedAuction.bids.length > 0) ? (
+                    <div style={{ 
+                      padding: '16px', 
+                      background: '#d1f5d1', 
+                      borderRadius: '12px',
+                      borderLeft: '4px solid #10b981'
+                    }}>
+                      <div style={{ fontSize: '13px', color: '#0b6623', marginBottom: '4px' }}>
+                        {selectedAuction.winner ? 'Winning Bid' : 'Current Leader'}
                       </div>
-                      <p className="mb-1">Winning bid: <strong>{formatCurrency(selectedAuction.currentBid)}</strong></p>
-                      <p className="mb-0 text-muted small">Finalized from the highest submitted bid.</p>
+                      <div style={{ fontWeight: 700, color: '#0b6623', marginBottom: '8px', fontSize: '16px' }}>
+                        {selectedAuction.winner?.name || getLeadingBidderName(selectedAuction)}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#0b6623' }}>
+                        Rs.{selectedAuction.currentBid?.toLocaleString() || 0}
+                      </div>
                     </div>
                   ) : (
-                    <div className="auction-details-card">
-                      <p className="mb-0 text-muted">
-                        Winner has not been decided yet. Current leader: <strong>{getLeadingBidderName(selectedAuction)}</strong>
-                      </p>
+                    <div style={{ 
+                      padding: '16px', 
+                      background: '#fef3c7', 
+                      borderRadius: '12px',
+                      borderLeft: '4px solid #f59e0b',
+                      color: '#92400e'
+                    }}>
+                      No bids have been placed yet
                     </div>
                   )}
                 </Col>
 
                 <Col md={7}>
-                  <h6 className="fw-bold mb-3">All Bidders</h6>
+                  <h6 style={{ fontWeight: 700, marginBottom: '16px', color: '#1a2332' }}>
+                    📊 All Bids ({selectedAuction.bids?.length || 0})
+                  </h6>
                   {selectedAuction.bids.length === 0 ? (
-                    <div className="auction-details-card text-muted">No bids have been placed on this auction.</div>
+                    <div style={{ 
+                      padding: '16px', 
+                      background: '#f8f9fa', 
+                      borderRadius: '8px',
+                      color: '#7c8aa3',
+                      textAlign: 'center'
+                    }}>
+                      No bids yet
+                    </div>
                   ) : (
-                    <div className="auction-bid-table border rounded-3 overflow-hidden">
-                      <Table responsive className="mb-0 align-middle">
-                        <thead className="table-light">
-                          <tr>
-                            <th className="border-0">Bidder</th>
-                            <th className="border-0">Email</th>
-                            <th className="border-0">Amount</th>
-                            <th className="border-0">Time</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedAuction.bids.slice().reverse().map((bid, index) => {
-                            const isTopBid = index === 0;
-                            return (
-                              <tr key={`${bid.timestamp}-${index}`}>
-                                <td>
-                                  <div className="fw-semibold d-flex align-items-center gap-2">
-                                    {bid.bidder?.name || 'Unknown bidder'}
-                                    {isTopBid && <span className="auction-bid-flag top">Top bid</span>}
-                                  </div>
-                                </td>
-                                <td>{bid.bidder?.email || '-'}</td>
-                                <td className="fw-semibold">{formatCurrency(bid.amount)}</td>
-                                <td>{formatDateTime(bid.timestamp)}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </Table>
+                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      {selectedAuction.bids.slice().reverse().map((bid, index) => (
+                        <div 
+                          key={`${bid.timestamp}-${index}`}
+                          style={{
+                            padding: '12px',
+                            marginBottom: '8px',
+                            background: index === 0 ? '#d1f5d1' : '#f8f9fa',
+                            borderRadius: '8px',
+                            borderLeft: index === 0 ? '4px solid #10b981' : '4px solid #e5e7eb'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#1a2332', fontSize: '13px' }}>
+                                {bid.bidder?.name || 'Unknown'}
+                                {index === 0 && <span style={{ marginLeft: '8px', fontSize: '11px', background: '#10b981', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>Top</span>}
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#7c8aa3' }}>
+                                {bid.bidder?.email || '-'}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 700, color: '#1a2332', fontSize: '14px' }}>
+                                Rs.{bid.amount?.toLocaleString() || 0}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#7c8aa3' }}>
+                                {formatDateTime(bid.timestamp)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </Col>
               </Row>
-
-              <Row className="g-4 mt-2">
-                <Col>
-                  <h6 className="fw-bold mb-3">Bidder Summary</h6>
-                  {getUniqueBidders(selectedAuction).length === 0 ? (
-                    <div className="auction-details-card text-muted">No bidder summary available.</div>
-                  ) : (
-                    <Row className="g-3">
-                      {getUniqueBidders(selectedAuction).map((bidder) => (
-                        <Col md={6} key={bidder.bidderId}>
-                          <div className="auction-details-card h-100">
-                            <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
-                              <div>
-                                <div className="fw-semibold">{bidder.name}</div>
-                                <small className="text-muted">{bidder.email}</small>
-                              </div>
-                              {selectedAuction.winner?._id === bidder.bidderId && <span className="auction-bid-flag winner">Winner</span>}
-                            </div>
-                            <div className="d-flex justify-content-between">
-                              <small className="text-muted">Bids placed</small>
-                              <strong>{bidder.bidCount}</strong>
-                            </div>
-                            <div className="d-flex justify-content-between mt-1">
-                              <small className="text-muted">Highest bid</small>
-                              <strong>{formatCurrency(bidder.highestBid)}</strong>
-                            </div>
-                          </div>
-                        </Col>
-                      ))}
-                    </Row>
-                  )}
-                </Col>
-              </Row>
-            </>
+            </div>
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowViewModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
       </Modal>
     </div>
   );

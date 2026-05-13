@@ -50,12 +50,18 @@ const Marketplace = ({
     return matchesQuery && matchesType;
   });
 
+  const totalVisible = auctions.length + filteredGems.length;
+
   return (
     <>
       <div className="section-head">
         <div>
           <h3>Browse Gems</h3>
-          <p className="mb-0 text-secondary">Showing {auctions.length + filteredGems.length} gems</p>
+          <p className="mb-0 text-secondary">Showing {totalVisible} listings matching your filters</p>
+        </div>
+        <div className="buyer-pill-row" aria-label="Marketplace summary">
+          <span className="buyer-pill buyer-pill-soft">Direct Sale: {filteredGems.length}</span>
+          <span className="buyer-pill">Auction: {auctions.length}</span>
         </div>
       </div>
 
@@ -76,9 +82,16 @@ const Marketplace = ({
       </div>
 
       <div className="market-grid">
+        {totalVisible === 0 && (
+          <div className="market-empty-state">
+            <h5>No gems found</h5>
+            <p>Try clearing filters or searching with a different keyword.</p>
+          </div>
+        )}
+
         {filteredGems.map((gem) => (
           <motion.article key={`gem-${gem._id}`} whileHover={{ y: -5 }} className="market-card">
-            <img className="market-image" src={gem.images[0]} alt={gem.type} />
+            <img className="market-image" src={gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={gem.type} />
             <div className="market-body">
               <strong>{gem.type}</strong>
               <p className="market-meta">
@@ -119,7 +132,7 @@ const Marketplace = ({
           const inWatchlist = watchlistIds.includes(auction._id);
           return (
             <motion.article key={auction._id} whileHover={{ y: -5 }} className="market-card">
-              <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
+              <img className="market-image" src={auction.gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={auction.gem.type} />
               <div className="market-body">
                 <strong>{auction.gem.type}</strong>
                 <p className="market-meta">

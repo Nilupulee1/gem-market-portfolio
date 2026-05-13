@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Container, Row, Col, Card, Nav, Button, Badge, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Nav, Button } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { gemAPI } from '../../api/axios';
-import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare } from 'lucide-react';
+import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, Settings, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MyPortfolio from './MyPortfolio';
 import AddGemForm from './AddGemForm';
@@ -129,6 +129,27 @@ const SellerDashboard = () => {
     return filtered.slice(0, 4);
   }, [myGems, listingFilter]);
 
+  const dashboardInsights = useMemo(() => {
+    const totalListings = myGems.length;
+    const approvalRate = totalListings ? Math.round((stats.activeListings / totalListings) * 100) : 0;
+    const pendingRate = totalListings ? Math.round((stats.pendingVerification / totalListings) * 100) : 0;
+    const rejectionRate = totalListings ? Math.round((stats.rejectedListings / totalListings) * 100) : 0;
+    const averageCarat = totalListings ? stats.totalCarat / totalListings : 0;
+
+    return {
+      totalListings,
+      approvalRate,
+      pendingRate,
+      rejectionRate,
+      averageCarat,
+      statusBreakdown: [
+        { label: 'Approved', value: stats.activeListings, color: '#10b981' },
+        { label: 'Pending', value: stats.pendingVerification, color: '#f59e0b' },
+        { label: 'Rejected', value: stats.rejectedListings, color: '#ef4444' },
+      ],
+    };
+  }, [myGems.length, stats]);
+
   const handleSignOut = () => {
     logout();
     navigate('/login');
@@ -147,170 +168,268 @@ const SellerDashboard = () => {
           fetchMyGems();
           setActiveTab('portfolio');
         }} />;
-      default:
+      default: {
         return (
           <>
-            {/* Welcome Section */}
-            <div className="dashboard-title">
-              <h4 className="mb-1">Welcome back, {user?.name?.split(' ')[0]}</h4>
-              <p className="text-muted">Here's a summary of your gem portfolio and recent activity.</p>
+            <div className="dashboard-hero mb-4">
+              <div>
+                <p className="dashboard-eyebrow mb-2">Seller dashboard</p>
+                <h4>Welcome back, {user?.name?.split(' ')[0]}!</h4>
+                <p className="mb-0">Track approvals, active listings, and recent updates from one place.</p>
+              </div>
+              <div className="dashboard-chip-stack">
+                <span className="dashboard-chip dashboard-chip-soft">{dashboardInsights.approvalRate}% approval rate</span>
+                <span className="dashboard-chip">{dashboardInsights.totalListings} total listings</span>
+              </div>
             </div>
 
-            {/* Stats Cards */}
             <Row className="g-4 mb-4">
-              <Col md={4}>
+              <Col md={6} lg={3}>
                 <Card className="stat-card h-100">
                   <Card.Body>
-                    <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
                       <div>
-                        <p className="text-muted mb-1 small">Total Portfolio Value</p>
-                        <h3 className="mb-0">{stats.totalCarat.toFixed(2)} ct</h3>
+                        <p className="text-muted mb-2 small">Total Carats</p>
+                        <h3 className="mb-0">{stats.totalCarat.toFixed(2)}</h3>
+                        <small className="text-muted">portfolio weight</small>
                       </div>
-                      <div className="stat-icon bg-primary bg-opacity-10">
-                        <TrendingUp className="text-primary" size={24} />
+                      <div className="stat-icon" style={{ background: 'rgba(31, 79, 130, 0.1)' }}>
+                        <TrendingUp size={24} style={{ color: '#1f4f82' }} />
                       </div>
                     </div>
-                    <small className="text-muted">Based on {myGems.length} gems</small>
                   </Card.Body>
                 </Card>
               </Col>
 
-              <Col md={4}>
+              <Col md={6} lg={3}>
                 <Card className="stat-card h-100">
                   <Card.Body>
-                    <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
                       <div>
-                        <p className="text-muted mb-1 small">Active Listings</p>
+                        <p className="text-muted mb-2 small">Active Listings</p>
                         <h3 className="mb-0">{stats.activeListings}</h3>
+                        <small className="text-muted">live on market</small>
                       </div>
-                      <div className="stat-icon bg-success bg-opacity-10">
-                        <Package className="text-success" size={24} />
+                      <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                        <Package size={24} style={{ color: '#10b981' }} />
                       </div>
                     </div>
-                    <small className="text-muted">out of {myGems.length} gems</small>
                   </Card.Body>
                 </Card>
               </Col>
 
-              <Col md={4}>
+              <Col md={6} lg={3}>
                 <Card className="stat-card h-100">
                   <Card.Body>
-                    <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
                       <div>
-                        <p className="text-muted mb-1 small">Pending Verification</p>
+                        <p className="text-muted mb-2 small">Pending Verification</p>
                         <h3 className="mb-0">{stats.pendingVerification}</h3>
+                        <small className="text-muted">awaiting review</small>
                       </div>
-                      <div className="stat-icon bg-warning bg-opacity-10">
-                        <AlertCircle className="text-warning" size={24} />
+                      <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+                        <AlertCircle size={24} style={{ color: '#f59e0b' }} />
                       </div>
                     </div>
-                    <small className="text-muted">awaiting admin review</small>
+                  </Card.Body>
+                </Card>
+              </Col>
+
+              <Col md={6} lg={3}>
+                <Card className="stat-card h-100">
+                  <Card.Body>
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <p className="text-muted mb-2 small">Rejected Items</p>
+                        <h3 className="mb-0">{stats.rejectedListings}</h3>
+                        <small className="text-muted">needs attention</small>
+                      </div>
+                      <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
+                        <AlertCircle size={24} style={{ color: '#ef4444' }} />
+                      </div>
+                    </div>
                   </Card.Body>
                 </Card>
               </Col>
             </Row>
 
-            {/* My Listings Section */}
+            <Row className="g-4 mb-4">
+              <Col lg={7}>
+                <Card className="content-card dashboard-analytics-card h-100">
+                  <Card.Body>
+                    <div className="dashboard-analytics-header">
+                      <div>
+                        <p className="dashboard-eyebrow mb-2">Listing health</p>
+                        <h5 className="mb-0">Approval and review mix</h5>
+                      </div>
+                      <span className="dashboard-chip dashboard-chip-soft">Avg. {dashboardInsights.averageCarat.toFixed(2)} ct</span>
+                    </div>
+
+                    <div className="dashboard-metric-grid mt-4">
+                      <div className="dashboard-metric-card">
+                        <span>Approval rate</span>
+                        <strong>{dashboardInsights.approvalRate}%</strong>
+                      </div>
+                      <div className="dashboard-metric-card">
+                        <span>Pending share</span>
+                        <strong>{dashboardInsights.pendingRate}%</strong>
+                      </div>
+                      <div className="dashboard-metric-card">
+                        <span>Rejected share</span>
+                        <strong>{dashboardInsights.rejectionRate}%</strong>
+                      </div>
+                    </div>
+
+                    <div className="dashboard-bar-list mt-4">
+                      {dashboardInsights.statusBreakdown.map((item) => {
+                        const progress = dashboardInsights.totalListings ? (item.value / dashboardInsights.totalListings) * 100 : 0;
+
+                        return (
+                          <div key={item.label} className="dashboard-bar-row">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                              <span>{item.label}</span>
+                              <strong>{item.value}</strong>
+                            </div>
+                            <div className="dashboard-bar-track">
+                              <div
+                                className="dashboard-bar-fill"
+                                style={{ width: `${progress}%`, background: item.color }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+
+              <Col lg={5}>
+                <Card className="content-card dashboard-analytics-card h-100">
+                  <Card.Body>
+                    <div className="dashboard-analytics-header mb-3">
+                      <div>
+                        <p className="dashboard-eyebrow mb-2">Recent activity</p>
+                        <h5 className="mb-0">Latest gem updates</h5>
+                      </div>
+                    </div>
+
+                    <div className="activity-list">
+                      {recentActivities.length === 0 ? (
+                        <div className="dashboard-empty-inline">No recent activity</div>
+                      ) : recentActivities.map((activity, index) => (
+                        <div key={index} className="activity-item">
+                          <div className={`activity-icon ${activity.type}`}>
+                            {activity.icon}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div className="activity-message">{activity.message}</div>
+                            <div className="activity-time">{activity.time}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+
             <Row>
               <Col lg={8}>
                 <Card className="content-card mb-4">
                   <Card.Body>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
                       <h5 className="mb-0">My Listings</h5>
-                      <div>
-                        <Button 
-                          variant={listingFilter === 'pending' ? 'primary' : 'link'}
-                          size="sm"
-                          className={`me-2 ${listingFilter === 'pending' ? '' : 'text-muted'}`}
-                          onClick={() => setListingFilter('pending')}
-                        >
-                          Pending
-                        </Button>
-                        <Button 
-                          variant={listingFilter === 'approved' ? 'primary' : 'link'}
-                          size="sm"
-                          className={listingFilter === 'approved' ? '' : 'text-muted'}
-                          onClick={() => setListingFilter('approved')}
-                        >
-                          Approved
-                        </Button>
-                        <Button 
-                          variant={listingFilter === 'rejected' ? 'primary' : 'link'}
-                          size="sm"
-                          className="ms-2 text-muted"
-                          onClick={() => setListingFilter('rejected')}
-                        >
-                          Rejected
-                        </Button>
-                        <Button 
-                          variant={listingFilter === 'all' ? 'primary' : 'link'} 
-                          size="sm"
-                          className="ms-2"
+                      <div className="filter-button-group">
+                        <button 
+                          className={`filter-button ${listingFilter === 'all' ? 'active' : ''}`}
                           onClick={() => setListingFilter('all')}
                         >
                           All
-                        </Button>
+                        </button>
+                        <button 
+                          className={`filter-button ${listingFilter === 'approved' ? 'active' : ''}`}
+                          onClick={() => setListingFilter('approved')}
+                        >
+                          Approved
+                        </button>
+                        <button 
+                          className={`filter-button ${listingFilter === 'pending' ? 'active' : ''}`}
+                          onClick={() => setListingFilter('pending')}
+                        >
+                          Pending
+                        </button>
+                        <button 
+                          className={`filter-button ${listingFilter === 'rejected' ? 'active' : ''}`}
+                          onClick={() => setListingFilter('rejected')}
+                        >
+                          Rejected
+                        </button>
                       </div>
                     </div>
 
                     {loading ? (
-                      <div className="text-center py-5">
-                        <div className="spinner-border text-primary" role="status">
+                      <div className="spinner-custom">
+                        <div className="spinner-border" role="status">
                           <span className="visually-hidden">Loading...</span>
                         </div>
                       </div>
                     ) : myGems.length === 0 ? (
-                      <div className="text-center py-5">
-                        <GemIcon size={48} className="text-muted mb-3" />
-                        <p className="text-muted">No gems added yet</p>
+                      <div className="empty-state">
+                        <div className="empty-state-icon">💎</div>
+                        <div className="empty-state-title">No Gems Yet</div>
+                        <div className="empty-state-text">Start building your portfolio by adding your first gem</div>
                         <Button 
-                          variant="primary"
+                          className="btn-primary"
                           onClick={() => setActiveTab('addGem')}
                         >
-                          <Plus size={16} className="me-1" />
+                          <Plus size={16} className="me-2" style={{ display: 'inline' }} />
                           Add Your First Gem
                         </Button>
                       </div>
                     ) : dashboardListedGems.length === 0 ? (
-                      <div className="text-center py-5 text-muted">
-                        No gems found for selected status.
+                      <div className="empty-state">
+                        <div className="empty-state-icon">🔍</div>
+                        <div className="empty-state-title">No Items Found</div>
+                        <div className="empty-state-text">No gems found for the selected status</div>
                       </div>
                     ) : (
                       <Row className="g-3">
                         {dashboardListedGems.map((gem) => (
                           <Col md={6} key={gem._id}>
-                            <Card className="surface-muted">
-                              <div 
-                                className="position-relative"
-                                style={{ height: '200px', overflow: 'hidden' }}
-                              >
+                            <Card className="gem-card">
+                              <div className="gem-image-container">
                                 <img
                                   src={gem.images[0] || 'https://via.placeholder.com/300x200'}
                                   alt={gem.type}
-                                  className="w-100 h-100"
-                                  style={{ objectFit: 'cover' }}
+                                  className="gem-image"
                                 />
-                                <Badge 
-                                  bg={gem.status === 'approved' ? 'success' : gem.status === 'pending' ? 'warning' : 'danger'}
-                                  className="position-absolute top-0 end-0 m-2"
-                                >
+                                <div className={`gem-status-badge gem-status-${gem.status}`}>
                                   {gem.status}
-                                </Badge>
-                              </div>
-                              <Card.Body>
-                                <h6 className="mb-1">{gem.type}</h6>
-                                <p className="text-muted small mb-2">
-                                  Carat: {gem.carat} | Origin: {gem.origin}
-                                </p>
-                                <div className="d-flex justify-content-between">
-                                  <Button variant="outline-primary" size="sm" onClick={() => setActiveTab('portfolio')}>
-                                    View Details
-                                  </Button>
-                                  <Button variant="outline-secondary" size="sm" onClick={() => setActiveTab('portfolio')}>
-                                    Manage
-                                  </Button>
                                 </div>
-                              </Card.Body>
+                              </div>
+                              <div className="gem-card-body">
+                                <div className="gem-type">{gem.type}</div>
+                                <div className="gem-details">
+                                  <div><strong>Carat:</strong> {gem.carat}</div>
+                                  <div><strong>Origin:</strong> {gem.origin}</div>
+                                  <div><strong>Color:</strong> {gem.color}</div>
+                                </div>
+                                <div className="gem-actions">
+                                  <button 
+                                    className="gem-actions button btn-primary"
+                                    onClick={() => setActiveTab('portfolio')}
+                                  >
+                                    View Details
+                                  </button>
+                                  <button 
+                                    className="gem-actions button btn-secondary"
+                                    onClick={() => setActiveTab('portfolio')}
+                                  >
+                                    Manage
+                                  </button>
+                                </div>
+                              </div>
                             </Card>
                           </Col>
                         ))}
@@ -320,69 +439,64 @@ const SellerDashboard = () => {
                 </Card>
               </Col>
 
-              {/* Recent Activity */}
               <Col lg={4}>
                 <Card className="content-card">
                   <Card.Body>
-                    <h5 className="mb-3">Recent Activity</h5>
-                    <ListGroup variant="flush">
+                    <h5 className="mb-4">Recent Activity</h5>
+                    <div className="activity-list">
                       {recentActivities.length === 0 ? (
-                        <ListGroup.Item className="px-0 text-muted">No recent gem activity</ListGroup.Item>
+                        <div style={{ textAlign: 'center', padding: '20px 0', color: '#7c8aa3' }}>
+                          <div style={{ fontSize: '14px' }}>No recent activity</div>
+                        </div>
                       ) : recentActivities.map((activity, index) => (
-                        <ListGroup.Item key={index} className="px-0">
-                          <div className="d-flex align-items-start">
-                            <div 
-                              className={`me-2 rounded-circle d-flex align-items-center justify-content-center ${
-                                activity.type === 'success' ? 'bg-success-subtle' : 
-                                activity.type === 'info' ? 'bg-info-subtle' : 'bg-danger-subtle'
-                              }`}
-                              style={{ width: '32px', height: '32px', minWidth: '32px' }}
-                            >
-                              <span className={`text-${activity.type}`}>{activity.icon}</span>
-                            </div>
-                            <div className="flex-grow-1">
-                              <p className="mb-1 small">{activity.message}</p>
-                              <small className="text-muted">{activity.time}</small>
-                            </div>
+                        <div key={index} className="activity-item">
+                          <div 
+                            className={`activity-icon ${activity.type}`}
+                          >
+                            {activity.icon}
                           </div>
-                        </ListGroup.Item>
+                          <div style={{ flex: 1 }}>
+                            <div className="activity-message">{activity.message}</div>
+                            <div className="activity-time">{activity.time}</div>
+                          </div>
+                        </div>
                       ))}
-                    </ListGroup>
+                    </div>
                   </Card.Body>
                 </Card>
               </Col>
             </Row>
           </>
         );
+      }
     }
   };
 
   return (
     <Container fluid className="dashboard-shell">
-      <Row className="g-0">
+      <Row className="g-0 h-100">
         {/* Sidebar */}
-        <Col lg={2} className="pe-lg-3">
+        <Col lg={2} className="pe-lg-4 mb-4 mb-lg-0">
           <Card className="sidebar-card mb-4">
-            <Card.Body className="text-center py-4">
-              <div 
-                className="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
-                style={{ width: '80px', height: '80px' }}
-              >
-                <span className="display-6">👤</span>
+            <Card.Body className="p-0">
+              <div className="profile-avatar">
+                👤
               </div>
-              <h6 className="mb-1">{user?.name}</h6>
-              <span className="profile-chip">Collector</span>
+              <div className="profile-info px-4 pb-4">
+                <div className="profile-name">{user?.name}</div>
+                <div className="profile-role">Seller</div>
+              </div>
             </Card.Body>
           </Card>
 
-          <Nav className="flex-column">
+          <Nav className="sidebar-nav">
             <Nav.Link
               className={`sidebar-nav-link ${
                 activeTab === 'dashboard' ? 'active' : ''
               }`}
               onClick={() => setActiveTab('dashboard')}
             >
-              <GemIcon size={18} className="me-2" />
+              <GemIcon size={18} />
               Dashboard
             </Nav.Link>
             <Nav.Link
@@ -391,7 +505,7 @@ const SellerDashboard = () => {
               }`}
               onClick={() => setActiveTab('portfolio')}
             >
-              <Package size={18} className="me-2" />
+              <Package size={18} />
               My Portfolio
             </Nav.Link>
             <Nav.Link
@@ -400,7 +514,7 @@ const SellerDashboard = () => {
               }`}
               onClick={() => setActiveTab('auctions')}
             >
-              <TrendingUp size={18} className="me-2" />
+              <TrendingUp size={18} />
               Auctions
             </Nav.Link>
             <Nav.Link
@@ -409,7 +523,7 @@ const SellerDashboard = () => {
               }`}
               onClick={() => setActiveTab('addGem')}
             >
-              <Plus size={18} className="me-2" />
+              <Plus size={18} />
               Add New Gem
             </Nav.Link>
             <Nav.Link
@@ -418,12 +532,11 @@ const SellerDashboard = () => {
               }`}
               onClick={() => setActiveTab('messages')}
             >
-              <MessageSquare size={18} className="me-2" />
-              Messages
+              <MessageSquare size={18} />
+              <span style={{ flex: 1 }}>Messages</span>
               {unreadCount > 0 && (
                 <span
                   style={{
-                    marginLeft: 'auto',
                     minWidth: 26,
                     height: 22,
                     padding: '0 7px',
@@ -440,22 +553,22 @@ const SellerDashboard = () => {
                     flexShrink: 0,
                   }}
                 >
-                  <MessageSquare size={12} />
                   {unreadCount}
                 </span>
               )}
             </Nav.Link>
           </Nav>
 
-          <hr className="my-4" />
-
-          <Button variant="outline-secondary" size="sm" className="w-100">
-            <AlertCircle size={16} className="me-2" />
-            Settings
-          </Button>
-          <Button variant="outline-danger" size="sm" className="w-100 mt-2" onClick={handleSignOut}>
-            Sign Out
-          </Button>
+          <div className="sidebar-button-group">
+            <Button variant="outline-secondary" size="sm" className="w-100 d-flex align-items-center justify-content-center gap-2">
+              <Settings size={16} />
+              Settings
+            </Button>
+            <Button variant="outline-danger" size="sm" className="w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
+              <LogOut size={16} />
+              Sign Out
+            </Button>
+          </div>
         </Col>
 
         {/* Main Content */}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Compass,Gavel,Heart,LayoutDashboard,LogOut,Search,Settings,ShieldCheck,Sparkle,Timer,X,MessageSquare} from 'lucide-react';
+import { Bell, Compass,Gavel,Heart,LayoutDashboard,LogOut,RefreshCw,Search,Settings,ShieldCheck,Sparkle,Timer,X,MessageSquare} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auctionAPI, buyerAPI, gemAPI } from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
@@ -406,33 +406,73 @@ const BuyerDashboard = () => {
 
   const renderDashboard = () => {
     const stats = dashboard?.stats;
+    const winningBids = activeBids.filter((item) => item.isWinning).length;
+    const leadRate = activeBids.length ? Math.round((winningBids / activeBids.length) * 100) : 0;
+    const winRate = stats?.totalBidsPlaced ? Math.round(((stats.wonAuctions || 0) / stats.totalBidsPlaced) * 100) : 0;
 
     return (
       <>
-        <div className="section-head">
+        <div className="buyer-dashboard-hero mb-4">
           <div>
+            <p className="buyer-eyebrow mb-2">Buyer dashboard</p>
             <h3>Welcome back, {user?.name?.split(' ')[0]}!</h3>
-            <p className="mb-0 text-secondary">You have {stats?.activeBids || 0} active bids</p>
+            <p className="mb-0">Follow your bids, wins, and watchlist movement at a glance.</p>
+          </div>
+          <div className="buyer-pill-row">
+            <span className="buyer-pill">{stats?.activeBids || 0} active bids</span>
+            <span className="buyer-pill buyer-pill-soft">{watchlistIds.length} watched items</span>
           </div>
         </div>
 
-        <div className="buyer-grid3">
-          <article className="quick-card">
+        <div className="buyer-analytics-grid">
+          <article className="quick-card" role="button" tabIndex={0} onClick={() => setView('auctions')} onKeyDown={(event) => event.key === 'Enter' && setView('auctions')}>
             <div className="quick-icon"><Gavel size={18} /></div>
-            <div>View Bids</div>
+            <div>Total bids placed</div>
             <strong>{stats?.totalBidsPlaced || 0} bids</strong>
           </article>
-          <article className="quick-card">
+          <article className="quick-card" role="button" tabIndex={0} onClick={() => setView('watchlist')} onKeyDown={(event) => event.key === 'Enter' && setView('watchlist')}>
             <div className="quick-icon"><Heart size={18} /></div>
-            <div>My Watchlist</div>
+            <div>My watchlist</div>
             <strong>{watchlistIds.length} items</strong>
           </article>
-          <article className="quick-card">
+          <article className="quick-card" role="button" tabIndex={0} onClick={() => setView('auctions')} onKeyDown={(event) => event.key === 'Enter' && setView('auctions')}>
             <div className="quick-icon"><Sparkle size={18} /></div>
-            <div>Recent Dealings</div>
+            <div>Won auctions</div>
             <strong>{stats?.wonAuctions || 0} wins</strong>
           </article>
+          <article className="quick-card" role="button" tabIndex={0} onClick={() => setView('dashboard')} onKeyDown={(event) => event.key === 'Enter' && setView('dashboard')}>
+            <div className="quick-icon"><Timer size={18} /></div>
+            <div>Lead rate</div>
+            <strong>{leadRate}% winning</strong>
+          </article>
         </div>
+
+        <section className="buyer-overview-panel block-card">
+          <div className="section-head">
+            <div>
+              <h3>Market snapshot</h3>
+              <p className="mb-0 text-secondary">A quick read on how your bidding activity is performing.</p>
+            </div>
+          </div>
+          <div className="buyer-metric-row">
+            <div className="buyer-metric-card">
+              <span>Active bids</span>
+              <strong>{stats?.activeBids || 0}</strong>
+            </div>
+            <div className="buyer-metric-card">
+              <span>Lead rate</span>
+              <strong>{leadRate}%</strong>
+            </div>
+            <div className="buyer-metric-card">
+              <span>Win rate</span>
+              <strong>{winRate}%</strong>
+            </div>
+            <div className="buyer-metric-card">
+              <span>Watchlist</span>
+              <strong>{watchlistIds.length}</strong>
+            </div>
+          </div>
+        </section>
 
         <section className="block-card">
           <div className="section-head">
@@ -445,7 +485,7 @@ const BuyerDashboard = () => {
             watchedAuctions.slice(0, 3).map((auction) => (
               <div key={auction._id} className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2">
                 <div className="d-flex align-items-center gap-2">
-                  <img src={auction.gem.images[0]} alt={auction.gem.type} width={52} height={42} style={{ objectFit: 'cover', borderRadius: 8 }} />
+                  <img src={auction.gem.images?.[0] || 'https://via.placeholder.com/200x140'} alt={auction.gem.type} width={52} height={42} style={{ objectFit: 'cover', borderRadius: 8 }} />
                   <div>
                     <strong>{auction.gem.type}</strong>
                     <p className="m-0 text-secondary">{auction.gem.carat} ct</p>
@@ -468,7 +508,7 @@ const BuyerDashboard = () => {
           <div className="market-grid">
             {approvedGems.slice(0, 1).map((gem) => (
               <article className="market-card" key={`gem-${gem._id}`}>
-                <img className="market-image" src={gem.images[0]} alt={gem.type} />
+                <img className="market-image" src={gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={gem.type} />
                 <div className="market-body">
                   <strong>{gem.type}</strong>
                   <p className="market-meta">{gem.origin}</p>
@@ -493,7 +533,7 @@ const BuyerDashboard = () => {
             ))}
             {filteredAuctions.slice(0, 3).map((auction) => (
               <article className="market-card" key={auction._id}>
-                <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
+                <img className="market-image" src={auction.gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={auction.gem.type} />
                 <div className="market-body">
                   <strong>{auction.gem.type}</strong>
                   <p className="market-meta">{auction.gem.origin}</p>
@@ -512,6 +552,13 @@ const BuyerDashboard = () => {
                 </div>
               </article>
             ))}
+
+            {approvedGems.length === 0 && filteredAuctions.length === 0 && (
+              <div className="market-empty-state">
+                <h5>No listings are available right now</h5>
+                <p>Check again soon for new direct-sale gems and live auctions.</p>
+              </div>
+            )}
           </div>
         </section>
       </>
@@ -577,7 +624,7 @@ const BuyerDashboard = () => {
       <div className="market-grid">
         {watchedAuctions.map((auction) => (
           <article className="market-card" key={auction._id}>
-            <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
+            <img className="market-image" src={auction.gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={auction.gem.type} />
             <div className="market-body">
               <strong>{auction.gem.type}</strong>
               <p className="market-meta">{auction.gem.origin} - {auction.gem.carat} ct</p>
@@ -704,6 +751,9 @@ const BuyerDashboard = () => {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
+          <button className="ghost-btn" type="button" onClick={() => refreshData()} title="Refresh buyer data">
+            <RefreshCw size={16} />
+          </button>
           <button className="ghost-btn" type="button"><Search size={16} /></button>
           <button className="ghost-btn" type="button"><Bell size={16} /></button>
           <button className="ghost-btn" type="button"><ShieldCheck size={16} /></button>

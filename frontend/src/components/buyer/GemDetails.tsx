@@ -50,6 +50,8 @@ const GemDetails = ({
   }
 
   const gem = (selectedGemDetails || selectedAuction?.gem)!;
+  const certificateUrl = getCertificateAccessUrl(gem.certificate);
+  const hasCertificate = Boolean(certificateUrl);
 
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true">
@@ -65,40 +67,44 @@ const GemDetails = ({
 
         <div className="modal-grid">
           <div>
-            <img className="modal-photo" src={gem.images[0]} alt={gem.type} />
+            <img className="modal-photo" src={gem.images?.[0] || 'https://via.placeholder.com/760x480'} alt={gem.type} />
             <div className="metric-row mt-2">
               <div className="metric">
                 <p>Certified Authentic</p>
-                <strong>{gem.certificate.authority}</strong>
+                <strong>{gem.certificate?.authority || 'Not available'}</strong>
               </div>
               <div className="metric">
                 <p>Certificate No</p>
-                <strong>{gem.certificate.certificateNumber}</strong>
+                <strong>{gem.certificate?.certificateNumber || 'Not provided'}</strong>
               </div>
             </div>
 
             <div className="metric cert-preview-card mt-2">
               <p>Certificate Preview</p>
-              <strong>{gem.certificate.authority}</strong>
+              <strong>{gem.certificate?.authority || 'No certificate metadata'}</strong>
               <div className="certificate-frame mt-2">
-                {isPdfCertificate(gem.certificate) ? (
-                  <PdfViewer url={getCertificateAccessUrl(gem.certificate)} />
+                {!hasCertificate ? (
+                  <div className="empty-note mb-0">Certificate preview unavailable</div>
+                ) : isPdfCertificate(gem.certificate) ? (
+                  <PdfViewer url={certificateUrl} />
                 ) : (
                   <img
-                    src={getCertificateAccessUrl(gem.certificate)}
+                    src={certificateUrl}
                     alt="Certificate"
                     className="w-100 rounded"
                   />
                 )}
               </div>
-              <a
-                className="btn btn-outline-primary btn-sm mt-2"
-                href={getCertificateAccessUrl(gem.certificate)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open Certificate
-              </a>
+              {hasCertificate && (
+                <a
+                  className="btn btn-outline-primary btn-sm mt-2"
+                  href={certificateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open Certificate
+                </a>
+              )}
             </div>
           </div>
 
@@ -200,7 +206,7 @@ const GemDetails = ({
                   </div>
                   <div className="d-flex justify-content-between border-bottom py-2">
                     <span className="text-secondary">Certificate</span>
-                    <strong>{gem.certificate.certificateNumber}</strong>
+                    <strong>{gem.certificate?.certificateNumber || 'N/A'}</strong>
                   </div>
                 </div>
 

@@ -47,6 +47,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
   const { user } = useAuthStore();
   const resetUnreadCount = useChatStore((state) => state.resetUnreadCount);
   const [selectedConversation, setSelectedConversation] = useState<SelectedConversation | null>(null);
+  const hasConversation = Boolean(selectedConversation || initialContact);
 
   useEffect(() => {
     resetUnreadCount();
@@ -71,6 +72,16 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
   return (
     <Container fluid className="messages-page py-4">
       <div className="messages-shell">
+        <div className="messages-header">
+          <div>
+            <h4 className="mb-1">Messages</h4>
+            <p className="mb-0">Keep auction discussions and buyer follow-ups in one place.</p>
+          </div>
+          <div className="messages-header-badge">
+            {hasConversation ? 'Conversation ready' : 'Select a thread to begin'}
+          </div>
+        </div>
+
         <Row className="messages-grid g-3">
           <Col lg={4} md={5} className="conversations-column">
             <ConversationsList
@@ -104,7 +115,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
                     <MessageSquare size={30} />
                   </div>
                   <h5>Select a conversation</h5>
-                  <p>Choose a conversation from the list to view messages and continue chatting.</p>
+                  <p>Choose a conversation from the list to view messages, review auction details, and continue chatting.</p>
                 </div>
               </div>
             )}

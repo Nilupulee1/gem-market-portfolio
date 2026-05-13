@@ -1,10 +1,11 @@
 @import "tailwindcss";
 /* Import Bootstrap */
-@import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'bootstrap/dist/css/bootstrap.min.css'; 
+@import './styles/seller.css';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
 
 html, body, #root {
-  background: #f3eefc !important;
+  background: #f3eefc;
   min-height: 100%;
   margin: 0;
   padding: 0;
@@ -2264,4 +2265,121 @@ h6,
     padding-right: 16px;
   }
 }
+
+/* Seller dashboard enhancements */
+.dashboard-shell {
+  padding: 28px 24px;
+  background: linear-gradient(180deg, rgba(244,246,250,0.6), rgba(243,238,252,0.6));
+  min-height: calc(100vh - 60px);
+}
+
+.sidebar-card {
+  border-radius: 14px;
+  border: 1px solid rgba(17,26,39,0.06);
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  box-shadow: 0 10px 30px rgba(17,26,39,0.06);
+}
+
+.sidebar-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  transition: all 0.18s ease;
+}
+
+.sidebar-nav-link:hover {
+  background: rgba(31,79,130,0.06);
+  color: var(--brand-navy);
+}
+
+.sidebar-nav-link.active {
+  background: linear-gradient(90deg, rgba(75,110,168,0.12), rgba(75,110,168,0.06));
+  color: var(--brand-navy-strong);
+  font-weight: 600;
+  box-shadow: inset 4px 0 0 rgba(75,110,168,0.12);
+}
+
+.profile-chip {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(31,79,130,0.06);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-card {
+  border-radius: 14px;
+  border: 1px solid rgba(17,26,39,0.06);
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  box-shadow: var(--shadow-soft);
+}
+
+.stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon .text-primary,
+.stat-icon .text-success,
+.stat-icon .text-warning {
+  filter: drop-shadow(0 6px 18px rgba(31,79,130,0.12));
+}
+
+.content-card {
+  border-radius: 14px;
+  border: 1px solid rgba(17,26,39,0.06);
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(17,26,39,0.04);
+}
+
+.surface-muted {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(17,26,39,0.04);
+}
+
+/* Gem tile tweaks */
+.surface-muted img {
+  transition: transform 0.35s ease;
+}
+.surface-muted:hover img {
+  transform: scale(1.03);
+}
+
+.dashboard-title h4 {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+/* Buttons adjustments to look more prominent in dashboard */
+.btn-primary {
+  background: linear-gradient(90deg, #3f6fae, #2f5f95);
+  border: none;
+  box-shadow: 0 10px 22px rgba(47,95,149,0.18);
+}
+
+.btn-outline-primary {
+  border-color: rgba(63,111,174,0.14);
+}
+
+/* Recent activity list compact avatars */
+.bg-success-subtle { background: rgba(88, 165, 125, 0.12); }
+.bg-info-subtle { background: rgba(96, 165, 250, 0.12); }
+.bg-danger-subtle { background: rgba(239, 68, 68, 0.08); }
+
+@media (max-width: 992px) {
+  .sidebar-card { margin-bottom: 18px; }
+  .dashboard-shell { padding: 16px; }
+}
+
 

@@ -97,6 +97,14 @@ const SellerContactModal = ({ seller, gemName, onClose, onSendMessage }: SellerC
             <Mail size={16} />
             Quick Email
           </button>
+
+          <button
+            className="ghost-btn"
+            type="button"
+            onClick={() => setShowMessageForm((current) => !current)}
+          >
+            {showMessageForm ? 'Hide Email Draft' : 'Write Detailed Email'}
+          </button>
         </div>
 
         {showMessageForm && (
@@ -134,7 +142,7 @@ const SellerContactModal = ({ seller, gemName, onClose, onSendMessage }: SellerC
 
         <div className="mt-3 p-2 rounded" style={{ backgroundColor: '#e3f2fd' }}>
           <p className="text-muted small mb-0">
-            💡 <strong>Tip:</strong> For faster communication, consider sharing your contact details in your message.
+            <strong>Tip:</strong> For faster communication, include your preferred response method in your first message.
           </p>
         </div>
       </div>
