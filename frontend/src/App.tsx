@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from './store/authStore';
+import axiosInstance from './api/axios';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -11,6 +12,8 @@ import SellerDashboard from './components/seller/SellerDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import BuyerDashboard from './components/buyer/BuyerDashboard';
 import { UserRole } from './types';
+import { disconnectSocket, initSocket, onNewMessageNotification } from './api/socket';
+import { useChatStore } from './store/chatStore';
 import {
   ArrowRight,
   BadgeCheck,
@@ -457,25 +460,97 @@ const HomePage = () => (
 );
 
 function App() {
-  const { initAuth } = useAuthStore();
+  const { initAuth, token, user } = useAuthStore();
+  const unreadCount = useChatStore((state) => state.unreadCount);
+  const initChatState = useChatStore((state) => state.initChatState);
+  const incrementUnreadCount = useChatStore((state) => state.incrementUnreadCount);
+  const [messageToast, setMessageToast] = useState<{
+    senderName?: string;
+    preview: string;
+    unreadCount: number;
+  } | null>(null);
+  const hideToastTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     initAuth();
-  }, [initAuth]);
+    initChatState();
+  }, [initAuth, initChatState]);
+
+  useEffect(() => {
+    if (!token) {
+      disconnectSocket();
+      return;
+    }
+
+    initChatState();
+    const currentSocket = initSocket(token);
+
+    const loadUnreadCount = async () => {
+      try {
+        const response = await axiosInstance.get('/chat/unread/count');
+        useChatStore.getState().setUnreadCount(Number(response.data.unreadCount || 0));
+      } catch (error) {
+        console.error('Failed to load unread message count:', error);
+      }
+    };
+
+    loadUnreadCount();
+
+    const handleIncomingNotification = (data: {
+      senderId: string;
+      senderName?: string;
+      preview: string;
+    }) => {
+      incrementUnreadCount();
+      const nextUnreadCount = useChatStore.getState().unreadCount;
+      setMessageToast({
+        senderName: data.senderName || 'New message',
+        preview: data.preview,
+        unreadCount: nextUnreadCount,
+      });
+
+      if (hideToastTimerRef.current) {
+        window.clearTimeout(hideToastTimerRef.current);
+      }
+
+      hideToastTimerRef.current = window.setTimeout(() => {
+        setMessageToast(null);
+      }, 4500);
+    };
+
+    onNewMessageNotification(handleIncomingNotification);
+
+    return () => {
+      if (hideToastTimerRef.current) {
+        window.clearTimeout(hideToastTimerRef.current);
+        hideToastTimerRef.current = null;
+      }
+      currentSocket.disconnect();
+    };
+  }, [token, user?.id, incrementUnreadCount, initChatState]);
 
   return (
     <BrowserRouter>
-      <AppLayout />
+      <AppLayout messageToast={messageToast} unreadCount={unreadCount} isAuthenticated={!!token} />
     </BrowserRouter>
   );
 }
 
-const AppLayout = () => {
+const AppLayout = ({
+  messageToast,
+  unreadCount,
+  isAuthenticated,
+}: {
+  messageToast: { senderName?: string; preview: string; unreadCount: number } | null;
+  unreadCount: number;
+  isAuthenticated: boolean;
+}) => {
   const location = useLocation();
   const isPortalRoute =
     location.pathname.startsWith('/buyer') ||
     location.pathname.startsWith('/seller') ||
     location.pathname.startsWith('/admin');
+  const isMessagesRoute = location.pathname.includes('/messages');
 
   return (
     <div className="min-h-screen market-shell">
@@ -514,6 +589,54 @@ const AppLayout = () => {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {isAuthenticated && messageToast && !isMessagesRoute && (
+        <div
+          style={{
+            position: 'fixed',
+            right: 20,
+            bottom: 20,
+            zIndex: 1050,
+            width: 'min(360px, calc(100vw - 32px))',
+            background: 'rgba(8, 18, 35, 0.96)',
+            color: '#fff',
+            borderRadius: 16,
+            padding: '14px 16px',
+            boxShadow: '0 18px 50px rgba(0, 0, 0, 0.28)',
+            border: '1px solid rgba(148, 163, 184, 0.24)',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <div className="d-flex align-items-start justify-content-between gap-3">
+            <div>
+              <div style={{ fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase', opacity: 0.7 }}>
+                New message
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>
+                {messageToast.senderName}
+              </div>
+              <div style={{ fontSize: 14, opacity: 0.9, marginTop: 4 }}>
+                {messageToast.preview}
+              </div>
+            </div>
+            <div
+              style={{
+                minWidth: 34,
+                height: 34,
+                borderRadius: 999,
+                display: 'grid',
+                placeItems: 'center',
+                background: 'linear-gradient(135deg, #4b84f8, #38bdf8)',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 14,
+              }}
+            >
+              {unreadCount}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

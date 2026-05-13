@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
+import { useChatStore } from '../../store/chatStore';
 import { UserRole } from '../../types';
 import { Home, LogOut, Menu, X } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
+  const unreadCount = useChatStore((state) => state.unreadCount);
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -92,6 +94,26 @@ const Header = () => {
               >
                 <Home size={16} />
                 Dashboard
+                {unreadCount > 0 && (
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      minWidth: 20,
+                      height: 20,
+                      borderRadius: 999,
+                      padding: '0 6px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: '#ef4444',
+                      color: '#fff',
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {unreadCount}
+                  </span>
+                )}
                 <span className="lux-link-underline" />
               </a>
               <span className="lux-user-chip">

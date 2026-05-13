@@ -15,7 +15,7 @@ interface MarketplaceProps {
   onToggleWatchlist: (auctionId: string) => void;
   onOpenDetails: (auctionId: string) => void;
   onOpenGemDetails: (gemId: string) => void;
-  onOpenSellerContact: (seller: { name: string; email: string }, gemName: string) => void;
+  onOpenSellerContact: (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => void;
   formatCurrency: (value: number) => string;
   formatRemaining: (endTime: string, nowMs: number) => string;
   getLeadingBidderName: (auction?: Auction | null) => string;
@@ -105,7 +105,7 @@ const Marketplace = ({
                     className="bid-btn"
                     type="button"
                     style={{ flex: 1 }}
-                    onClick={() => onOpenSellerContact(gem.seller, gem.type)}
+                    onClick={() => onOpenSellerContact(gem.seller, gem.type, gem._id)}
                   >
                     Contact Seller
                   </button>

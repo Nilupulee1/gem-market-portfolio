@@ -3,15 +3,17 @@ import { useState } from 'react';
 
 interface SellerContactModalProps {
   seller: {
+    _id?: string;
     name: string;
     email: string;
     phone?: string;
   };
   gemName: string;
   onClose: () => void;
+  onSendMessage?: () => void;
 }
 
-const SellerContactModal = ({ seller, gemName, onClose }: SellerContactModalProps) => {
+const SellerContactModal = ({ seller, gemName, onClose, onSendMessage }: SellerContactModalProps) => {
   const [message, setMessage] = useState('');
   const [showMessageForm, setShowMessageForm] = useState(false);
 
@@ -77,11 +79,11 @@ const SellerContactModal = ({ seller, gemName, onClose }: SellerContactModalProp
           <button
             className="bid-btn"
             type="button"
-            onClick={() => setShowMessageForm(!showMessageForm)}
+            onClick={onSendMessage}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
             <MessageCircle size={16} />
-            Send Message
+            Message in Chat
           </button>
 
           <button

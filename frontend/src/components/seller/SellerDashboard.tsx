@@ -1,16 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Nav, Button, Badge, ListGroup } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
+import { useChatStore } from '../../store/chatStore';
 import { gemAPI } from '../../api/axios';
-import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus } from 'lucide-react';
+import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MyPortfolio from './MyPortfolio';
 import AddGemForm from './AddGemForm';
 import AuctionsPage from './Auctions';
+import MessagesPage from '../buyer/MessagesPage';
 import type { Gem } from "../../types";
 
 
-type TabType = 'dashboard' | 'portfolio' | 'auctions' | 'addGem';
+type TabType = 'dashboard' | 'portfolio' | 'auctions' | 'addGem' | 'messages';
 type ListingFilter = 'all' | 'approved' | 'pending' | 'rejected';
 
 const sellerDashboardCacheKey = 'seller-dashboard-cache';
@@ -45,6 +47,7 @@ const saveSellerDashboardCache = (cache: SellerDashboardCache) => {
 
 const SellerDashboard = () => {
   const { user, logout } = useAuthStore();
+  const unreadCount = useChatStore((state) => state.unreadCount);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [listingFilter, setListingFilter] = useState<ListingFilter>('all');
@@ -137,6 +140,8 @@ const SellerDashboard = () => {
         return <MyPortfolio gems={myGems} onRefresh={fetchMyGems} />;
       case 'auctions':
         return <AuctionsPage />;
+      case 'messages':
+        return <MessagesPage />;
       case 'addGem':
         return <AddGemForm onSuccess={() => {
           fetchMyGems();
@@ -406,6 +411,39 @@ const SellerDashboard = () => {
             >
               <Plus size={18} className="me-2" />
               Add New Gem
+            </Nav.Link>
+            <Nav.Link
+              className={`sidebar-nav-link ${
+                activeTab === 'messages' ? 'active' : ''
+              }`}
+              onClick={() => setActiveTab('messages')}
+            >
+              <MessageSquare size={18} className="me-2" />
+              Messages
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    minWidth: 26,
+                    height: 22,
+                    padding: '0 7px',
+                    borderRadius: 999,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    background: 'linear-gradient(135deg, #ff5a6a, #ef4444)',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    boxShadow: '0 8px 18px rgba(239, 68, 68, 0.25)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <MessageSquare size={12} />
+                  {unreadCount}
+                </span>
+              )}
             </Nav.Link>
           </Nav>
 

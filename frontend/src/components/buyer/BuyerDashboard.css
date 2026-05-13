@@ -93,6 +93,24 @@
   border-color: #b9d4ff;
 }
 
+.message-notification-chip {
+  margin-left: auto;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #ff5a6a, #ef4444);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.25);
+  flex-shrink: 0;
+}
+
 .buyer-sidebar-bottom {
   margin-top: auto;
   padding: 8px;

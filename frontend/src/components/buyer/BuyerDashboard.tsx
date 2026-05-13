@@ -1,30 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Bell,
-  Compass,
-  Gavel,
-  Heart,
-  LayoutDashboard,
-  LogOut,
-  Search,
-  Settings,
-  ShieldCheck,
-  Sparkle,
-  Timer,
-  X,
-} from 'lucide-react';
+import { Bell, Compass,Gavel,Heart,LayoutDashboard,LogOut,Search,Settings,ShieldCheck,Sparkle,Timer,X,MessageSquare} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auctionAPI, buyerAPI, gemAPI } from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
 import type { Auction, Gem } from '../../types';
 import logo from '../../assets/logo.png';
+import { useChatStore } from '../../store/chatStore';
 import AuctionBid from './AuctionBid';
 import GemDetails from './GemDetails';
 import Marketplace from './Marketplace';
 import SellerContactModal from './SellerContactModal';
+import MessagesPage from './MessagesPage';
 import './BuyerDashboard.css';
 
-type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist';
+type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist' | 'messages';
 
 interface BuyerStats {
   auctionsParticipated: number;
@@ -171,6 +160,7 @@ const getLeadingBidderName = (auction?: Auction | null) => {
 const BuyerDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const unreadCount = useChatStore((state) => state.unreadCount);
   const cachedBuyerDashboard = loadBuyerDashboardCache();
 
   const [view, setView] = useState<BuyerView>('dashboard');
@@ -194,8 +184,10 @@ const BuyerDashboard = () => {
   const [bidAmount, setBidAmount] = useState('');
   const [showBidConfirm, setShowBidConfirm] = useState(false);
   const [bidFeedback, setBidFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [selectedSeller, setSelectedSeller] = useState<{ name: string; email: string; phone?: string } | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
   const [selectedGemForContact, setSelectedGemForContact] = useState<{ name: string; id: string } | null>(null);
+  const [chatInitialContact, setChatInitialContact] = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
+  const [chatInitialGem, setChatInitialGem] = useState<{ name: string; id: string } | null>(null);
   const isBuyerAccount = user?.role === 'buyer';
 
   useEffect(() => {
@@ -326,14 +318,21 @@ const BuyerDashboard = () => {
     setBidFeedback(null);
   };
 
-  const openSellerContact = (seller: { name: string; email: string }, gemName: string) => {
+  const openSellerContact = (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => {
     setSelectedSeller(seller);
-    setSelectedGemForContact({ name: gemName, id: '' });
+    setSelectedGemForContact({ name: gemName, id: gemId });
   };
 
   const closeSellerContact = () => {
     setSelectedSeller(null);
     setSelectedGemForContact(null);
+  };
+
+  const handleStartChatWithSeller = () => {
+    setChatInitialContact(selectedSeller);
+    setChatInitialGem(selectedGemForContact);
+    setView('messages');
+    closeSellerContact();
   };
 
   const requestBidConfirmation = () => {
@@ -485,7 +484,7 @@ const BuyerDashboard = () => {
                       className="bid-btn"
                       type="button"
                       style={{ width: '100%' }}
-                      onClick={() => openSellerContact(gem.seller, gem.type)}
+                      onClick={() => openSellerContact(gem.seller, gem.type, gem._id)}
                     >
                       Contact Seller
                     </button>
@@ -641,6 +640,8 @@ const BuyerDashboard = () => {
         return renderAuctions();
       case 'watchlist':
         return renderWatchlist();
+      case 'messages':
+        return <MessagesPage initialContact={chatInitialContact} initialGem={chatInitialGem} />;
       default:
         return renderDashboard();
     }
@@ -674,6 +675,15 @@ const BuyerDashboard = () => {
           </button>
           <button type="button" className={view === 'watchlist' ? 'active' : ''} onClick={() => setView('watchlist')}>
             <Heart size={16} /> My Watchlist
+          </button>
+          <button type="button" className={view === 'messages' ? 'active' : ''} onClick={() => setView('messages')}>
+            <MessageSquare size={16} /> Messages
+            {unreadCount > 0 && (
+              <span className="message-notification-chip" aria-label={`${unreadCount} unread messages`}>
+                <MessageSquare size={12} />
+                <strong>{unreadCount}</strong>
+              </span>
+            )}
           </button>
         </nav>
 
@@ -746,6 +756,7 @@ const BuyerDashboard = () => {
           seller={selectedSeller}
           gemName={selectedGemForContact.name}
           onClose={closeSellerContact}
+          onSendMessage={handleStartChatWithSeller}
         />
       )}
     </div>
