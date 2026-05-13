@@ -19,7 +19,6 @@ import {
   setUserTyping as emitUserTyping
 } from '../../api/socket';
 import { useAuthStore } from '../../store/authStore';
-import './AuctionChat.css';
 
 interface Message {
   _id: string;

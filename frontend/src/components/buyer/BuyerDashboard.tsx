@@ -11,7 +11,6 @@ import GemDetails from './GemDetails';
 import Marketplace from './Marketplace';
 import SellerContactModal from './SellerContactModal';
 import MessagesPage from './MessagesPage';
-import './BuyerDashboard.css';
 
 type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist' | 'messages';
 

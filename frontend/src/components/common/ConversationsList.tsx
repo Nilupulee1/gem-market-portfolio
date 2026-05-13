@@ -4,7 +4,6 @@ import { ListGroup, Card, Spinner } from 'react-bootstrap';
 import { MessageSquare } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
-import './ConversationsList.css';
 
 interface Conversation {
   _id: string;

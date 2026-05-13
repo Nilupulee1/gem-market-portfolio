@@ -5,7 +5,6 @@ import ConversationsList from '../common/ConversationsList';
 import AuctionChat from '../common/AuctionChat';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
-import './MessagesPage.css';
 
 interface SelectedConversation {
   _id: string;
