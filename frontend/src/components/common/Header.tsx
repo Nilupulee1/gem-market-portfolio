@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
@@ -62,8 +62,8 @@ const Header = ({
   };
 
   const publicNavLinks = [
-    { label: 'Gemstones', href: '#featured-gems' },
-    { label: 'How It Works', href: '#how-it-works' },
+    { label: 'Gemstones', href: '/#featured-gems' },
+    { label: 'How It Works', href: '/#how-it-works' },
   ];
 
   return (
@@ -126,14 +126,14 @@ const Header = ({
           ) : (
             <>
               {publicNavLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
-                  href={link.href}
+                  to={link.href}
                   className="lux-nav-link"
                 >
                   <span>{link.label}</span>
                   <span className="lux-link-underline" />
-                </a>
+                </Link>
               ))}
               <button
                 type="button"

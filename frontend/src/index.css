@@ -1014,7 +1014,8 @@ h6,
 }
 
 .auth-form-col {
-  background: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 248, 252, 0.98));
   padding: 1.5rem 0.8rem;
 }
 
@@ -1167,6 +1168,10 @@ h6,
 .auth-card .btn {
   font-size: 0.95rem;
   padding: 0.5rem 1rem;
+}
+
+.auth-card .btn-primary {
+  color: #ffffff !important;
 }
 
 .role-button {
@@ -2884,6 +2889,12 @@ html[data-theme='dark'] .auth-visual-overlay {
   background: linear-gradient(135deg, rgba(4, 9, 17, 0.94), rgba(8, 14, 25, 0.78));
 }
 
+html[data-theme='dark'] .auth-form-col {
+  background:
+    radial-gradient(900px 540px at 20% 0%, rgba(77, 126, 212, 0.16), transparent 55%),
+    linear-gradient(180deg, rgba(9, 15, 27, 0.98), rgba(7, 11, 20, 0.98));
+}
+
 html[data-theme='dark'] .auth-card {
   background: var(--page-surface-elevated);
   border-color: var(--border);
@@ -2926,6 +2937,36 @@ html[data-theme='dark'] .role-button.active {
   border-color: rgba(127, 179, 255, 0.36);
   color: var(--text-primary);
   box-shadow: 0 0 0 2px rgba(127, 179, 255, 0.12);
+}
+
+html[data-theme='dark'] .form-check-input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  cursor: pointer;
+}
+
+html[data-theme='dark'] .form-check-input:checked {
+  background-color: var(--color-bright);
+  border-color: var(--color-bright);
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme='dark'] .form-check-input:focus {
+  border-color: var(--color-bright);
+  box-shadow: 0 0 0 0.2rem rgba(47, 109, 225, 0.25);
+}
+
+html[data-theme='dark'] .auth-card .btn-primary {
+  color: #ffffff !important;
+  background: linear-gradient(100deg, #4d7ed4, #5a8fe8) !important;
+  border-color: #5a8fe8 !important;
+  box-shadow: 0 10px 26px rgba(77, 126, 212, 0.3);
+}
+
+html[data-theme='dark'] .auth-card .btn-primary:hover {
+  color: #ffffff !important;
+  background: linear-gradient(100deg, #5a8fe8, #6d9ef4) !important;
+  border-color: #6d9ef4 !important;
 }
 
 html[data-theme='dark'] .dashboard-shell,

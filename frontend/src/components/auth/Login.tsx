@@ -68,13 +68,6 @@ const Login = () => {
 
         <Col lg={6} className="d-flex align-items-center justify-content-center auth-form-col">
           <div className="auth-form-wrap">
-            <div className="auth-mobile-brand d-lg-none mb-4">
-              <Link to="/" className="auth-brand-link">
-                <img src={logo} alt="GemFolio" className="auth-brand-logo" />
-                <span className="auth-brand-name">GemFolio</span>
-              </Link>
-            </div>
-
             <div className="auth-card p-4 p-md-5">
               <div className="text-center mb-4">
                 <h1 className="h2 fw-bold mt-2 mb-2" style={{ color: 'var(--text-primary)' }}>Sign In</h1>

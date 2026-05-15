@@ -478,11 +478,31 @@ const AppLayout = ({
     location.pathname.startsWith('/buyer') ||
     location.pathname.startsWith('/seller') ||
     location.pathname.startsWith('/admin');
+  const isSellerRoute = location.pathname.startsWith('/seller');
   const isMessagesRoute = location.pathname.includes('/messages');
+
+  useEffect(() => {
+    if (!location.hash) {
+      return;
+    }
+
+    const targetId = location.hash.replace('#', '');
+    const targetElement = document.getElementById(targetId);
+
+    if (!targetElement) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.hash, location.pathname]);
 
   return (
     <div className="min-h-screen market-shell">
-      {isPortalRoute && (
+      {isPortalRoute && !isSellerRoute && (
         <button
           type="button"
           onClick={onToggleTheme}
@@ -507,7 +527,7 @@ const AppLayout = ({
           path="/seller/*"
           element={
             <ProtectedRoute allowedRoles={[UserRole.SELLER]}>
-              <SellerDashboard />
+              <SellerDashboard theme={theme} onToggleTheme={onToggleTheme} />
             </ProtectedRoute>
           }
         />

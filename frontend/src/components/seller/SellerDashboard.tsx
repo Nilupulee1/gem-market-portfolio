@@ -2,17 +2,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Nav, Button } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
 import { gemAPI } from '../../api/axios';
-import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, Settings, LogOut } from 'lucide-react';
+import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MyPortfolio from './MyPortfolio';
 import AddGemForm from './AddGemForm';
 import AuctionsPage from './Auctions';
 import MessagesPage from '../buyer/MessagesPage';
+import logo from '../../assets/logo.png';
 import type { Gem } from "../../types";
 
 
 type TabType = 'dashboard' | 'portfolio' | 'auctions' | 'addGem' | 'messages';
 type ListingFilter = 'all' | 'approved' | 'pending' | 'rejected';
+type ThemeMode = 'light' | 'dark';
 
 const sellerDashboardCacheKey = 'seller-dashboard-cache';
 
@@ -44,7 +46,13 @@ const saveSellerDashboardCache = (cache: SellerDashboardCache) => {
   localStorage.setItem(sellerDashboardCacheKey, JSON.stringify(cache));
 };
 
-const SellerDashboard = () => {
+const SellerDashboard = ({
+  theme,
+  onToggleTheme,
+}: {
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+}) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -333,7 +341,7 @@ const SellerDashboard = () => {
             </Row>
 
             <Row>
-              <Col lg={8}>
+              <Col lg={12}>
                 <Card className="content-card mb-4">
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-4">
@@ -436,33 +444,6 @@ const SellerDashboard = () => {
                   </Card.Body>
                 </Card>
               </Col>
-
-              <Col lg={4}>
-                <Card className="content-card">
-                  <Card.Body>
-                    <h5 className="mb-4">Recent Activity</h5>
-                    <div className="activity-list">
-                      {recentActivities.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '20px 0', color: '#7c8aa3' }}>
-                          <div style={{ fontSize: '14px' }}>No recent activity</div>
-                        </div>
-                      ) : recentActivities.map((activity, index) => (
-                        <div key={index} className="activity-item">
-                          <div 
-                            className={`activity-icon ${activity.type}`}
-                          >
-                            {activity.icon}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div className="activity-message">{activity.message}</div>
-                            <div className="activity-time">{activity.time}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
             </Row>
           </>
         );
@@ -471,10 +452,36 @@ const SellerDashboard = () => {
   };
 
   return (
-    <Container fluid className="dashboard-shell">
-      <Row className="g-0 h-100">
+    <div className="dashboard-shell">
+      {/* Navbar */}
+      <div className="seller-navbar">
+        <div className="seller-navbar-content">
+          <button type="button" className="seller-navbar-logo seller-navbar-brand" onClick={() => setActiveTab('dashboard')}>
+            <img src={logo} alt="GemFolio logo" className="seller-navbar-brand-logo" />
+            <span>GemFolio</span>
+          </button>
+          <div className="seller-navbar-actions">
+            <div className="seller-navbar-user">
+              <span>👤</span>
+              <span>{user?.name?.split(' ')[0]}</span>
+            </div>
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="seller-navbar-theme-toggle"
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Wrapper */}
+      <div className="dashboard-content-wrapper">
         {/* Sidebar */}
-        <Col lg={2} className="pe-lg-4 mb-4 mb-lg-0">
+        <div className="dashboard-sidebar-wrapper">
           <Card className="sidebar-card mb-4">
             <Card.Body className="p-0">
               <div className="profile-avatar">
@@ -545,14 +552,16 @@ const SellerDashboard = () => {
               Sign Out
             </Button>
           </div>
-        </Col>
+        </div>
 
         {/* Main Content */}
-        <Col lg={10}>
-          {renderContent()}
-        </Col>
-      </Row>
-    </Container>
+        <div className="dashboard-main-content">
+          <Container fluid className="p-0">
+            {renderContent()}
+          </Container>
+        </div>
+      </div>
+    </div>
   );
 };
 
