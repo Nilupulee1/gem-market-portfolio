@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useRef } from 'react';
 import { ListGroup, Card, Spinner } from 'react-bootstrap';
-import { MessageSquare } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
 
@@ -59,7 +57,6 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const autoSelectedRef = useRef(false);
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -87,17 +84,6 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
       conv.auction?.gem?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       conv.gem?.name?.toLowerCase().includes(searchTerm.toLowerCase());
   }).sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
-
-  useEffect(() => {
-    if (selectedConversationId || autoSelectedRef.current || !onSelectConversation) {
-      return;
-    }
-
-    if (filteredConversations.length > 0) {
-      onSelectConversation(filteredConversations[0]);
-      autoSelectedRef.current = true;
-    }
-  }, [filteredConversations, onSelectConversation, selectedConversationId]);
 
   const getUnreadCount = (conv: Conversation) => {
     if (!user) return 0;
@@ -133,14 +119,9 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
     <div className={`conversations-list-container ${className}`}>
       <Card className="border-0 conversations-card">
         <Card.Header className="conversations-header">
-          <div className="d-flex align-items-center gap-2">
-            <div className="conversations-header-icon">
-              <MessageSquare size={18} />
-            </div>
-            <div>
-              <h5 className="mb-0">Conversations</h5>
-              <small>{conversations.length} active threads</small>
-            </div>
+          <div>
+            <h5 className="mb-0">Chat</h5>
+            <small>{conversations.length} conversations</small>
           </div>
         </Card.Header>
 
@@ -153,7 +134,7 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
 
-          <div className="conversation-list-title">All Messages ({filteredConversations.length})</div>
+
           <ListGroup variant="flush" className="conversations-list">
             {filteredConversations.length === 0 ? (
               <div className="conversations-empty">
@@ -174,22 +155,16 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
                   >
                     <div className="conversation-avatar">{otherUser.name[0]?.toUpperCase()}</div>
                     <div className="conversation-info flex-grow-1">
-                      <div className="d-flex align-items-center gap-2 mb-1">
+                      <div className="d-flex align-items-center justify-content-between gap-2 mb-1">
                         <h6 className="mb-0">{otherUser.name}</h6>
+                        {unreadCount > 0 && (
+                          <span className="conversation-badge">{unreadCount}</span>
+                        )}
                       </div>
-                      <small className="conversation-meta d-block mb-1">
-                        {conv.auction?.gem?.name || conv.gem?.name || 'Unknown Gem'}
-                      </small>
                       <p className="mb-0 message-preview">
-                        <strong>
-                          {user?.id === conv.lastMessage?.sender?._id ? 'You: ' : ''}
-                        </strong>
                         {conv.lastMessage?.content || 'No messages yet'}
                       </p>
-                    </div>
-                    <div className="conversation-time-block text-end">
-                      <small className="d-block">{formatTime(conv.updatedAt)}</small>
-                      <small className="d-block price">Rs.{conv.auction?.currentBid?.toLocaleString() || 0}</small>
+                      <small className="d-block conversation-time">{formatTime(conv.updatedAt)}</small>
                     </div>
                   </ListGroup.Item>
                 );

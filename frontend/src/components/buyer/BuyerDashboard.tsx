@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, Compass,Gavel,Heart,LayoutDashboard,LogOut,RefreshCw,Search,Settings,ShieldCheck,Sparkle,Timer,X,MessageSquare} from 'lucide-react';
+import { Compass,Gavel,Heart,LayoutDashboard,LogOut,Settings,Sparkle,Timer,X,MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auctionAPI, buyerAPI, gemAPI } from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
@@ -671,7 +671,6 @@ const BuyerDashboard = () => {
             uniqueTypes={uniqueTypes}
             watchlistIds={watchlistIds}
             nowMs={nowMs}
-            onQueryChange={setQuery}
             onTypeChange={setSelectedType}
             onToggleWatchlist={toggleWatchlist}
             onOpenDetails={openDetails}
@@ -744,21 +743,6 @@ const BuyerDashboard = () => {
       </aside>
 
       <main className="buyer-content">
-        <div className="buyer-topbar">
-          <input
-            className="buyer-search"
-            placeholder="Search for gems, auctions..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <button className="ghost-btn" type="button" onClick={() => refreshData()} title="Refresh buyer data">
-            <RefreshCw size={16} />
-          </button>
-          <button className="ghost-btn" type="button"><Search size={16} /></button>
-          <button className="ghost-btn" type="button"><Bell size={16} /></button>
-          <button className="ghost-btn" type="button"><ShieldCheck size={16} /></button>
-        </div>
-
         {renderBody()}
       </main>
 

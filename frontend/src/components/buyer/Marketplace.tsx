@@ -10,7 +10,6 @@ interface MarketplaceProps {
   uniqueTypes: string[];
   watchlistIds: string[];
   nowMs: number;
-  onQueryChange: (value: string) => void;
   onTypeChange: (value: string) => void;
   onToggleWatchlist: (auctionId: string) => void;
   onOpenDetails: (auctionId: string) => void;
@@ -29,7 +28,6 @@ const Marketplace = ({
   uniqueTypes,
   watchlistIds,
   nowMs,
-  onQueryChange,
   onTypeChange,
   onToggleWatchlist,
   onOpenDetails,
@@ -66,12 +64,6 @@ const Marketplace = ({
       </div>
 
       <div className="control-row">
-        <input
-          className="buyer-search"
-          placeholder="Search gems..."
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-        />
         <select value={selectedType} onChange={(event) => onTypeChange(event.target.value)}>
           {uniqueTypes.map((type) => (
             <option key={type} value={type}>

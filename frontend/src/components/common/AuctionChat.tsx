@@ -41,7 +41,6 @@ interface AuctionChatProps {
   conversationId?: string;
   recipientId: string;
   recipientName: string;
-  gemName?: string;
   conversationLabel?: string;
 }
 
@@ -51,7 +50,6 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
   conversationId,
   recipientId,
   recipientName,
-  gemName,
   conversationLabel
 }) => {
   const { user, token } = useAuthStore();
@@ -60,9 +58,10 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-  const [userOnline, setUserOnline] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
+
+  const messageCount = messages.length;
 
   const mergeUniqueMessages = (existingMessages: Message[], incomingMessages: Message[]) => {
     const seenIds = new Set(existingMessages.map((message) => message._id));
@@ -160,9 +159,6 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
 
     const handleUserStatus = (data: { userId: string; status: 'online' | 'offline' }) => {
       console.log('User status:', data);
-      if (data.userId === recipientId) {
-        setUserOnline(data.status === 'online');
-      }
     };
 
     console.log('Registering message listener');
@@ -241,19 +237,9 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
         <div className="chat-header-main">
           <div className="chat-avatar">{recipientName[0]?.toUpperCase()}</div>
           <div>
-            <h5 className="mb-1">{conversationLabel || recipientName}</h5>
-            <div className="chat-header-subtitle">
-              <span className={`status-dot ${userOnline ? 'online' : 'offline'}`} />
-              <span>{userOnline ? 'Online now' : 'Offline'}</span>
-              {gemName && <span className="chat-divider">•</span>}
-              {gemName && <span>{gemName}</span>}
-            </div>
+            <h5 className="mb-0">{conversationLabel || recipientName}</h5>
+            <small className="chat-message-count">{messageCount} messages</small>
           </div>
-        </div>
-        <div className="chat-header-actions">
-          <button type="button" className="chat-action-btn" aria-label="video call">◎</button>
-          <button type="button" className="chat-action-btn" aria-label="phone call">⌁</button>
-          <button type="button" className="chat-action-btn" aria-label="more">⋯</button>
         </div>
       </Card.Header>
       <Card.Body className="chat-messages">

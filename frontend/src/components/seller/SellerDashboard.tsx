@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Nav, Button } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
-import { useChatStore } from '../../store/chatStore';
 import { gemAPI } from '../../api/axios';
 import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, Settings, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -47,7 +46,6 @@ const saveSellerDashboardCache = (cache: SellerDashboardCache) => {
 
 const SellerDashboard = () => {
   const { user, logout } = useAuthStore();
-  const unreadCount = useChatStore((state) => state.unreadCount);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [listingFilter, setListingFilter] = useState<ListingFilter>('all');
@@ -534,28 +532,6 @@ const SellerDashboard = () => {
             >
               <MessageSquare size={18} />
               <span style={{ flex: 1 }}>Messages</span>
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    minWidth: 26,
-                    height: 22,
-                    padding: '0 7px',
-                    borderRadius: 999,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 4,
-                    background: 'linear-gradient(135deg, #ff5a6a, #ef4444)',
-                    color: '#fff',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    boxShadow: '0 8px 18px rgba(239, 68, 68, 0.25)',
-                    flexShrink: 0,
-                  }}
-                >
-                  {unreadCount}
-                </span>
-              )}
             </Nav.Link>
           </Nav>
 

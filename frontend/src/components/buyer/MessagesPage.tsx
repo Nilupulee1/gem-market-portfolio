@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
-import { MessageSquare } from 'lucide-react';
 import ConversationsList from '../common/ConversationsList';
 import AuctionChat from '../common/AuctionChat';
 import { useAuthStore } from '../../store/authStore';
@@ -43,11 +42,10 @@ interface MessagesPageProps {
   } | null;
 }
 
-const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem }) => {
+const MessagesPage: React.FC<MessagesPageProps> = () => {
   const { user } = useAuthStore();
   const resetUnreadCount = useChatStore((state) => state.resetUnreadCount);
   const [selectedConversation, setSelectedConversation] = useState<SelectedConversation | null>(null);
-  const hasConversation = Boolean(selectedConversation || initialContact);
 
   useEffect(() => {
     resetUnreadCount();
@@ -63,23 +61,15 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
         : selectedConversation.seller)
     : null;
 
-  const selectedGemId = selectedConversation?.auction?.gem?._id || selectedConversation?.gem?._id;
-  const selectedGemName = selectedConversation?.auction?.gem?.name || selectedConversation?.gem?.name || 'Unknown Gem';
   const chatTitle = selectedConversation
     ? (user.id === selectedConversation.seller._id ? selectedConversation.buyer.name : selectedConversation.seller.name)
-    : initialContact?.name || 'Messages';
+    : 'Messages';
 
   return (
     <Container fluid className="messages-page py-4">
       <div className="messages-shell">
         <div className="messages-header">
-          <div>
-            <h4 className="mb-1">Messages</h4>
-            <p className="mb-0">Keep auction discussions and buyer follow-ups in one place.</p>
-          </div>
-          <div className="messages-header-badge">
-            {hasConversation ? 'Conversation ready' : 'Select a thread to begin'}
-          </div>
+          <h4 className="mb-0">Messages</h4>
         </div>
 
         <Row className="messages-grid g-3">
@@ -91,31 +81,23 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
           </Col>
 
           <Col lg={8} md={7} className="chat-column">
-            {selectedConversation ? (
+            {selectedConversation && (
               <AuctionChat
                 auctionId={selectedConversation.auction?._id}
-                gemId={selectedGemId}
+                gemId={selectedConversation?.auction?.gem?._id || selectedConversation?.gem?._id}
                 recipientId={otherUser?._id || ''}
                 recipientName={otherUser?.name || 'User'}
-                gemName={selectedGemName}
                 conversationLabel={chatTitle}
               />
-            ) : initialContact ? (
-              <AuctionChat
-                gemId={initialGem?.id}
-                recipientId={initialContact._id || ''}
-                recipientName={initialContact.name || 'User'}
-                gemName={initialGem?.name || 'Unknown Gem'}
-                conversationLabel={chatTitle}
-              />
-            ) : (
+            )}
+            {!selectedConversation && (
               <div className="empty-chat-state">
                 <div className="empty-chat-card">
                   <div className="empty-chat-icon">
-                    <MessageSquare size={30} />
+                    <span>✦</span>
                   </div>
                   <h5>Select a conversation</h5>
-                  <p>Choose a conversation from the list to view messages, review auction details, and continue chatting.</p>
+                  <p>Click a name on the left to open the chat here.</p>
                 </div>
               </div>
             )}
