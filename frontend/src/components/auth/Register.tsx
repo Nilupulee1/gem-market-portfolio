@@ -85,7 +85,7 @@ const Register = () => {
               <p className="auth-kicker">Create your verified account</p>
               <h1 className="auth-visual-title">Join a Trusted Marketplace for Certified Gems</h1>
               <p className="auth-visual-copy">
-                Build your buyer or seller profile to access secure transactions and curated gemstone portfolios.
+                Build your buyer or seller profile to browse curated gemstone portfolios and connect with trusted sellers.
               </p>
             </div>
             <div className="auth-stat-grid">
@@ -113,8 +113,8 @@ const Register = () => {
 
             <div className="auth-card p-4 p-md-5">
               <div className="text-center mb-4">
-                <h2 className="h2 fw-bold mt-2 mb-2" style={{ color: '#1c2a3b' }}>Create Account</h2>
-                <p className="mb-0" style={{ color: '#687585' }}>
+                <h2 className="h2 fw-bold mt-2 mb-2" style={{ color: 'var(--text-primary)' }}>Create Account</h2>
+                <p className="mb-0" style={{ color: 'var(--text-secondary)' }}>
                   Enter your information to get started.
                 </p>
               </div>
@@ -127,7 +127,7 @@ const Register = () => {
 
               <Form onSubmit={handleSubmit} className="auth-form-stack">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>First Name</Form.Label>
+                  <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>First Name</Form.Label>
                   <div className="auth-input-wrap">
                     <User size={16} className="auth-input-icon" />
                     <Form.Control
@@ -143,7 +143,7 @@ const Register = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Last Name</Form.Label>
+                  <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>Last Name</Form.Label>
                   <div className="auth-input-wrap">
                     <User size={16} className="auth-input-icon" />
                     <Form.Control
@@ -159,7 +159,7 @@ const Register = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Email</Form.Label>
+                  <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>Email</Form.Label>
                   <div className="auth-input-wrap">
                     <Mail size={16} className="auth-input-icon" />
                     <Form.Control
@@ -175,7 +175,7 @@ const Register = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Password</Form.Label>
+                  <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>Password</Form.Label>
                   <div className="position-relative">
                     <Lock size={16} className="auth-password-icon" />
                     <Form.Control
@@ -201,7 +201,7 @@ const Register = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-4">
-                  <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Select your role</Form.Label>
+                  <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>Select your role</Form.Label>
                   <Row className="g-3">
                     <Col xs={6}>
                       <div

@@ -191,7 +191,7 @@ const AuctionsPage = () => {
                   </h3>
                 </div>
                 <div className="stat-icon" style={{ background: 'rgba(31, 79, 130, 0.1)' }}>
-                  <Target size={24} style={{ color: '#1f4f82' }} />
+                  <Target size={24} style={{ color: 'var(--color-primary)' }} />
                 </div>
               </div>
             </Card.Body>
@@ -555,7 +555,7 @@ const AuctionsPage = () => {
 
       {/* View Details Modal */}
       <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg">
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #1f4f82 0%, #4b6ea8 100%)', color: 'white', border: 'none' }}>
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--secondary-color) 100%)', color: 'white', border: 'none' }}>
           <Modal.Title style={{ fontWeight: 700 }}>Auction Details</Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ padding: '24px' }}>

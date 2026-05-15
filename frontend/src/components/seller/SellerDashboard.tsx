@@ -192,7 +192,7 @@ const SellerDashboard = () => {
                         <small className="text-muted">portfolio weight</small>
                       </div>
                       <div className="stat-icon" style={{ background: 'rgba(31, 79, 130, 0.1)' }}>
-                        <TrendingUp size={24} style={{ color: '#1f4f82' }} />
+                        <TrendingUp size={24} style={{ color: 'var(--color-primary)' }} />
                       </div>
                     </div>
                   </Card.Body>

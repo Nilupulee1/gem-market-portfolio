@@ -4,15 +4,22 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { UserRole } from '../../types';
-import { Home, LogOut, Menu, X } from 'lucide-react';
+import { Home, LogOut, Moon, Sun } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
-const Header = () => {
+type ThemeMode = 'light' | 'dark';
+
+const Header = ({
+  theme,
+  onToggleTheme,
+}: {
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+}) => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const unreadCount = useChatStore((state) => state.unreadCount);
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 12);
@@ -45,21 +52,18 @@ const Header = () => {
     navigate(getDashboardLink());
   };
 
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
+
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/');
-    setIsMobileMenuOpen(false);
-  };
-
-  const handleNavigate = (path: string) => {
-    navigate(path);
-    setIsMobileMenuOpen(false);
   };
 
   const publicNavLinks = [
     { label: 'Gemstones', href: '#featured-gems' },
     { label: 'How It Works', href: '#how-it-works' },
-    { label: 'Featured Gems', href: '#featured-gems' },
   ];
 
   return (
@@ -75,16 +79,7 @@ const Header = () => {
           <span className="lux-brand-text">GemFolio</span>
         </a>
 
-        <button
-          type="button"
-          onClick={() => setIsMobileMenuOpen((value) => !value)}
-          className="lux-mobile-toggle md-hidden"
-          aria-label="Toggle menu"
-        >
-          {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-        </button>
-
-        <div className="lux-nav-actions md-visible">
+        <div className="lux-nav-actions">
           {isAuthenticated ? (
             <>
               <a
@@ -156,53 +151,18 @@ const Header = () => {
               </button>
             </>
           )}
+
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className="lux-theme-toggle"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          </button>
         </div>
       </motion.nav>
-
-      {isMobileMenuOpen && (
-        <div className="lux-mobile-panel md-hidden">
-          {isAuthenticated ? (
-            <div className="lux-mobile-list">
-              <button
-                type="button"
-                onClick={() => handleNavigate(getDashboardLink())}
-                className="lux-mobile-item"
-              >
-                Dashboard
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="lux-mobile-item danger"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <div className="lux-mobile-list">
-              {publicNavLinks.map((link) => (
-                <a key={link.label} href={link.href} className="lux-mobile-item">
-                  {link.label}
-                </a>
-              ))}
-              <button
-                type="button"
-                onClick={() => handleNavigate('/login')}
-                className="lux-mobile-item"
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNavigate('/register')}
-                className="lux-mobile-primary"
-              >
-                Get Started
-              </button>
-            </div>
-          )}
-        </div>
-      )}
     </header>
   );
 };
