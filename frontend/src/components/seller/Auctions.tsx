@@ -20,10 +20,22 @@ const AuctionsPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
 
+  const toTimestamp = (dateValue?: string) => {
+    if (!dateValue) return 0;
+    const time = Date.parse(dateValue);
+    return Number.isNaN(time) ? 0 : time;
+  };
+
+  const getAuctionStatus = (auction: Auction) => {
+    const backendStatus = auction.status?.toLowerCase() || '';
+    if (backendStatus !== 'active') return backendStatus || 'ended';
+    return toTimestamp(auction.endTime) > Date.now() ? 'active' : 'ended';
+  };
+
   const auctionStats = useMemo(() => {
     const totalBids = auctions.reduce((sum, auction) => sum + (auction.bids?.length || 0), 0);
-    const activeAuctions = auctions.filter((auction) => auction.status === 'active').length;
-    const endedAuctions = auctions.filter((auction) => auction.status === 'ended').length;
+    const activeAuctions = auctions.filter((auction) => getAuctionStatus(auction) === 'active').length;
+    const endedAuctions = auctions.filter((auction) => getAuctionStatus(auction) === 'ended').length;
 
     return {
       totalAuctions: auctions.length,
@@ -108,14 +120,11 @@ const AuctionsPage = () => {
   };
 
   const getLeadingBidderName = (auction?: Auction | null) => {
-    const latestBid = auction?.bids?.[auction.bids.length - 1];
-    return latestBid?.bidder?.name || auction?.winner?.name || 'No bids yet';
-  };
-
-  const toTimestamp = (dateValue?: string) => {
-    if (!dateValue) return 0;
-    const time = Date.parse(dateValue);
-    return Number.isNaN(time) ? 0 : time;
+    const latestBid = auction?.bids?.reduce((latest, bid) => {
+      if (!latest) return bid;
+      return new Date(bid.timestamp).getTime() > new Date(latest.timestamp).getTime() ? bid : latest;
+    }, auction.bids?.[0]);
+    return latestBid?.bidder?.name || 'No bids yet';
   };
 
   const filteredAuctions = useMemo(() => {
@@ -139,7 +148,7 @@ const AuctionsPage = () => {
         (roleFilter === 'seller') ||
         (roleFilter === 'buyer' && Boolean(auction.winner));
 
-      const normalizedStatus = auction.status?.toLowerCase() || '';
+      const normalizedStatus = getAuctionStatus(auction);
       const matchesStatus = statusFilter === 'all' || normalizedStatus === statusFilter;
 
       return matchesSearch && matchesRole && matchesStatus;
@@ -390,8 +399,8 @@ const AuctionsPage = () => {
                             target.src = 'https://via.placeholder.com/300x200';
                           }}
                         />
-                        <div className={`gem-status-badge gem-status-${auction.status}`}>
-                          {auction.status}
+                        <div className={`gem-status-badge gem-status-${getAuctionStatus(auction)}`}>
+                          {getAuctionStatus(auction)}
                         </div>
                       </div>
 
@@ -413,12 +422,12 @@ const AuctionsPage = () => {
                             <strong>Bids:</strong> {auction.bids?.length || 0}
                           </div>
                           <div style={{ fontSize: '12px', color: '#7c8aa3' }}>
-                            <strong>Ends:</strong> {formatDate(auction.endTime)}
+                            <strong>Ends:</strong> {formatDate(auction.endTime)}{getAuctionStatus(auction) === 'active' ? ' - Active' : ''}
                           </div>
                         </div>
 
-                        {/* Winner/Leader Info */}
-                        {auction.winner || (auction.bids && auction.bids.length > 0) ? (
+                        {/* Leading bidder / winner info */}
+                        {auction.bids && auction.bids.length > 0 ? (
                           <div style={{ 
                             padding: '12px', 
                             background: '#f8f9fa', 
@@ -427,10 +436,10 @@ const AuctionsPage = () => {
                             fontSize: '12px'
                           }}>
                             <div style={{ color: '#7c8aa3', marginBottom: '4px' }}>
-                              {auction.winner ? 'Winner' : 'Leading Bidder'}
+                              {getAuctionStatus(auction) === 'ended' ? 'Winner' : 'Leading Bidder'}
                             </div>
                             <div style={{ fontWeight: 600, color: '#1a2332' }}>
-                              {auction.winner?.name || getLeadingBidderName(auction)}
+                              {getLeadingBidderName(auction)}
                             </div>
                           </div>
                         ) : (
@@ -576,8 +585,8 @@ const AuctionsPage = () => {
                       <h5 style={{ margin: 0, fontWeight: 700, color: '#1a2332' }}>
                         {selectedAuction.gem?.type}
                       </h5>
-                      <span className={`gem-status-badge gem-status-${selectedAuction.status}`}>
-                        {selectedAuction.status}
+                      <span className={`gem-status-badge gem-status-${getAuctionStatus(selectedAuction)}`}>
+                        {getAuctionStatus(selectedAuction)}
                       </span>
                     </div>
                     <p style={{ color: '#7c8aa3', margin: 0, fontSize: '13px' }}>
@@ -653,13 +662,13 @@ const AuctionsPage = () => {
 
               <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
 
-              {/* Winner and Bidders */}
+              {/* Leading bidder / winner and bids */}
               <Row className="g-4">
                 <Col md={5}>
                   <h6 style={{ fontWeight: 700, marginBottom: '16px', color: '#1a2332' }}>
-                    {selectedAuction.winner ? '🏆 Winner' : '👑 Leading Bidder'}
+                    {getAuctionStatus(selectedAuction) === 'ended' ? '🏆 Winner' : '👑 Leading Bidder'}
                   </h6>
-                  {selectedAuction.winner || (selectedAuction.bids && selectedAuction.bids.length > 0) ? (
+                  {selectedAuction.bids && selectedAuction.bids.length > 0 ? (
                     <div style={{ 
                       padding: '16px', 
                       background: '#d1f5d1', 
@@ -667,10 +676,10 @@ const AuctionsPage = () => {
                       borderLeft: '4px solid #10b981'
                     }}>
                       <div style={{ fontSize: '13px', color: '#0b6623', marginBottom: '4px' }}>
-                        {selectedAuction.winner ? 'Winning Bid' : 'Current Leader'}
+                        {getAuctionStatus(selectedAuction) === 'ended' ? 'Winning Bid' : 'Current Leader'}
                       </div>
                       <div style={{ fontWeight: 700, color: '#0b6623', marginBottom: '8px', fontSize: '16px' }}>
-                        {selectedAuction.winner?.name || getLeadingBidderName(selectedAuction)}
+                        {getLeadingBidderName(selectedAuction)}
                       </div>
                       <div style={{ fontSize: '13px', color: '#0b6623' }}>
                         Rs.{selectedAuction.currentBid?.toLocaleString() || 0}
