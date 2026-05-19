@@ -24,6 +24,7 @@ interface GemDetailsProps {
   getLeadingBidderName: (auction?: Auction | null) => string;
   getCertificateAccessUrl: (certificate?: { url?: string; accessUrl?: string }) => string;
   isPdfCertificate: (certificate?: { url?: string; accessUrl?: string; mimeType?: string }) => boolean;
+  onOpenSellerContact: (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => void;
 }
 
 const GemDetails = ({
@@ -44,6 +45,7 @@ const GemDetails = ({
   getLeadingBidderName,
   getCertificateAccessUrl,
   isPdfCertificate,
+  onOpenSellerContact,
 }: GemDetailsProps) => {
   if (!selectedAuction && !selectedGemDetails) {
     return <></>;
@@ -131,45 +133,64 @@ const GemDetails = ({
 
                 <p className="text-secondary">{gem.description}</p>
 
-                <section className="block-card">
-                  {bidFeedback && (
-                    <div className={`alert ${bidFeedback.type === 'success' ? 'alert-success' : 'alert-warning'}`} role="alert">
-                      {bidFeedback.message}
+                {selectedAuction.status === 'active' ? (
+                  <section className="block-card">
+                    {bidFeedback && (
+                      <div className={`alert ${bidFeedback.type === 'success' ? 'alert-success' : 'alert-warning'}`} role="alert">
+                        {bidFeedback.message}
+                      </div>
+                    )}
+
+                    <p className="m-0 text-secondary">Current Bid</p>
+                    <div className="bid-price">{formatCurrency(selectedAuction.currentBid)}</div>
+                    <p className="text-secondary small">
+                      Minimum increment: {formatCurrency(selectedAuction.minimumBidIncrement)}
+                    </p>
+
+                    <div className="d-flex gap-2">
+                      <input
+                        className="buyer-search"
+                        value={bidAmount}
+                        onChange={(event) => onBidAmountChange(event.target.value)}
+                        type="number"
+                        min={selectedAuction.currentBid + selectedAuction.minimumBidIncrement}
+                      />
+                      <button className="bid-btn" type="button" disabled={placingBid} onClick={onRequestBidConfirmation}>
+                        {placingBid ? 'Placing...' : 'Place Bid'}
+                      </button>
                     </div>
-                  )}
 
-                  <p className="m-0 text-secondary">Current Bid</p>
-                  <div className="bid-price">{formatCurrency(selectedAuction.currentBid)}</div>
-                  <p className="text-secondary small">
-                    Minimum increment: {formatCurrency(selectedAuction.minimumBidIncrement)}
-                  </p>
+                    <p className="text-secondary small mt-2 mb-0">
+                      Your bid will be reviewed in a confirmation step before submission.
+                    </p>
 
-                  <div className="d-flex gap-2">
-                    <input
-                      className="buyer-search"
-                      value={bidAmount}
-                      onChange={(event) => onBidAmountChange(event.target.value)}
-                      type="number"
-                      min={selectedAuction.currentBid + selectedAuction.minimumBidIncrement}
-                    />
-                    <button className="bid-btn" type="button" disabled={placingBid} onClick={onRequestBidConfirmation}>
-                      {placingBid ? 'Placing...' : 'Place Bid'}
-                    </button>
-                  </div>
-
-                  <p className="text-secondary small mt-2 mb-0">
-                    Your bid will be reviewed in a confirmation step before submission.
-                  </p>
-
-                  <div className="d-flex gap-2 mt-2">
-                    <button className="ghost-btn flex-fill" type="button" onClick={onSetMinimumBid}>
-                      Min Bid
-                    </button>
-                    <button className="ghost-btn flex-fill" type="button" onClick={onSetDoubleBid}>
-                      +2x Increment
-                    </button>
-                  </div>
-                </section>
+                    <div className="d-flex gap-2 mt-2">
+                      <button className="ghost-btn flex-fill" type="button" onClick={onSetMinimumBid}>
+                        Min Bid
+                      </button>
+                      <button className="ghost-btn flex-fill" type="button" onClick={onSetDoubleBid}>
+                        +2x Increment
+                      </button>
+                    </div>
+                  </section>
+                ) : (
+                  <section className="block-card">
+                    <p className="m-0 text-secondary">Auction ended</p>
+                    <div className="bid-price">Winner: {getLeadingBidderName(selectedAuction)}</div>
+                    <p className="text-secondary small mb-3">
+                      Final bid: {formatCurrency(selectedAuction.currentBid)}
+                    </p>
+                    {selectedAuction.seller && (
+                      <button
+                        className="bid-btn w-100"
+                        type="button"
+                        onClick={() => onOpenSellerContact(selectedAuction.seller, gem.type, selectedAuction.gem._id || gem._id)}
+                      >
+                        Contact Seller
+                      </button>
+                    )}
+                  </section>
+                )}
               </>
             ) : (
               <>

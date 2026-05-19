@@ -9,6 +9,7 @@ router.use(authenticate);
 
 // Message routes
 router.post('/send', chatController.sendMessage);
+router.get('/conversation/:conversationId', chatController.getConversationMessages);
 router.get('/auction/:auctionId', chatController.getAuctionMessages);
 router.get('/gem/:gemId', chatController.getGemMessages);
 router.delete('/:messageId', chatController.deleteMessage);

@@ -16,6 +16,18 @@ type TabType = 'dashboard' | 'portfolio' | 'auctions' | 'addGem' | 'messages';
 type ListingFilter = 'all' | 'approved' | 'pending' | 'rejected';
 type ThemeMode = 'light' | 'dark';
 
+type ChatContact = {
+  _id?: string;
+  name: string;
+  email: string;
+  phone?: string;
+};
+
+type ChatGem = {
+  name: string;
+  id: string;
+};
+
 const sellerDashboardCacheKey = 'seller-dashboard-cache';
 
 type SellerDashboardCache = {
@@ -57,6 +69,8 @@ const SellerDashboard = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [listingFilter, setListingFilter] = useState<ListingFilter>('all');
+  const [chatInitialContact, setChatInitialContact] = useState<ChatContact | null>(null);
+  const [chatInitialGem, setChatInitialGem] = useState<ChatGem | null>(null);
   const cachedSellerDashboard = loadSellerDashboardCache();
   const [myGems, setMyGems] = useState<Gem[]>(cachedSellerDashboard?.myGems || []);
   const [loading, setLoading] = useState(!cachedSellerDashboard);
@@ -161,14 +175,20 @@ const SellerDashboard = ({
     navigate('/login');
   };
 
+  const openSellerChat = (contact: ChatContact, gem: ChatGem) => {
+    setChatInitialContact(contact);
+    setChatInitialGem(gem);
+    setActiveTab('messages');
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'portfolio':
         return <MyPortfolio gems={myGems} onRefresh={fetchMyGems} />;
       case 'auctions':
-        return <AuctionsPage />;
+        return <AuctionsPage onContactWinner={openSellerChat} />;
       case 'messages':
-        return <MessagesPage />;
+        return <MessagesPage initialContact={chatInitialContact} initialGem={chatInitialGem} />;
       case 'addGem':
         return <AddGemForm onSuccess={() => {
           fetchMyGems();

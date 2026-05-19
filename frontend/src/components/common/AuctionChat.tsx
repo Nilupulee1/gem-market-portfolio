@@ -28,6 +28,21 @@ interface Message {
   };
   content: string;
   createdAt: string;
+  gem?: {
+    _id: string;
+    name?: string;
+    type?: string;
+    images?: string[];
+  };
+  auction?: {
+    _id: string;
+    gem?: {
+      _id?: string;
+      name?: string;
+      type?: string;
+      images?: string[];
+    };
+  };
 }
 
 interface TypingUser {
@@ -58,10 +73,30 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [selectedGemIdForReply, setSelectedGemIdForReply] = useState<string | undefined>(gemId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
 
   const messageCount = messages.length;
+
+  // Extract unique gems from conversation
+  const uniqueGems = React.useMemo(() => {
+    const gemsMap = new Map<string, { _id: string; name?: string; type?: string; images?: string[] }>();
+    
+    messages.forEach((msg) => {
+      const msgGem = msg.gem || msg.auction?.gem;
+      if (msgGem?._id) {
+        gemsMap.set(msgGem._id, {
+          _id: msgGem._id,
+          name: msgGem.name,
+          type: msgGem.type,
+          images: msgGem.images
+        });
+      }
+    });
+
+    return Array.from(gemsMap.values());
+  }, [messages]);
 
   const mergeUniqueMessages = (existingMessages: Message[], incomingMessages: Message[]) => {
     const seenIds = new Set(existingMessages.map((message) => message._id));
@@ -191,7 +226,7 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
       content: messageContent,
       recipientId,
       auctionId,
-      gemId,
+      gemId: selectedGemIdForReply || gemId,
     };
 
     try {
@@ -251,6 +286,7 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
           <>
             {messages.map((msg, index) => {
               const showDate = index === 0 || formatDateLabel(messages[index - 1].createdAt) !== formatDateLabel(msg.createdAt);
+              const messageGem = msg.gem || msg.auction?.gem;
 
               return (
                 <React.Fragment key={msg._id}>
@@ -258,6 +294,56 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
                   <div className={`message-row ${msg.sender._id === user?.id ? 'sent' : 'received'}`}>
                     <div className="message-bubble">
                       <div className="message-content">{msg.content}</div>
+                      {messageGem && (
+                        <div
+                          className="message-gem-card"
+                          style={{
+                            marginTop: '10px',
+                            borderRadius: '14px',
+                            overflow: 'hidden',
+                            border: '1px solid rgba(148, 163, 184, 0.28)',
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            display: 'flex',
+                            gap: '10px',
+                            padding: '10px',
+                            alignItems: 'center'
+                          }}
+                        >
+                          {messageGem.images?.[0] ? (
+                            <img
+                              src={messageGem.images[0]}
+                              alt={messageGem.type || messageGem.name || 'Gem'}
+                              style={{ width: '54px', height: '54px', objectFit: 'cover', borderRadius: '10px', flexShrink: 0 }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '54px',
+                                height: '54px',
+                                borderRadius: '10px',
+                                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(16, 185, 129, 0.3))',
+                                display: 'grid',
+                                placeItems: 'center',
+                                flexShrink: 0,
+                                fontSize: '20px'
+                              }}
+                            >
+                              ✦
+                            </div>
+                          )}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.75 }}>
+                              Gem reply
+                            </div>
+                            <div style={{ fontWeight: 700, lineHeight: 1.2 }}>
+                              {messageGem.type || messageGem.name || 'Gem'}
+                            </div>
+                            <div style={{ fontSize: '12px', opacity: 0.82, lineHeight: 1.3 }}>
+                              {messageGem.name || 'Attached gem context'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div className="message-timestamp">
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
@@ -272,6 +358,32 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
       </Card.Body>
       <Card.Footer className="chat-input">
         <Form onSubmit={handleSendMessage} className="chat-composer">
+          {uniqueGems.length > 1 && (
+            <Form.Group className="gem-selector-group mb-2">
+              <Form.Label className="gem-selector-label">Reply about gem:</Form.Label>
+              <Form.Select
+                value={selectedGemIdForReply || ''}
+                onChange={(e) => setSelectedGemIdForReply(e.target.value || undefined)}
+                className="gem-selector"
+                style={{
+                  fontSize: '13px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                  color: 'inherit',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">Select a gem...</option>
+                {uniqueGems.map((gem) => (
+                  <option key={gem._id} value={gem._id}>
+                    {gem.type || gem.name || 'Unnamed Gem'}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          )}
           <Form.Control
             type="text"
             placeholder="Type a message..."

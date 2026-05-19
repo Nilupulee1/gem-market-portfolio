@@ -10,12 +10,14 @@ interface SelectedConversation {
   gem?: {
     _id: string;
     name: string;
+    images?: string[];
   };
   auction: {
     _id: string;
     gem: {
       _id?: string;
       name: string;
+      images?: string[];
     };
     currentBid: number;
   };
@@ -42,7 +44,7 @@ interface MessagesPageProps {
   } | null;
 }
 
-const MessagesPage: React.FC<MessagesPageProps> = () => {
+const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem }) => {
   const { user } = useAuthStore();
   const resetUnreadCount = useChatStore((state) => state.resetUnreadCount);
   const [selectedConversation, setSelectedConversation] = useState<SelectedConversation | null>(null);
@@ -63,7 +65,7 @@ const MessagesPage: React.FC<MessagesPageProps> = () => {
 
   const chatTitle = selectedConversation
     ? (user.id === selectedConversation.seller._id ? selectedConversation.buyer.name : selectedConversation.seller.name)
-    : 'Messages';
+    : initialContact?.name || 'Messages';
 
   return (
     <Container fluid className="messages-page py-4">
@@ -83,6 +85,7 @@ const MessagesPage: React.FC<MessagesPageProps> = () => {
           <Col lg={8} md={7} className="chat-column">
             {selectedConversation && (
               <AuctionChat
+                conversationId={selectedConversation._id}
                 auctionId={selectedConversation.auction?._id}
                 gemId={selectedConversation?.auction?.gem?._id || selectedConversation?.gem?._id}
                 recipientId={otherUser?._id || ''}
@@ -90,7 +93,15 @@ const MessagesPage: React.FC<MessagesPageProps> = () => {
                 conversationLabel={chatTitle}
               />
             )}
-            {!selectedConversation && (
+            {!selectedConversation && initialContact && initialGem && (
+              <AuctionChat
+                gemId={initialGem.id}
+                recipientId={initialContact._id || ''}
+                recipientName={initialContact.name}
+                conversationLabel={chatTitle}
+              />
+            )}
+            {!selectedConversation && !(initialContact && initialGem) && (
               <div className="empty-chat-state">
                 <div className="empty-chat-card">
                   <div className="empty-chat-icon">

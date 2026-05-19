@@ -163,7 +163,7 @@ const BuyerDashboard = () => {
   const cachedBuyerDashboard = loadBuyerDashboardCache();
 
   const [view, setView] = useState<BuyerView>('dashboard');
-  const [query, setQuery] = useState('');
+  const [query] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [loading, setLoading] = useState(!cachedBuyerDashboard);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -184,7 +184,7 @@ const BuyerDashboard = () => {
   const [showBidConfirm, setShowBidConfirm] = useState(false);
   const [bidFeedback, setBidFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [selectedSeller, setSelectedSeller] = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
-  const [selectedGemForContact, setSelectedGemForContact] = useState<{ name: string; id: string } | null>(null);
+  const [selectedGemForContact, setSelectedGemForContact] = useState<{ name: string; id: string; images?: string[] } | null>(null);
   const [chatInitialContact, setChatInitialContact] = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
   const [chatInitialGem, setChatInitialGem] = useState<{ name: string; id: string } | null>(null);
   const isBuyerAccount = user?.role === 'buyer';
@@ -317,9 +317,20 @@ const BuyerDashboard = () => {
     setBidFeedback(null);
   };
 
-  const openSellerContact = (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => {
+  const openSellerContact = async (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => {
     setSelectedSeller(seller);
-    setSelectedGemForContact({ name: gemName, id: gemId });
+
+    try {
+      const gemResponse = await gemAPI.getGemById(gemId);
+      const gem = gemResponse.data.gem || gemResponse.data;
+      setSelectedGemForContact({
+        name: gem?.type || gemName,
+        id: gemId,
+        images: gem?.images || [],
+      });
+    } catch {
+      setSelectedGemForContact({ name: gemName, id: gemId });
+    }
   };
 
   const closeSellerContact = () => {
@@ -598,13 +609,22 @@ const BuyerDashboard = () => {
           <p className="empty-note">No won auctions yet.</p>
         ) : (
           wonAuctions.map((auction) => (
-            <div key={auction._id} className="d-flex justify-content-between border rounded-3 p-2 mb-2">
+            <div key={auction._id} className="d-flex justify-content-between align-items-center gap-3 border rounded-3 p-2 mb-2">
               <div>
                 <strong>{auction.gem.type}</strong>
                 <p className="m-0 text-secondary">Seller: {auction.seller.name}</p>
+                <small className="text-secondary">Ended auction and gem details available</small>
               </div>
-              <div className="text-end">
-                <strong>{formatCurrency(auction.currentBid)}</strong>
+              <div className="d-flex align-items-center gap-2">
+                <div className="text-end me-2">
+                  <strong>{formatCurrency(auction.currentBid)}</strong>
+                </div>
+                <button className="ghost-btn" type="button" onClick={() => openDetails(auction._id)}>
+                  View Details
+                </button>
+                <button className="bid-btn" type="button" onClick={() => openSellerContact(auction.seller, auction.gem.type, auction.gem._id)}>
+                  Contact Seller
+                </button>
               </div>
             </div>
           ))
@@ -772,6 +792,7 @@ const BuyerDashboard = () => {
         getLeadingBidderName={getLeadingBidderName}
         getCertificateAccessUrl={getCertificateAccessUrl}
         isPdfCertificate={isPdfCertificate}
+        onOpenSellerContact={openSellerContact}
       />
 
       <AuctionBid

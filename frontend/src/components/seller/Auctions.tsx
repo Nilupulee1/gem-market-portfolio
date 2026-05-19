@@ -5,7 +5,14 @@ import type { Gem, Auction } from '../../types';
 import { gemAPI, auctionAPI } from '../../api/axios';
 import CreateAuctionModal from './CreateAuctionModal';
 
-const AuctionsPage = () => {
+interface AuctionsPageProps {
+  onContactWinner?: (
+    contact: { _id?: string; name: string; email: string; phone?: string },
+    gem: { name: string; id: string }
+  ) => void;
+}
+
+const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [myGems, setMyGems] = useState<Gem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +132,17 @@ const AuctionsPage = () => {
       return new Date(bid.timestamp).getTime() > new Date(latest.timestamp).getTime() ? bid : latest;
     }, auction.bids?.[0]);
     return latestBid?.bidder?.name || 'No bids yet';
+  };
+
+  const getLatestBidder = (auction?: Auction | null) => {
+    if (!auction?.bids?.length) {
+      return null;
+    }
+
+    return auction.bids.reduce((latest, bid) => {
+      if (!latest) return bid;
+      return new Date(bid.timestamp).getTime() > new Date(latest.timestamp).getTime() ? bid : latest;
+    }, auction.bids[0]);
   };
 
   const filteredAuctions = useMemo(() => {
@@ -669,6 +687,10 @@ const AuctionsPage = () => {
                     {getAuctionStatus(selectedAuction) === 'ended' ? '🏆 Winner' : '👑 Leading Bidder'}
                   </h6>
                   {selectedAuction.bids && selectedAuction.bids.length > 0 ? (
+                    (() => {
+                      const latestBid = getLatestBidder(selectedAuction);
+
+                      return (
                     <div style={{ 
                       padding: '16px', 
                       background: '#d1f5d1', 
@@ -684,7 +706,21 @@ const AuctionsPage = () => {
                       <div style={{ fontSize: '13px', color: '#0b6623' }}>
                         Rs.{selectedAuction.currentBid?.toLocaleString() || 0}
                       </div>
+                      {getAuctionStatus(selectedAuction) === 'ended' && latestBid?.bidder && onContactWinner && (
+                        <Button
+                          className="btn-primary mt-3"
+                          size="sm"
+                          onClick={() => onContactWinner(
+                            latestBid.bidder,
+                            { name: selectedAuction.gem?.type || 'Gem', id: selectedAuction.gem?._id || '' }
+                          )}
+                        >
+                          Contact Winner
+                        </Button>
+                      )}
                     </div>
+                      );
+                    })()
                   ) : (
                     <div style={{ 
                       padding: '16px', 

@@ -19,17 +19,20 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
     let isSellerOrBuyer = false;
     let sellerId = '';
-    let winnerId = null;
+    let buyerId: string | null = null;
+    let messageGemId: string | null = null;
 
     if (auctionId) {
       // Verify auction exists and user is involved
-      const auction = await Auction.findById(auctionId).populate('seller winner');
+      const auction = await Auction.findById(auctionId).populate('seller winner gem');
       if (!auction) {
         return res.status(404).json({ error: 'Auction not found' });
       }
       
       sellerId = auction.seller._id ? auction.seller._id.toString() : auction.seller.toString();
-      winnerId = auction.winner ? (auction.winner._id ? auction.winner._id.toString() : auction.winner.toString()) : null;
+      const winnerId = auction.winner ? (auction.winner._id ? auction.winner._id.toString() : auction.winner.toString()) : null;
+      buyerId = winnerId || (senderId === sellerId ? recipientId : senderId);
+      messageGemId = auction.gem?._id ? auction.gem._id.toString() : auction.gem.toString();
 
       isSellerOrBuyer = sellerId === senderId || (winnerId === senderId) || recipientId === sellerId;
     } else if (gemId) {
@@ -40,6 +43,9 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       
       sellerId = gem.seller.toString();
       isSellerOrBuyer = sellerId === senderId || recipientId === sellerId;
+      // determine buyer (the non-seller participant)
+      buyerId = senderId === sellerId ? recipientId : senderId;
+      messageGemId = gemId;
     }
 
     if (!isSellerOrBuyer && !recipientId) {
@@ -49,7 +55,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     // Create message
     const message = new Message({
       auction: auctionId ? auctionId as any : undefined,
-      gem: gemId ? gemId as any : undefined,
+      gem: messageGemId ? messageGemId as any : undefined,
       sender: senderId,
       content,
       isRead: false,
@@ -59,23 +65,19 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     await message.save();
 
     // Update or create conversation
-    let query: any = {};
-    if (auctionId) {
-      query = { auction: auctionId as any };
-    } else {
-      query = { gem: gemId as any, $or: [{ participants: senderId }, { participants: recipientId }] };
-    }
+    const resolvedBuyer = buyerId || (senderId === sellerId ? recipientId : senderId);
+    let query: any = { participants: { $all: [sellerId, resolvedBuyer] } };
 
-    let conversation = await Conversation.findOne(query);
+    let conversation = await Conversation.findOne(query).sort({ updatedAt: -1 });
     
     if (!conversation) {
       conversation = new Conversation({
-        auction: auctionId ? auctionId as any : undefined,
-        gem: gemId ? gemId as any : undefined,
         seller: sellerId,
-        participants: [senderId, recipientId],
-        buyer: winnerId || (senderId === sellerId ? recipientId : senderId),
+        buyer: resolvedBuyer,
+        participants: [sellerId, resolvedBuyer],
         lastMessage: message._id,
+        auction: auctionId ? auctionId as any : undefined,
+        gem: messageGemId ? messageGemId as any : undefined,
         unreadCount: {
           buyerUnread: senderId === sellerId ? 1 : 0,
           sellerUnread: senderId !== sellerId ? 1 : 0
@@ -92,15 +94,33 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    await conversation.save();
+    try {
+      await conversation.save();
+    } catch (err: any) {
+      if (err && err.code === 11000) {
+        const existing = await Conversation.findOne(query).sort({ updatedAt: -1 });
+        if (existing) {
+          conversation = existing as any;
+        } else {
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
     
     // Now that conversation is saved, correct the conversation reference on the message
+    if (!conversation) {
+      return res.status(500).json({ error: 'Conversation not available after save' });
+    }
     message.conversation = conversation._id as any;
     await message.save();
 
     // Populate sender info before sending response
     const populatedMessage = await message.populate([
-      { path: 'sender', select: 'name email' }
+      { path: 'sender', select: 'name email' },
+      { path: 'gem', select: 'type name images' },
+      { path: 'auction', populate: { path: 'gem', select: 'type name images' } }
     ]);
 
     res.status(201).json(populatedMessage);
@@ -118,17 +138,11 @@ export const getGemMessages = async (req: AuthRequest, res: Response) => {
     const { recipientId } = req.query; // the other person the current user is talking explicitly with
     const { page = 1, limit = 50 } = req.query;
 
-    let query: any = { gem: gemId as any };
+    const query: any = recipientId
+      ? { participants: { $all: [userId, recipientId] } }
+      : { participants: userId };
     
-    // Narrow down finding the right conversation if recipientId is present
-    if (recipientId) {
-       query.participants = { $all: [userId, recipientId] };
-    } else {
-       // if no recipient explicitly told, at least the conversation for the current user
-       query.participants = userId;
-    }
-    
-    const conversation = await Conversation.findOne(query);
+    const conversation = await Conversation.findOne(query).sort({ updatedAt: -1 });
 
     if (!conversation) {
       return res.json({ messages: [], total: 0 });
@@ -140,6 +154,8 @@ export const getGemMessages = async (req: AuthRequest, res: Response) => {
 
     const messages = await Message.find({ conversation: conversation._id as any })
       .populate('sender', 'name')
+      .populate('gem', 'type name images')
+      .populate({ path: 'auction', populate: { path: 'gem', select: 'type name images' } })
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
@@ -165,29 +181,46 @@ export const getAuctionMessages = async (req: AuthRequest, res: Response) => {
     const { page = 1, limit = 50 } = req.query;
 
     // Verify user is involved in auction
-    const auction = await Auction.findById(auctionId);
+    const auction = await Auction.findById(auctionId).populate('seller winner gem');
     if (!auction) {
       return res.status(404).json({ error: 'Auction not found' });
     }
 
-    const isInvolved = 
-      auction.seller.toString() === userId || 
-      (auction.winner && auction.winner.toString() === userId);
+    const sellerId = auction.seller._id ? auction.seller._id.toString() : auction.seller.toString();
+    const winnerId = auction.winner ? (auction.winner._id ? auction.winner._id.toString() : auction.winner.toString()) : null;
+    const isInvolved = sellerId === userId || winnerId === userId;
 
     if (!isInvolved) {
       return res.status(403).json({ error: 'Not authorized to view messages' });
     }
 
     const skip = (Number(page) - 1) * Number(limit);
-    const messages = await Message.find({ auction: auctionId as any })
+    const conversation = await Conversation.findOne({
+      participants: { $all: [sellerId, winnerId || userId] }
+    } as any).sort({ updatedAt: -1 });
+
+    if (!conversation) {
+      return res.json({
+        messages: [],
+        pagination: {
+          total: 0,
+          page: Number(page),
+          pages: 0
+        }
+      });
+    }
+
+    const messages = await Message.find({ conversation: conversation._id as any })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit))
       .populate([
-        { path: 'sender', select: 'name email' }
+        { path: 'sender', select: 'name email' },
+        { path: 'gem', select: 'type name images' },
+        { path: 'auction', populate: { path: 'gem', select: 'type name images' } }
       ]);
 
-    const totalCount = await Message.countDocuments({ auction: auctionId as any });
+    const totalCount = await Message.countDocuments({ conversation: conversation._id as any });
 
     res.json({
       messages: messages.reverse(),
@@ -203,6 +236,50 @@ export const getAuctionMessages = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Get messages for a conversation
+export const getConversationMessages = async (req: AuthRequest, res: Response) => {
+  try {
+    const { conversationId } = req.params;
+    const userId = req.user?.userId;
+    const { page = 1, limit = 50 } = req.query;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    // Verify user is part of this conversation
+    if (!conversation.participants.includes(userId as any)) {
+      return res.status(403).json({ error: 'Not authorized to view this conversation' });
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const messages = await Message.find({ conversation: conversationId as any })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .populate([
+        { path: 'sender', select: 'name email' },
+        { path: 'gem', select: 'type name images' },
+        { path: 'auction', populate: { path: 'gem', select: 'type name images' } }
+      ]);
+
+    const totalCount = await Message.countDocuments({ conversation: conversationId as any });
+
+    res.json({
+      messages: messages.reverse(),
+      pagination: {
+        total: totalCount,
+        page: Number(page),
+        pages: Math.ceil(totalCount / Number(limit))
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching conversation messages:', error);
+    res.status(500).json({ error: error.message || 'Error fetching conversation messages' });
+  }
+};
+
 // Get conversations for current user
 export const getUserConversations = async (req: AuthRequest, res: Response) => {
   try {
@@ -213,9 +290,13 @@ export const getUserConversations = async (req: AuthRequest, res: Response) => {
     } as any)
       .populate('seller', 'name email')
       .populate('buyer', 'name email')
-      .populate('auction', 'gem startPrice currentBid')
-      .populate('gem', 'name type')
-      .populate({ path: 'lastMessage', populate: { path: 'sender', select: 'name email' } })
+      .populate('auction')
+      .populate('gem')
+      .populate({ path: 'lastMessage', populate: [
+        { path: 'sender', select: 'name email' },
+        { path: 'gem', select: 'type name images' },
+        { path: 'auction', populate: { path: 'gem', select: 'type name images' } }
+      ] })
       .sort({ updatedAt: -1 });
 
     res.json(conversations);

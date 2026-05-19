@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import Message from '../models/Message';
 import Conversation, { IConversationDocument } from '../models/Conversation';
 import Auction from '../models/Auction';
+import Gem from '../models/Gem';
 import { Types } from 'mongoose';
 
 interface AuthenticatedSocket extends Socket {
@@ -126,7 +127,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
     });
 
     // Handle starting a new conversation
-    socket.on('start_conversation', async (data: { recipientId: string }) => {
+    socket.on('start_conversation', async (data: { recipientId: string; gemId?: string }) => {
       const { recipientId } = data;
       const senderId = socket.userId;
 
@@ -136,19 +137,28 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
       }
 
       try {
-        let conversation = await Conversation.findOne({
-          participants: { $all: [senderId, recipientId] }
-        });
+        let conversation: any = await Conversation.findOne({ participants: { $all: [senderId, recipientId] } } as any).sort({ updatedAt: -1 });
 
         if (!conversation) {
-          conversation = new Conversation({
-            participants: [senderId, recipientId]
-          });
-          await conversation.save();
+          conversation = new Conversation({ participants: [senderId, recipientId] } as any);
+          try {
+            await conversation.save();
+          } catch (err: any) {
+            if (err && err.code === 11000) {
+              const existing = await Conversation.findOne({ participants: { $all: [senderId, recipientId] } } as any).sort({ updatedAt: -1 });
+              if (existing) {
+                conversation = existing as any;
+              } else {
+                throw err;
+              }
+            } else {
+              throw err;
+            }
+          }
         }
 
         socket.emit('conversation_started', { conversationId: conversation._id });
-        
+
         // Notify the recipient if they are online
         const recipientSocketId = activeUsers.get(recipientId);
         if (recipientSocketId) {
@@ -179,37 +189,65 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
                 return;
             }
 
-            let conversation: any = null;
-            let query: any = {};
+            let sellerId = '';
+            let buyerId = '';
+            let messageGemId: string | undefined;
+
             if (auctionId && typeof auctionId === 'string' && auctionId.trim()) {
-                query = { auction: auctionId as any };
-            } else if (gemId && typeof gemId === 'string' && gemId.trim()) {
-                query = { 
-                  gem: gemId as any,
-                  participants: { $all: [senderId, recipientId] }
-                };
-            } else if (recipientId) {
-                query = { participants: { $all: [senderId, recipientId] } };
-            }
-            
-            conversation = await Conversation.findOne(query);
+                const auction = await Auction.findById(auctionId).populate('seller winner gem');
+                if (!auction) {
+                  socket.emit('error', { message: 'Auction not found' });
+                  return;
+                }
+
+                sellerId = auction.seller._id ? auction.seller._id.toString() : auction.seller.toString();
+                const winnerId = auction.winner ? (auction.winner._id ? auction.winner._id.toString() : auction.winner.toString()) : null;
+                buyerId = (winnerId || (senderId === sellerId ? recipientId : senderId)) || recipientId || senderId;
+                messageGemId = auction.gem?._id ? auction.gem._id.toString() : auction.gem.toString();
+              } else if (gemId && typeof gemId === 'string' && gemId.trim()) {
+                const gem = await Gem.findById(gemId as any);
+                if (!gem) {
+                  socket.emit('error', { message: 'Gem not found' });
+                  return;
+                }
+
+                sellerId = gem.seller.toString();
+                buyerId = (senderId === sellerId ? recipientId : senderId) || recipientId || senderId;
+                messageGemId = gemId;
+              } else if (recipientId) {
+                sellerId = senderId;
+                buyerId = recipientId;
+              }
+
+            const participants = sellerId && buyerId ? [sellerId, buyerId] : [senderId, recipientId];
+            let conversation: any = await Conversation.findOne({ participants: { $all: participants } } as any).sort({ updatedAt: -1 });
 
             if (!conversation) {
-                // Create a new conversation if one doesn't exist
-                let sellerId = recipientId; // Assume target is seller
-                let buyerId = senderId;
                 conversation = new Conversation({
-                    auction: auctionId ? auctionId as any : undefined,
-                    gem: gemId ? gemId as any : undefined,
-                    seller: sellerId,
-                    buyer: buyerId,
-                    participants: [senderId, recipientId],
-                    unreadCount: {
-                      sellerUnread: 0,
-                      buyerUnread: 0
+                  seller: sellerId || senderId,
+                  buyer: buyerId || recipientId,
+                  participants,
+                  auction: auctionId ? auctionId as any : undefined,
+                  gem: messageGemId ? messageGemId as any : undefined,
+                  unreadCount: {
+                    sellerUnread: senderId === (sellerId || senderId) ? 0 : 1,
+                    buyerUnread: senderId === (sellerId || senderId) ? 1 : 0
+                  }
+                } as any);
+                try {
+                  await conversation.save();
+                } catch (err: any) {
+                  if (err && err.code === 11000) {
+                    const existing = await Conversation.findOne({ participants: { $all: participants } } as any).sort({ updatedAt: -1 });
+                    if (existing) {
+                      conversation = existing as any;
+                    } else {
+                      throw err;
                     }
-                });
-                await conversation.save();
+                  } else {
+                    throw err;
+                  }
+                }
             }
 
             const newMessage = new Message({
@@ -217,14 +255,30 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
                 content,
                 conversation: conversation ? conversation._id : undefined,
                 auction: auctionId ? auctionId as any : undefined,
-                gem: gemId ? gemId as any : undefined,
+                gem: messageGemId ? messageGemId as any : undefined,
             });
 
             await newMessage.save();
-            conversation.lastMessage = newMessage._id;
-            await conversation.save();
+            conversation.lastMessage = newMessage._id as any;
+            try {
+              await conversation.save();
+            } catch (err: any) {
+              if (err && err.code === 11000) {
+                const existing = await Conversation.findOne({ participants: { $all: participants } } as any).sort({ updatedAt: -1 });
+                if (existing) {
+                  conversation = existing;
+                } else {
+                  throw err;
+                }
+              } else {
+                throw err;
+              }
+            }
 
-            const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name email');
+            const populatedMessage = await Message.findById(newMessage._id)
+              .populate('sender', 'name email')
+              .populate('gem', 'type name images')
+              .populate({ path: 'auction', populate: { path: 'gem', select: 'type name images' } });
 
             console.log(`Message from ${senderId} to ${recipientId}:`, { auctionId, gemId });
 
@@ -283,7 +337,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
           auction: new Types.ObjectId(data.auctionId),
           participants: { $all: [socket.userId, data.senderId] }
         };
-        const conversation = await Conversation.findOne<IConversationDocument>(filter);
+        let conversation: any = await Conversation.findOne<IConversationDocument>(filter);
 
         if (!conversation) {
           return;
@@ -305,7 +359,22 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
         } else if (socket.userId === conversation.buyer.toString()) {
           conversation.unreadCount.buyerUnread = 0;
         }
-        await conversation.save();
+        try {
+          await conversation.save();
+        } catch (err: any) {
+          if (err && err.code === 11000) {
+            const existing = await Conversation.findOne({ auction: data.auctionId as any, participants: { $all: [socket.userId, data.senderId] } });
+            if (existing) {
+              conversation = existing as any;
+            } else {
+              throw err;
+            }
+          } else {
+            throw err;
+          }
+        }
+
+        if (!conversation) return;
 
         const room = `auction_${data.auctionId}`;
         io.to(room).emit('messages_read', {

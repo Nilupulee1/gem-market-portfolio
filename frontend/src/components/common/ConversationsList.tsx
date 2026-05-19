@@ -8,11 +8,16 @@ interface Conversation {
   gem?: {
     _id: string;
     name: string;
+    type?: string;
+    images?: string[];
   };
   auction: {
     _id: string;
     gem: {
+      _id?: string;
       name: string;
+      type?: string;
+      images?: string[];
     };
     currentBid: number;
   };
@@ -81,8 +86,9 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
   const filteredConversations = conversations.filter((conv) => {
     const otherUser = user?.id === conv.seller._id ? conv.buyer : conv.seller;
     return otherUser.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conv.auction?.gem?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conv.gem?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      conv.lastMessage?.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conv.gem?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conv.auction?.gem?.name?.toLowerCase().includes(searchTerm.toLowerCase());
   }).sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
 
   const getUnreadCount = (conv: Conversation) => {
@@ -91,6 +97,7 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
       ? conv.unreadCount.sellerUnread
       : conv.unreadCount.buyerUnread;
   };
+
 
   const formatTime = (date: string) => {
     const d = new Date(date);
