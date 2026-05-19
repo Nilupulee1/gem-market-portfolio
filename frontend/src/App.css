@@ -446,6 +446,19 @@
   flex-shrink: 0;
 }
 
+.conversation-unread-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #d7344f;
+}
+
+.conversation-unread-indicator .conversation-badge {
+  min-width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+
 .chat-message-count {
   color: #7a7fa3;
   font-size: 12px;

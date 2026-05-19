@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ListGroup, Card, Spinner } from 'react-bootstrap';
+import { Mail } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
 
@@ -64,23 +65,64 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const fetchConversations = async () => {
-      if (!token) return;
+    if (!token) {
+      setConversations([]);
+      setLoading(false);
+      return;
+    }
 
+    let isMounted = true;
+
+    const fetchConversations = async ({ showLoader = false }: { showLoader?: boolean } = {}) => {
       try {
-        setLoading(true);
+        if (showLoader) {
+          setLoading(true);
+        }
+
         const response = await axiosInstance.get('/chat/conversations');
+        if (!isMounted) {
+          return;
+        }
+
         const data = response.data;
         setConversations(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching conversations:', error);
-        setConversations([]);
+        if (isMounted) {
+          setConversations([]);
+        }
       } finally {
-        setLoading(false);
+        if (showLoader && isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchConversations();
+    fetchConversations({ showLoader: true });
+
+    const refreshInterval = window.setInterval(() => {
+      fetchConversations();
+    }, 8000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchConversations();
+      }
+    };
+
+    const handleConversationRefresh = () => {
+      fetchConversations();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('chat:refresh-conversations', handleConversationRefresh as EventListener);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('chat:refresh-conversations', handleConversationRefresh as EventListener);
+    };
   }, [token]);
 
   const filteredConversations = conversations.filter((conv) => {
@@ -94,8 +136,8 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
   const getUnreadCount = (conv: Conversation) => {
     if (!user) return 0;
     return user.id === conv.seller._id
-      ? conv.unreadCount.sellerUnread
-      : conv.unreadCount.buyerUnread;
+      ? Number(conv.unreadCount?.sellerUnread || 0)
+      : Number(conv.unreadCount?.buyerUnread || 0);
   };
 
 
@@ -151,6 +193,7 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
               filteredConversations.map((conv) => {
                 const otherUser = user?.id === conv.seller._id ? conv.buyer : conv.seller;
                 const unreadCount = getUnreadCount(conv);
+                const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
                 const isSelected = selectedConversationId === conv._id;
 
                 return (
@@ -165,7 +208,10 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
                       <div className="d-flex align-items-center justify-content-between gap-2 mb-1">
                         <h6 className="mb-0">{otherUser.name}</h6>
                         {unreadCount > 0 && (
-                          <span className="conversation-badge">{unreadCount}</span>
+                          <div className="conversation-unread-indicator" aria-label={`${unreadCount} unread messages`}>
+                            <Mail size={12} aria-hidden="true" />
+                            <span className="conversation-badge">{unreadLabel}</span>
+                          </div>
                         )}
                       </div>
                       <p className="mb-0 message-preview">

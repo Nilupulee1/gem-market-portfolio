@@ -309,31 +309,46 @@ export const getUserConversations = async (req: AuthRequest, res: Response) => {
 // Mark messages as read
 export const markMessagesAsRead = async (req: AuthRequest, res: Response) => {
   try {
-    const { auctionId, senderId } = req.body;
+    const { auctionId, senderId, conversationId, gemId } = req.body;
     const userId = req.user?.userId;
 
+    let conversation = null as any;
+
+    if (conversationId) {
+      conversation = await Conversation.findById(conversationId);
+    } else if (auctionId) {
+      conversation = await Conversation.findOne({
+        auction: auctionId as any,
+        participants: { $all: [userId, senderId] }
+      } as any);
+    } else if (gemId) {
+      conversation = await Conversation.findOne({
+        gem: gemId as any,
+        participants: { $all: [userId, senderId] }
+      } as any);
+    }
+
+    if (!conversation) {
+      return res.json({ success: true });
+    }
+
     // Update messages
-    await Message.updateMany(
-      { 
-        auction: auctionId as any, 
-        sender: senderId,
-        // recipientId cannot be checked directly in Message model since there's no recipientId field.
-        // Assuming conversation check is handled upstream
-        isRead: false 
-      },
-      { isRead: true }
-    );
+    const unreadFilter: any = {
+      conversation: conversation._id as any,
+      sender: { $ne: userId },
+      isRead: false,
+    };
+
+    await Message.updateMany(unreadFilter, { isRead: true });
 
     // Update conversation unread count
-    const conversation = await Conversation.findOne({ auction: auctionId as any });
-    if (conversation) {
-      if (userId === conversation.seller.toString()) {
-        conversation.unreadCount.sellerUnread = 0;
-      } else {
-        conversation.unreadCount.buyerUnread = 0;
-      }
-      await conversation.save();
+    if (userId === conversation.seller.toString()) {
+      conversation.unreadCount.sellerUnread = 0;
+    } else if (userId === conversation.buyer.toString()) {
+      conversation.unreadCount.buyerUnread = 0;
     }
+
+    await conversation.save();
 
     res.json({ success: true });
   } catch (error: any) {

@@ -149,6 +149,18 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
         const response = await axiosInstance.get(url);
         const fetchedMessages = response.data.messages || [];
         setMessages((prev) => mergeUniqueMessages(prev, fetchedMessages));
+
+        try {
+          await axiosInstance.post('/chat/mark-read', {
+            auctionId,
+            conversationId,
+            gemId,
+            senderId: recipientId,
+          });
+          window.dispatchEvent(new Event('chat:refresh-conversations'));
+        } catch (markReadError) {
+          console.error('Failed to mark conversation as read:', markReadError);
+        }
       } catch (error) {
         console.error('Error fetching messages:', error);
       } finally {

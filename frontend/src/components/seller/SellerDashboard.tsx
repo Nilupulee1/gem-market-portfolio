@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Nav, Button } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
+import { useChatStore } from '../../store/chatStore';
 import { gemAPI } from '../../api/axios';
 import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -180,6 +181,8 @@ const SellerDashboard = ({
     setChatInitialGem(gem);
     setActiveTab('messages');
   };
+
+  const unreadCount = useChatStore((state) => state.unreadCount);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -559,6 +562,26 @@ const SellerDashboard = ({
             >
               <MessageSquare size={18} />
               <span style={{ flex: 1 }}>Messages</span>
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    minWidth: 22,
+                    height: 22,
+                    borderRadius: 999,
+                    padding: '0 7px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#ef4444',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                  aria-label={`${unreadCount} unread messages`}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Nav.Link>
           </Nav>
 

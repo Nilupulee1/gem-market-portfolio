@@ -415,6 +415,7 @@ function App() {
     }) => {
       incrementUnreadCount();
       const nextUnreadCount = useChatStore.getState().unreadCount;
+      window.dispatchEvent(new Event('chat:refresh-conversations'));
       setMessageToast({
         senderName: data.senderName || 'New message',
         preview: data.preview,

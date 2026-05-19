@@ -259,6 +259,11 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
             });
 
             await newMessage.save();
+            if (conversation.seller.toString() === senderId) {
+              conversation.unreadCount.buyerUnread += 1;
+            } else {
+              conversation.unreadCount.sellerUnread += 1;
+            }
             conversation.lastMessage = newMessage._id as any;
             try {
               await conversation.save();
