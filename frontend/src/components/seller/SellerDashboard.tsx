@@ -200,7 +200,7 @@ const SellerDashboard = ({
       default: {
         return (
           <>
-            <div className="dashboard-hero mb-4">
+            <div className="dashboard-hero hero-premium-mesh mb-4 animate-fade-up">
               <div>
                 <p className="dashboard-eyebrow mb-2">Seller dashboard</p>
                 <h4>Welcome back, {user?.name?.split(' ')[0]}!</h4>
@@ -213,7 +213,7 @@ const SellerDashboard = ({
             </div>
 
             <Row className="g-4 mb-4">
-              <Col md={6} lg={3}>
+              <Col md={6} lg={3} className="animate-fade-up delay-1">
                 <Card className="stat-card h-100">
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-start mb-3">
@@ -230,8 +230,8 @@ const SellerDashboard = ({
                 </Card>
               </Col>
 
-              <Col md={6} lg={3}>
-                <Card className="stat-card h-100">
+              <Col md={6} lg={3} className="animate-fade-up delay-2">
+                <Card className="stat-card stat-card-approved h-100">
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-start mb-3">
                       <div>
@@ -247,8 +247,8 @@ const SellerDashboard = ({
                 </Card>
               </Col>
 
-              <Col md={6} lg={3}>
-                <Card className="stat-card h-100">
+              <Col md={6} lg={3} className="animate-fade-up delay-3">
+                <Card className="stat-card stat-card-pending h-100">
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-start mb-3">
                       <div>
@@ -264,8 +264,8 @@ const SellerDashboard = ({
                 </Card>
               </Col>
 
-              <Col md={6} lg={3}>
-                <Card className="stat-card h-100">
+              <Col md={6} lg={3} className="animate-fade-up delay-4">
+                <Card className="stat-card stat-card-rejected h-100">
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-start mb-3">
                       <div>
@@ -398,11 +398,25 @@ const SellerDashboard = ({
                     </div>
 
                     {loading ? (
-                      <div className="spinner-custom">
-                        <div className="spinner-border" role="status">
-                          <span className="visually-hidden">Loading...</span>
-                        </div>
-                      </div>
+                      <Row className="g-3">
+                        {[1, 2, 3, 4].map((i) => (
+                          <Col md={6} key={i}>
+                            <div className="skeleton-card skeleton-shimmer">
+                              <div className="d-flex gap-3">
+                                <div className="skeleton-circle skeleton-shimmer" style={{ width: '80px', height: '80px', flexShrink: 0 }} />
+                                <div className="flex-grow-1">
+                                  <div className="skeleton-text skeleton-text-lg skeleton-shimmer" style={{ width: '70%' }} />
+                                  <div className="skeleton-text skeleton-text-md skeleton-shimmer" style={{ width: '50%', marginTop: '10px' }} />
+                                </div>
+                              </div>
+                              <div className="d-flex gap-2 mt-3">
+                                <div className="skeleton-text skeleton-shimmer" style={{ width: '100%', height: '32px', borderRadius: '6px' }} />
+                                <div className="skeleton-text skeleton-shimmer" style={{ width: '100%', height: '32px', borderRadius: '6px' }} />
+                              </div>
+                            </div>
+                          </Col>
+                        ))}
+                      </Row>
                     ) : myGems.length === 0 ? (
                       <div className="empty-state">
                         <div className="empty-state-icon">💎</div>
@@ -505,17 +519,26 @@ const SellerDashboard = ({
       <div className="dashboard-content-wrapper">
         {/* Sidebar */}
         <div className="dashboard-sidebar-wrapper">
-          <Card className="sidebar-card mb-4">
-            <Card.Body className="p-0">
-              <div className="profile-avatar">
-                👤
+          {/* Professional Compact Sidebar Profile Header */}
+          <div className="sidebar-profile-section">
+            <div className="sidebar-profile-card">
+              <div className="sidebar-profile-avatar-container">
+                <div className="sidebar-profile-avatar">
+                  <div className="sidebar-profile-avatar-inner">
+                    {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : '👤'}
+                  </div>
+                </div>
               </div>
-              <div className="profile-info px-4 pb-4">
-                <div className="profile-name">{user?.name}</div>
-                <div className="profile-role">Seller</div>
+              <div className="sidebar-profile-info">
+                <div className="sidebar-profile-name" title={user?.name || ''}>
+                  {user?.name}
+                </div>
+                <div className="sidebar-profile-role-badge">
+                  Verified Seller
+                </div>
               </div>
-            </Card.Body>
-          </Card>
+            </div>
+          </div>
 
           <Nav className="sidebar-nav">
             <Nav.Link
@@ -586,7 +609,7 @@ const SellerDashboard = ({
           </Nav>
 
           <div className="sidebar-button-group">
-            <Button variant="outline-secondary" size="sm" className="w-100 d-flex align-items-center justify-content-center gap-2">
+            <Button variant="outline-secondary" size="sm" className="w-100 d-flex align-items-center justify-content-center gap-2 mb-2">
               <Settings size={16} />
               Settings
             </Button>

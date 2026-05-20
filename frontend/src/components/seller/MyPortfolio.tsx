@@ -143,48 +143,54 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4 animate-fade-up">
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-sm-items-center gap-3 mb-4 animate-fade-up">
         <div className="dashboard-title mb-0">
           <h4>Collector Portfolio</h4>
           <p>Manage and organize your gem collection</p>
         </div>
-        <Form.Select 
-          style={{ width: 'auto' }} 
-          size="sm"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option>All Gems</option>
-          <option>Approved</option>
-          <option>Pending</option>
-          <option>Rejected</option>
-        </Form.Select>
+        <div className="filter-group-premium">
+          {['All Gems', 'Approved', 'Pending', 'Rejected'].map((status) => (
+            <button
+              key={status}
+              type="button"
+              className={`filter-btn-premium ${filterStatus === status ? 'active' : ''}`}
+              onClick={() => setFilterStatus(status)}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
       </div>
 
       {filteredGems.length === 0 ? (
         <Card className="content-card animate-fade-up delay-1">
           <Card.Body className="text-center py-5">
-            <p className="text-muted mb-3">
+            <div className="empty-state-icon" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.8 }}>💎</div>
+            <h5 className="fw-bold mb-2">
               {gems.length === 0 
-                ? 'No gems in your portfolio yet' 
+                ? 'Your Portfolio is Empty' 
                 : `No ${filterStatus.toLowerCase()} gems found`}
+            </h5>
+            <p className="text-muted mb-4">
+              {gems.length === 0 
+                ? 'Start building your collector portfolio by adding your first exquisite gem.' 
+                : 'Try changing your filter status to see more items.'}
             </p>
             {gems.length === 0 && (
-              <Button variant="primary">Add Your First Gem</Button>
+              <Button className="btn-primary">Add Your First Gem</Button>
             )}
           </Card.Body>
         </Card>
       ) : (
         <Row className="g-4">
-          {filteredGems.map((gem) => (
-            <Col md={6} lg={4} key={gem._id}>
-              <Card className="content-card h-100 hover-card animate-fade-up delay-1">
-                <div className="position-relative surface-muted" style={{ height: '250px', overflow: 'hidden' }}>
+          {filteredGems.map((gem, index) => (
+            <Col md={6} lg={4} key={gem._id} className={`animate-fade-up delay-${Math.min(5, index + 1)}`}>
+              <Card className="gem-card h-100 hover-card">
+                <div className="gem-image-container surface-muted" style={{ height: '250px' }}>
                   <img
                     src={gem.images[0] || 'https://via.placeholder.com/300x250'}
                     alt={gem.type}
-                    className="w-100 h-100"
-                    style={{ objectFit: 'cover' }}
+                    className="gem-image"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = 'https://via.placeholder.com/300x250?text=Image+Not+Found';
@@ -194,31 +200,25 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
                     {getStatusBadge(gem.status)}
                   </div>
                 </div>
-                <Card.Body>
-                  <h6 className="mb-2 fw-bold">{gem.type}</h6>
-                  <div className="mb-3">
-                    <small className="text-muted d-block">
-                      <strong>Carat:</strong> {gem.carat}
-                    </small>
-                    <small className="text-muted d-block">
-                      <strong>Cut:</strong> {gem.cut}
-                    </small>
-                    <small className="text-muted d-block">
-                      <strong>Origin:</strong> {gem.origin}
-                    </small>
+                <Card.Body className="gem-card-body">
+                  <div className="gem-type mb-2">{gem.type}</div>
+                  <div className="gem-details mb-3">
+                    <div><strong>Carat:</strong> {gem.carat}</div>
+                    <div><strong>Cut:</strong> {gem.cut}</div>
+                    <div><strong>Origin:</strong> {gem.origin}</div>
                   </div>
                   <div className="d-flex gap-2">
                     <Button 
-                      variant="outline-primary" 
+                      className="btn-primary d-flex align-items-center justify-content-center" 
                       size="sm" 
                       style={{ flexGrow: 1 }}
                       onClick={() => handleViewDetails(gem)}
                     >
-                      <Eye size={14} className="me-1" />
-                      View
+                      <Eye size={14} className="me-2" />
+                      View Details
                     </Button>
                     <Button 
-                      variant="outline-secondary" 
+                      className="btn-secondary d-flex align-items-center justify-content-center" 
                       size="sm"
                       onClick={() => handleEdit(gem)}
                       title="Edit Gem"
@@ -226,10 +226,12 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
                       <Edit2 size={14} />
                     </Button>
                     <Button 
-                      variant="outline-danger" 
+                      variant="outline-danger"
+                      className="d-flex align-items-center justify-content-center" 
                       size="sm"
                       onClick={() => handleDeleteClick(gem)}
                       title="Delete Gem"
+                      style={{ border: '1px solid #fee2e2', color: '#ef4444' }}
                     >
                       <Trash2 size={14} />
                     </Button>
@@ -260,8 +262,8 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
         }}
         centered
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Edit Gem</Modal.Title>
+        <Modal.Header closeButton className="modal-header-gradient">
+          <Modal.Title>Edit Gem Details</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {actionError && <Alert variant="danger">{actionError}</Alert>}
@@ -363,14 +365,14 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
         }}
         centered
       >
-        <Modal.Header closeButton>
+        <Modal.Header closeButton className="modal-header-gradient">
           <Modal.Title>Confirm Delete</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {actionError && <Alert variant="danger">{actionError}</Alert>}
-          <p>Are you sure you want to delete this gem?</p>
+          <p>Are you sure you want to delete this gem from your portfolio?</p>
           {gemToDelete && (
-            <div className="alert alert-warning">
+            <div className="alert alert-warning" style={{ borderLeft: '4px solid #f59e0b', borderRadius: '8px' }}>
               <strong>{gemToDelete.type}</strong>
               <br />
               <small>Carat: {gemToDelete.carat} | Origin: {gemToDelete.origin}</small>

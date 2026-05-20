@@ -188,10 +188,10 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
   return (
     <div>
       {/* Header Section */}
-      <div className="d-flex justify-content-between align-items-start mb-5">
+      <div className="d-flex justify-content-between align-items-start mb-5 animate-fade-up">
         <div className="dashboard-title">
-          <h4 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Your Auctions</h4>
-          <p style={{ color: '#7c8aa3', margin: 0 }}>Manage and monitor your active and past auctions</p>
+          <h4 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Marketplace Auctions</h4>
+          <p style={{ color: '#7c8aa3', margin: 0 }}>Establish custom bidding pools, monitor offers, and manage live sales</p>
         </div>
         <Button 
           className="btn-primary d-flex align-items-center gap-2"
@@ -199,20 +199,18 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
           style={{ whiteSpace: 'nowrap' }}
         >
           <Plus size={18} />
-          Create Auction
+          Create New Auction
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <Row className="g-4 mb-5">
+      <Row className="g-4 mb-5 animate-fade-up delay-1">
         <Col md={6} lg={3}>
-          <Card className="stat-card h-100">
+          <Card className="stat-card stat-card-approved h-100">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <p style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Total Auctions
-                  </p>
+                  <p className="stat-card-label">Total Auctions</p>
                   <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#1a2332', marginBottom: 0 }}>
                     {auctionStats.totalAuctions}
                   </h3>
@@ -226,14 +224,12 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
         </Col>
 
         <Col md={6} lg={3}>
-          <Card className="stat-card h-100">
+          <Card className="stat-card stat-card-pending h-100">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <p style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Active Now
-                  </p>
-                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#1a2332', marginBottom: 0 }}>
+                  <p className="stat-card-label">Active Now</p>
+                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#10b981', marginBottom: 0 }}>
                     {auctionStats.activeAuctions}
                   </h3>
                 </div>
@@ -246,14 +242,12 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
         </Col>
 
         <Col md={6} lg={3}>
-          <Card className="stat-card h-100">
+          <Card className="stat-card stat-card-rejected h-100">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <p style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Ended
-                  </p>
-                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#1a2332', marginBottom: 0 }}>
+                  <p className="stat-card-label">Ended</p>
+                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#f59e0b', marginBottom: 0 }}>
                     {auctionStats.endedAuctions}
                   </h3>
                 </div>
@@ -266,14 +260,12 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
         </Col>
 
         <Col md={6} lg={3}>
-          <Card className="stat-card h-100">
+          <Card className="stat-card stat-card-approved h-100">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <p style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Total Bids
-                  </p>
-                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#1a2332', marginBottom: 0 }}>
+                  <p className="stat-card-label">Total Bids</p>
+                  <h3 style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444', marginBottom: 0 }}>
                     {auctionStats.totalBids}
                   </h3>
                 </div>
@@ -287,7 +279,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
       </Row>
 
       {/* Main Content Card */}
-      <Card className="content-card">
+      <Card className="content-card animate-fade-up delay-2">
         <Card.Body className="p-4">
           {/* Search and Filters */}
           <div className="mb-4">
@@ -296,7 +288,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a2332', marginBottom: '8px' }}>
                   Search Auctions
                 </div>
-                <InputGroup>
+                <InputGroup className="input-group-premium">
                   <InputGroup.Text className="bg-white border-end-0">
                     <Search size={18} style={{ color: '#7c8aa3' }} />
                   </InputGroup.Text>
@@ -317,6 +309,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                     <Form.Select 
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
+                      className="surface-muted"
                       style={{ fontSize: '13px', fontWeight: 500 }}
                     >
                       <option value="all">All Status</option>
@@ -332,6 +325,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                     <Form.Select 
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
+                      className="surface-muted"
                       style={{ fontSize: '13px', fontWeight: 500 }}
                     >
                       <option value="endDate">End Date</option>
@@ -346,6 +340,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                     <Form.Select 
                       value={roleFilter}
                       onChange={(e) => setRoleFilter(e.target.value)}
+                      className="surface-muted"
                       style={{ fontSize: '13px', fontWeight: 500 }}
                     >
                       <option value="all">All Roles</option>
@@ -358,7 +353,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
             </Row>
           </div>
 
-          <hr style={{ margin: '24px 0', borderColor: '#e5e7eb' }} />
+          <hr style={{ margin: '24px 0', borderColor: 'var(--border)' }} />
 
           {/* Content */}
           {errorMessage && (
@@ -368,21 +363,27 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
           )}
 
           {loading ? (
-            <div className="spinner-custom">
-              <div className="spinner-border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-            </div>
+            <Row className="g-4">
+              {[1, 2, 3].map((i) => (
+                <Col md={6} lg={4} key={i}>
+                  <div className="skeleton-card skeleton-shimmer" style={{ height: '350px' }}>
+                    <div className="skeleton-text skeleton-text-lg skeleton-shimmer" style={{ width: '80%' }} />
+                    <div className="skeleton-text skeleton-text-md skeleton-shimmer" style={{ width: '60%', marginTop: '16px' }} />
+                    <div className="skeleton-text skeleton-shimmer" style={{ width: '100%', height: '80px', borderRadius: '8px', marginTop: '20px' }} />
+                  </div>
+                </Col>
+              ))}
+            </Row>
           ) : filteredAuctions.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">🎯</div>
               <div className="empty-state-title">
-                {auctions.length === 0 ? 'No Auctions Yet' : 'No Results Found'}
+                {auctions.length === 0 ? 'No Auctions Found' : 'No Results Found'}
               </div>
               <div className="empty-state-text">
                 {auctions.length === 0 
-                  ? 'Start by creating your first auction to attract bidders'
-                  : 'Try adjusting your filters or search terms'
+                  ? 'Start by creating your first auction to attract collectors and bidders.'
+                  : 'Try adjusting your filters, sort order, or search queries.'
                 }
               </div>
               {auctions.length === 0 && (
@@ -399,11 +400,11 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
             <div>
               {/* Auction Cards Grid */}
               <Row className="g-4 mb-4">
-                {filteredAuctions.map((auction) => (
-                  <Col md={6} lg={4} key={auction._id}>
+                {filteredAuctions.map((auction, index) => (
+                  <Col md={6} lg={4} key={auction._id} className={`animate-fade-up delay-${Math.min(5, index + 1)}`}>
                     <Card 
-                      className="gem-card h-100"
-                      style={{ cursor: 'pointer', position: 'relative' }}
+                      className="gem-card h-100 hover-card"
+                      style={{ cursor: 'pointer' }}
                       onClick={() => handleViewDetails(auction)}
                     >
                       {/* Image */}
@@ -424,73 +425,61 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
 
                       {/* Content */}
                       <div className="gem-card-body">
-                        <div className="gem-type" style={{ marginBottom: '12px' }}>
+                        <div className="gem-type mb-2">
                           {auction.gem?.type || 'Unknown Gem'}
                         </div>
 
                         {/* Auction Info */}
-                        <div style={{ marginBottom: '16px' }}>
-                          <div style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '6px' }}>
-                            <strong>Current Bid:</strong> Rs.{auction.currentBid?.toLocaleString() || 0}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '6px' }}>
-                            <strong>Starting:</strong> Rs.{auction.startPrice?.toLocaleString() || 0}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#7c8aa3', marginBottom: '6px' }}>
-                            <strong>Bids:</strong> {auction.bids?.length || 0}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#7c8aa3' }}>
-                            <strong>Ends:</strong> {formatDate(auction.endTime)}{getAuctionStatus(auction) === 'active' ? ' - Active' : ''}
-                          </div>
+                        <div className="gem-details mb-3">
+                          <div><strong>Current Bid:</strong> Rs.{auction.currentBid?.toLocaleString() || 0}</div>
+                          <div><strong>Starting Bid:</strong> Rs.{auction.startPrice?.toLocaleString() || 0}</div>
+                          <div><strong>Bids Registered:</strong> {auction.bids?.length || 0}</div>
+                          <div><strong>Ends:</strong> {formatDate(auction.endTime)}{getAuctionStatus(auction) === 'active' ? ' (Active)' : ''}</div>
                         </div>
 
                         {/* Leading bidder / winner info */}
                         {auction.bids && auction.bids.length > 0 ? (
-                          <div style={{ 
-                            padding: '12px', 
-                            background: '#f8f9fa', 
-                            borderRadius: '8px', 
-                            marginBottom: '16px',
+                          <div className="p-3 mb-3 rounded shadow-sm" style={{ 
+                            background: 'var(--page-surface)', 
+                            border: '1px solid var(--border)',
                             fontSize: '12px'
                           }}>
-                            <div style={{ color: '#7c8aa3', marginBottom: '4px' }}>
-                              {getAuctionStatus(auction) === 'ended' ? 'Winner' : 'Leading Bidder'}
+                            <div className="text-muted mb-1 fw-semibold">
+                              {getAuctionStatus(auction) === 'ended' ? 'WINNING COLLECTOR' : 'LEADING BIDDER'}
                             </div>
-                            <div style={{ fontWeight: 600, color: '#1a2332' }}>
+                            <div className="fw-bold" style={{ color: 'var(--color-primary)' }}>
                               {getLeadingBidderName(auction)}
                             </div>
                           </div>
                         ) : (
-                          <div style={{ 
-                            padding: '12px', 
-                            background: '#fef3c7', 
-                            borderRadius: '8px', 
-                            marginBottom: '16px',
+                          <div className="p-3 mb-3 rounded text-center fw-semibold" style={{ 
+                            background: 'var(--page-surface)', 
+                            border: '1px dashed var(--border)',
                             fontSize: '12px',
-                            color: '#92400e'
+                            color: '#7c8aa3'
                           }}>
-                            No bids yet
+                            No bids placed yet
                           </div>
                         )}
 
                         {/* Actions */}
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="d-flex gap-2 mt-auto">
                           <Button 
-                            className="btn-primary"
+                            className="btn-primary d-flex align-items-center justify-content-center"
                             size="sm"
-                            style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}
+                            style={{ flex: 1, fontWeight: 600 }}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleViewDetails(auction);
                             }}
                           >
-                            <Eye size={14} className="me-1" style={{ display: 'inline' }} />
-                            Details
+                            <Eye size={14} className="me-2" />
+                            View Auction
                           </Button>
                           <Button 
-                            className="btn-secondary"
+                            className="btn-secondary d-flex align-items-center justify-content-center"
                             size="sm"
-                            style={{ fontSize: '13px', fontWeight: 600 }}
+                            style={{ fontWeight: 600, border: '1px solid #fee2e2', color: '#ef4444' }}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDelete(auction);
@@ -511,7 +500,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                 justifyContent: 'space-between', 
                 alignItems: 'center',
                 paddingTop: '16px',
-                borderTop: '1px solid #e5e7eb',
+                borderTop: '1px solid var(--border)',
                 fontSize: '13px',
                 color: '#7c8aa3'
               }}>
@@ -538,7 +527,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
 
       {/* Delete Confirmation Modal */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-        <Modal.Header closeButton>
+        <Modal.Header closeButton className="modal-header-gradient">
           <Modal.Title>Delete Auction</Modal.Title>
         </Modal.Header>
         <Modal.Body>

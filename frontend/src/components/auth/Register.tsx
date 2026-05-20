@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { authAPI } from '../../api/axios';
@@ -7,7 +7,7 @@ import { UserRole } from '../../types';
 import { AxiosError } from 'axios';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
 
-import logo from '../../assets/logo.png';
+
 
 
 const Register = () => {

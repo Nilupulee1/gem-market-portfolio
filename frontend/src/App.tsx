@@ -20,18 +20,11 @@ import {
   ArrowRight,
   BadgeCheck,
   ChevronRight,
-  CreditCard,
   Gavel,
-  Headphones,
-  Package,
-  Quote,
   Search,
   ShieldCheck,
   Moon,
   Sparkles,
-  Star,
-  Truck,
-  UserCheck,
   Sun,
 } from 'lucide-react';
 const heroImage = '/images/hero-gems.jpg';
@@ -72,24 +65,7 @@ const heroFeatures = [
   { icon: Gavel, label: 'Secure Bidding' },
 ];
 
-const marketplaceFeatures = [
-  {
-    icon: UserCheck,
-    title: 'Verified Sellers',
-    description: 'Every seller is reviewed before listing, so every gem record starts with trust.',
-  },
-  {
-    icon: BadgeCheck,
-    title: 'Traceable Certificates',
-    description: 'Certificates stay attached to the gem record for clear, auditable provenance.',
-  },
-  {
-    icon: Gavel,
-    title: 'Secure Bidding',
-    description: 'Escrow-backed auctions keep the process fair for both buyers and sellers.',
-  },
- 
-];
+
 
 const steps = [
   {

@@ -5,7 +5,7 @@ import { authAPI } from '../../api/axios';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
-import logo from '../../assets/logo.png';
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
