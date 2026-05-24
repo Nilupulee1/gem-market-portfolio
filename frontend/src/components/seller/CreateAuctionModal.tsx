@@ -4,6 +4,8 @@ import type { Gem } from '../../types';
 import { auctionAPI } from '../../api/axios';
 import { AxiosError } from 'axios';
 
+const LISTING_PLACEMENT_FEE_PERCENT = 5;
+
 interface CreateAuctionModalProps {
   show: boolean;
   onHide: () => void;
@@ -20,6 +22,34 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const calculateListingFee = () => {
+    const bidValue = parseFloat(startPrice);
+
+    if (!Number.isFinite(bidValue) || bidValue <= 0) {
+      return 0;
+    }
+
+    return Math.round((bidValue * LISTING_PLACEMENT_FEE_PERCENT) / 100);
+  };
+
+  const submitPayHereForm = (checkoutUrl: string, fields: Record<string, string>) => {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = checkoutUrl;
+    form.style.display = 'none';
+
+    Object.entries(fields).forEach(([key, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  };
 
   const selectedGemData = selectedGem || availableGems.find(g => g._id === gemId);
 
@@ -54,6 +84,13 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
       return;
     }
 
+    const listingPlacementFee = calculateListingFee();
+
+    if (listingPlacementFee <= 0) {
+      setError('Please enter a valid starting bid');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -65,17 +102,15 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
         gemId,
         startPrice: parseFloat(startPrice),
         minimumBidIncrement: parseFloat(minimumBidIncrement),
+        listingPlacementFee,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString()
       };
 
-      await auctionAPI.createAuction(auctionData);
-      setSuccess('Auction created successfully!');
-      
-      setTimeout(() => {
-        onAuctionCreated();
-        handleClose();
-      }, 1500);
+      const response = await auctionAPI.initiatePayHereCheckout(auctionData);
+      const { checkoutUrl, fields } = response.data.payhere;
+      setSuccess('Redirecting to PayHere sandbox...');
+      submitPayHereForm(checkoutUrl, fields);
     } catch (err) {
       const error = err as AxiosError<{ message: string }>;
       setError(error.response?.data?.message || 'Failed to create auction pool');
@@ -94,8 +129,7 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
     onHide();
   };
 
-  const listingFee = 2500;
-  const successFeePercentage = 5;
+  const listingFee = calculateListingFee();
 
   return (
     <Modal show={show} onHide={handleClose} size="lg" centered>
@@ -173,6 +207,34 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
                       </Form.Group>
                     </Col>
                   </Row>
+
+                  <div className="mt-3">
+                    <Form.Group>
+                      <Form.Label className="fw-semibold text-secondary">Listing Placement Fee (%) *</Form.Label>
+                      <Form.Control
+                        type="number"
+                        value={LISTING_PLACEMENT_FEE_PERCENT}
+                        readOnly
+                        disabled
+                        size="lg"
+                        className="surface-muted"
+                      />
+                      <Form.Text className="text-muted">
+                        Fixed at 5% of the starting bid. Calculated fee: Rs.{listingFee.toLocaleString()}.
+                      </Form.Text>
+                    </Form.Group>
+                  </div>
+
+                  <div className="mt-4 p-3 rounded" style={{ background: 'var(--page-surface)', border: '1px solid var(--border)' }}>
+                    <div className="d-flex justify-content-between align-items-start gap-3">
+                      <div>
+                        <div className="fw-semibold text-dark mb-1">PayHere Sandbox Payment</div>
+                        <div className="text-secondary small">
+                          Launch the PayHere sandbox checkout to pay the calculated listing fee.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Auction Timing */}
@@ -207,11 +269,11 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
                     </div>
                     <div className="d-flex justify-content-between mb-2">
                       <span className="text-secondary fw-semibold">Listing Placement Fee:</span>
-                      <span className="fw-bold text-dark">Rs.{listingFee.toLocaleString()}</span>
+                      <span className="fw-bold text-dark">Rs.{listingFee.toLocaleString()} ({LISTING_PLACEMENT_FEE_PERCENT}%)</span>
                     </div>
                     <div className="d-flex justify-content-between">
                       <span className="text-secondary fw-semibold">Platform Success Commission:</span>
-                      <span className="fw-bold text-dark">{successFeePercentage}% of winning bid</span>
+                      <span className="fw-bold text-dark">5% of winning bid</span>
                     </div>
                   </div>
                   
@@ -230,10 +292,10 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
                   </Button>
                   <Button 
                     className="btn-primary px-4 fw-semibold"
-                    type="submit"
-                    disabled={loading}
-                  >
-                    {loading ? 'Creating Bidding Pool...' : 'Confirm & Launch Auction'}
+                      disabled={loading}
+                      type="submit"
+                    >
+                      {loading ? 'Redirecting to PayHere...' : `Pay Rs.${listingFee.toLocaleString()} & Launch Auction`}
                   </Button>
                 </div>
               </Form>

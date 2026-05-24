@@ -71,6 +71,12 @@ export const auctionAPI = {
   createAuction: (data: Record<string, unknown>) =>
   axiosInstance.post('/auctions', data),
 
+  initiatePayHereCheckout: (data: Record<string, unknown>) =>
+    axiosInstance.post('/auctions/payhere/initiate', data),
+
+  updateAuctionStatus: (id: string, data: { status: string }) =>
+    axiosInstance.patch(`/auctions/${id}/status`, data),
+
   placeBid: (data: { auctionId: string; amount: number }) =>
     axiosInstance.post('/auctions/bid', data),
   getActiveAuctions: () => axiosInstance.get('/auctions/active'),
@@ -85,6 +91,7 @@ export const adminAPI = {
     axiosInstance.post('/admin/gems/review', data),
   getAllUsers: () => axiosInstance.get('/admin/users'),
   getStatistics: () => axiosInstance.get('/admin/statistics'),
+  getAllAuctions: () => axiosInstance.get('/admin/auctions'),
 };
 
 export const buyerAPI = {

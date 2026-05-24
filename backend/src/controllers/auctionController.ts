@@ -1,7 +1,10 @@
-import { Response } from 'express';
+import crypto from 'crypto';
+import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
 import Auction from '../models/Auction';
 import Gem from '../models/Gem';
+import User from '../models/User';
 import { AuctionStatus, GemStatus } from '../types';
 import cloudinary from '../config/cloudinary';
 
@@ -56,11 +59,79 @@ const withCertificateAccessUrl = <T extends { certificate?: { url?: string; mime
     : gem.certificate,
 });
 
+const LISTING_PLACEMENT_FEE_PERCENT = 5;
+
+const calculateListingPlacementFee = (startPriceValue: number) =>
+  Math.round((startPriceValue * LISTING_PLACEMENT_FEE_PERCENT) / 100);
+
+const normalizeAuctionAfterPayment = (auction: any) => {
+  if (
+    auction &&
+    auction.status === AuctionStatus.PENDING_PAYMENT &&
+    (auction.paymentConfirmed === true || auction.paymentStatus === 'completed')
+  ) {
+    auction.status = AuctionStatus.ACTIVE;
+  }
+
+  return auction;
+};
+
+  const getPayHereSecretHash = (merchantSecret: string) =>
+    crypto.createHash('md5').update(merchantSecret).digest('hex').toUpperCase();
+
+  const buildPayHereHash = (merchantId: string, orderId: string, amount: string, currency: string, merchantSecret: string) =>
+    crypto
+      .createHash('md5')
+      .update(`${merchantId}${orderId}${amount}${currency}${getPayHereSecretHash(merchantSecret)}`)
+      .digest('hex')
+      .toUpperCase();
+
+  const buildPayHereNotifyHash = (
+    merchantId: string,
+    orderId: string,
+    amount: string,
+    currency: string,
+    statusCode: string,
+    merchantSecret: string,
+  ) =>
+    crypto
+      .createHash('md5')
+      .update(`${merchantId}${orderId}${amount}${currency}${statusCode}${getPayHereSecretHash(merchantSecret)}`)
+      .digest('hex')
+      .toUpperCase();
+
+  const getAppUrl = (req: Request) => process.env.FRONTEND_URL?.trim() || req.headers.origin || 'http://localhost:5173';
+
+  const getApiBaseUrl = (req: Request) => process.env.BACKEND_URL?.trim() || `${req.protocol}://${req.get('host')}`;
+
+  const splitSellerName = (name: string) => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    return {
+      firstName: parts[0] || 'Seller',
+      lastName: parts.slice(1).join(' ') || 'User',
+    };
+  };
+
 export const createAuction = async (req: AuthRequest, res: Response) => {
   try {
     console.log('📦 Creating auction with data:', req.body);
     
-    const { gemId, startPrice, minimumBidIncrement, startTime, endTime } = req.body;
+    const { gemId, startPrice, minimumBidIncrement, paymentConfirmed, startTime, endTime } = req.body;
+
+    const startPriceValue = parseFloat(startPrice);
+    const listingPlacementFee = calculateListingPlacementFee(startPriceValue);
+
+    if (!Number.isFinite(startPriceValue) || startPriceValue <= 0) {
+      return res.status(400).json({ message: 'Starting bid is required' });
+    }
+
+    if (listingPlacementFee <= 0) {
+      return res.status(400).json({ message: 'Calculated listing placement fee is invalid' });
+    }
+
+    if (paymentConfirmed !== true && paymentConfirmed !== 'true') {
+      return res.status(400).json({ message: 'PayHere sandbox payment confirmation is required before starting the auction' });
+    }
 
     // Verify gem exists and is approved
     const gem = await Gem.findById(gemId);
@@ -89,9 +160,14 @@ export const createAuction = async (req: AuthRequest, res: Response) => {
     const auction = new Auction({
       gem: gemId,
       seller: req.user!.userId,
-      startPrice: parseFloat(startPrice),
-      currentBid: parseFloat(startPrice),
+      startPrice: startPriceValue,
+      currentBid: startPriceValue,
       minimumBidIncrement: parseFloat(minimumBidIncrement),
+      listingPlacementFeePercent: LISTING_PLACEMENT_FEE_PERCENT,
+      listingPlacementFee,
+      paymentConfirmed: true,
+      paymentMethod: 'payhere-sandbox',
+      paymentStatus: 'completed',
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       status: AuctionStatus.ACTIVE,
@@ -119,6 +195,191 @@ export const createAuction = async (req: AuthRequest, res: Response) => {
       message: 'Server error', 
       error: error.message 
     });
+  }
+};
+
+export const createPayHereCheckout = async (req: AuthRequest, res: Response) => {
+  try {
+    const { gemId, startPrice, minimumBidIncrement, startTime, endTime } = req.body;
+
+    if (!gemId || !Types.ObjectId.isValid(gemId)) {
+      return res.status(400).json({ message: 'A valid gem is required' });
+    }
+
+    const parsedStartTime = new Date(startTime);
+    const parsedEndTime = new Date(endTime);
+
+    const startPriceValue = parseFloat(startPrice);
+    const listingPlacementFee = calculateListingPlacementFee(startPriceValue);
+    const minimumBidValue = parseFloat(minimumBidIncrement);
+
+    if (Number.isNaN(parsedStartTime.getTime()) || Number.isNaN(parsedEndTime.getTime())) {
+      return res.status(400).json({ message: 'Valid auction start and end times are required' });
+    }
+
+    if (parsedEndTime <= parsedStartTime) {
+      return res.status(400).json({ message: 'Auction end time must be after the start time' });
+    }
+
+    if (!Number.isFinite(startPriceValue) || startPriceValue <= 0) {
+      return res.status(400).json({ message: 'Starting bid is required' });
+    }
+
+    if (!Number.isFinite(listingPlacementFee) || listingPlacementFee <= 0) {
+      return res.status(400).json({ message: 'Calculated listing placement fee is invalid' });
+    }
+
+    if (!Number.isFinite(minimumBidValue) || minimumBidValue <= 0) {
+      return res.status(400).json({ message: 'Minimum bid increment is required' });
+    }
+
+    const gem = await Gem.findById(gemId);
+    if (!gem) {
+      return res.status(404).json({ message: 'Gem not found' });
+    }
+
+    if (gem.status !== GemStatus.APPROVED) {
+      return res.status(400).json({ message: 'Only approved gems can be auctioned' });
+    }
+
+    if (gem.seller.toString() !== req.user!.userId) {
+      return res.status(403).json({ message: 'You can only auction your own gems' });
+    }
+
+    const existingAuction = await Auction.findOne({
+      gem: gemId,
+      status: { $in: [AuctionStatus.ACTIVE, AuctionStatus.PENDING_PAYMENT] }
+    });
+
+    if (existingAuction) {
+      return res.status(400).json({ message: 'Gem already has an auction in progress' });
+    }
+
+    const seller = await User.findById(req.user!.userId).select('name email');
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller account not found' });
+    }
+
+    const merchantId = process.env.PAYHERE_MERCHANT_ID?.trim();
+    const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET?.trim();
+    const checkoutUrl = process.env.PAYHERE_CHECKOUT_URL?.trim() || 'https://sandbox.payhere.lk/pay/checkout';
+
+    if (!merchantId || !merchantSecret) {
+      return res.status(500).json({ message: 'PayHere sandbox credentials are not configured' });
+    }
+
+    const auctionId = new Types.ObjectId();
+    const orderId = auctionId.toString();
+    const currency = process.env.PAYHERE_CURRENCY?.trim() || 'LKR';
+    const amount = listingPlacementFee.toFixed(2);
+    const { firstName, lastName } = splitSellerName(seller.name);
+    const appUrl = getAppUrl(req);
+    const apiBaseUrl = getApiBaseUrl(req);
+
+    const auction = new Auction({
+      _id: auctionId,
+      gem: gemId,
+      seller: req.user!.userId,
+      startPrice: startPriceValue,
+      currentBid: startPriceValue,
+      minimumBidIncrement: minimumBidValue,
+      listingPlacementFeePercent: LISTING_PLACEMENT_FEE_PERCENT,
+      listingPlacementFee,
+      paymentConfirmed: false,
+      paymentMethod: 'payhere-sandbox',
+      paymentStatus: 'pending',
+      paymentOrderId: orderId,
+      paymentAmount: listingPlacementFee,
+      paymentCurrency: currency,
+      startTime: parsedStartTime,
+      endTime: parsedEndTime,
+      status: AuctionStatus.PENDING_PAYMENT,
+      bids: []
+    });
+
+    await auction.save();
+
+    const hash = buildPayHereHash(merchantId, orderId, amount, currency, merchantSecret);
+
+    res.status(201).json({
+      message: 'PayHere checkout created successfully',
+      auction: auction.toObject(),
+      payhere: {
+        checkoutUrl,
+        fields: {
+          merchant_id: merchantId,
+          return_url: `${appUrl}/seller/auctions?payment=success&auctionId=${orderId}`,
+          cancel_url: `${appUrl}/seller/auctions?payment=cancelled&auctionId=${orderId}`,
+          notify_url: `${apiBaseUrl}/api/auctions/payhere/notify`,
+          order_id: orderId,
+          items: `Auction listing fee for ${gem.type}`,
+          amount,
+          currency,
+          first_name: firstName,
+          last_name: lastName,
+          email: seller.email,
+          phone: '',
+          address: '',
+          city: 'Colombo',
+          country: 'Sri Lanka',
+          hash,
+        }
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ Error creating PayHere checkout:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const payHereNotify = async (req: Request, res: Response) => {
+  try {
+    const merchantId = process.env.PAYHERE_MERCHANT_ID?.trim();
+    const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET?.trim();
+
+    if (!merchantId || !merchantSecret) {
+      return res.status(500).send('PayHere credentials missing');
+    }
+
+    const merchant_id = String(req.body.merchant_id || req.body.merchantId || '');
+    const order_id = String(req.body.order_id || req.body.orderId || '');
+    const payhere_amount = String(req.body.payhere_amount || req.body.amount || '');
+    const payhere_currency = String(req.body.payhere_currency || req.body.currency || '');
+    const status_code = String(req.body.status_code || req.body.statusCode || '');
+    const md5sig = String(req.body.md5sig || req.body.signature || '');
+    const paymentId = String(req.body.payhere_payment_id || req.body.payment_id || req.body.paymentId || '');
+
+    if (!merchant_id || !order_id || !payhere_amount || !payhere_currency || !status_code || !md5sig) {
+      return res.status(400).send('Invalid PayHere notification');
+    }
+
+    const expectedSignature = buildPayHereNotifyHash(merchant_id, order_id, payhere_amount, payhere_currency, status_code, merchantSecret);
+    if (merchant_id !== merchantId || expectedSignature !== md5sig.toUpperCase()) {
+      return res.status(400).send('Invalid signature');
+    }
+
+    const auction = await Auction.findById(order_id);
+    if (!auction) {
+      return res.status(404).send('Auction not found');
+    }
+
+    if (status_code === '2') {
+      auction.paymentConfirmed = true;
+      auction.paymentStatus = 'completed';
+      auction.paymentTransactionId = paymentId || auction.paymentTransactionId;
+      auction.status = AuctionStatus.ACTIVE;
+      auction.listingPlacementFeePercent = LISTING_PLACEMENT_FEE_PERCENT;
+      auction.listingPlacementFee = calculateListingPlacementFee(auction.startPrice);
+    } else if (status_code === '0' || status_code === '-1' || status_code === '-2') {
+      auction.paymentStatus = 'failed';
+    }
+
+    await auction.save();
+
+    return res.status(200).send('OK');
+  } catch (error: any) {
+    console.error('❌ Error handling PayHere notify:', error);
+    return res.status(500).send('Server error');
   }
 };
 
@@ -205,7 +466,7 @@ export const getActiveAuctions = async (req: AuthRequest, res: Response) => {
     console.log('✅ Found auctions:', auctions.length);
 
     res.json({ auctions: auctions.map((auction) => ({
-      ...auction.toObject(),
+      ...normalizeAuctionAfterPayment(auction.toObject()),
       gem: withCertificateAccessUrl((auction.gem as any)?.toObject?.() || auction.gem),
     })) });
   } catch (error: any) {
@@ -231,7 +492,7 @@ export const getMyAuctions = async (req: AuthRequest, res: Response) => {
     console.log('✅ Found my auctions:', auctions.length);
 
     res.json({ auctions: auctions.map((auction) => ({
-      ...auction.toObject(),
+      ...normalizeAuctionAfterPayment(auction.toObject()),
       gem: withCertificateAccessUrl((auction.gem as any)?.toObject?.() || auction.gem),
     })) });
   } catch (error: any) {
@@ -257,7 +518,7 @@ export const getAuctionById = async (req: AuthRequest, res: Response) => {
 
     res.json({
       auction: {
-        ...auction.toObject(),
+        ...normalizeAuctionAfterPayment(auction.toObject()),
         gem: withCertificateAccessUrl((auction.gem as any)?.toObject?.() || auction.gem),
       }
     });

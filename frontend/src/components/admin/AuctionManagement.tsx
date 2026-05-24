@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Modal } from 'react-bootstrap';
+import { Card, Table, Button, Modal, Badge } from 'react-bootstrap';
 import { Eye, TrendingUp } from 'lucide-react';
-import { auctionAPI } from '../../api/axios';
+import { adminAPI, auctionAPI } from '../../api/axios';
 
 interface Auction {
   _id: string;
@@ -18,6 +18,8 @@ interface Auction {
   startPrice: number;
   currentBid: number;
   status: string;
+  paymentStatus?: string;
+  paymentConfirmed?: boolean;
   endTime: string;
   bids: Array<{
     bidder: {
@@ -28,6 +30,23 @@ interface Auction {
     timestamp: string;
   }>;
 }
+
+const isAwaitingAdminApproval = (auction: Auction) =>
+  auction.status?.toLowerCase() === 'pending_payment' && (auction.paymentStatus === 'completed' || auction.paymentConfirmed);
+
+const isPendingAuction = (auction: Auction) => auction.status?.toLowerCase() === 'pending_payment';
+
+const getAuctionStatusLabel = (auction: Auction) => {
+  const status = auction.status?.toLowerCase();
+
+  if (status === 'active') return 'Live';
+  if (isAwaitingAdminApproval(auction)) return 'Awaiting admin approval';
+  if (status === 'pending_payment') return 'Payment pending';
+  if (status === 'ended') return 'Ended';
+  if (status === 'cancelled') return 'Cancelled';
+
+  return auction.status || 'Unknown';
+};
 
 const AuctionManagement = () => {
   const [auctions, setAuctions] = useState<Auction[]>([]);
@@ -42,7 +61,7 @@ const AuctionManagement = () => {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
-      const response = await auctionAPI.getActiveAuctions();
+      const response = await adminAPI.getAllAuctions();
       setAuctions(response.data.auctions);
     } catch (error) {
       console.error('Error fetching auctions:', error);
@@ -56,16 +75,33 @@ const AuctionManagement = () => {
     setShowDetailsModal(true);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return <span className="status-pill active">Active</span>;
+  const handleApproveAuction = async (auction: Auction) => {
+    try {
+      await auctionAPI.updateAuctionStatus(auction._id, { status: 'active' });
+      fetchAuctions();
+    } catch (error) {
+      console.error('Error approving auction:', error);
+    }
+  };
+
+  const getStatusBadge = (auction: Auction) => {
+    if (auction.status?.toLowerCase() === 'active') {
+      return <Badge bg="success" className="px-3 py-2">Live</Badge>;
+    }
+
+    if (isAwaitingAdminApproval(auction)) {
+      return <Badge bg="warning" text="dark" className="px-3 py-2">Awaiting admin approval</Badge>;
+    }
+
+    switch (auction.status?.toLowerCase()) {
+      case 'pending_payment':
+        return <Badge bg="warning" text="dark" className="px-3 py-2">Payment pending</Badge>;
       case 'ended':
-        return <span className="status-pill ended">Ended</span>;
+        return <Badge bg="secondary" className="px-3 py-2">Ended</Badge>;
       case 'cancelled':
-        return <span className="status-pill cancelled">Cancelled</span>;
+        return <Badge bg="danger" className="px-3 py-2">Cancelled</Badge>;
       default:
-        return <span className="status-pill info text-capitalize">{status}</span>;
+        return <Badge bg="info" className="px-3 py-2 text-capitalize">{auction.status}</Badge>;
     }
   };
 
@@ -102,7 +138,7 @@ const AuctionManagement = () => {
           ) : auctions.length === 0 ? (
             <div className="text-center py-5">
               <TrendingUp size={48} className="text-muted mb-3" />
-              <h5>No Active Auctions</h5>
+              <h5>No Auctions Found</h5>
               <p className="text-muted">There are currently no auctions on the platform</p>
             </div>
           ) : (
@@ -158,16 +194,27 @@ const AuctionManagement = () => {
                       <td>
                         <small>{formatDate(auction.endTime)}</small>
                       </td>
-                      <td>{getStatusBadge(auction.status)}</td>
+                      <td>{getStatusBadge(auction)}</td>
                       <td className="text-center">
-                        <Button 
-                          variant="outline-primary" 
-                          size="sm"
-                          onClick={() => handleViewAuction(auction)}
-                        >
-                          <Eye size={14} className="me-1" />
-                          View
-                        </Button>
+                        <div className="d-flex justify-content-center gap-2 flex-wrap">
+                          <Button 
+                            variant="outline-primary" 
+                            size="sm"
+                            onClick={() => handleViewAuction(auction)}
+                          >
+                            <Eye size={14} className="me-1" />
+                            View
+                          </Button>
+                          {isPendingAuction(auction) && (
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() => handleApproveAuction(auction)}
+                            >
+                              Confirm Auction
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -217,7 +264,15 @@ const AuctionManagement = () => {
                     </span>
                   </div>
                   <div className="mb-2">
-                    <strong>Status:</strong> {getStatusBadge(selectedAuction.status)}
+                    <strong>Status:</strong> {getStatusBadge(selectedAuction)}
+                  </div>
+                  <div className="mb-2">
+                    <strong>Payment:</strong>{' '}
+                    {isAwaitingAdminApproval(selectedAuction)
+                      ? <Badge bg="warning" text="dark" className="px-3 py-2">Awaiting admin approval</Badge>
+                      : (selectedAuction.paymentStatus === 'completed' || selectedAuction.paymentConfirmed)
+                        ? <Badge bg="success" className="px-3 py-2">Paid</Badge>
+                        : <Badge bg="warning" text="dark" className="px-3 py-2">Payment pending</Badge>}
                   </div>
                   <div className="mb-2">
                     <strong>Ends:</strong> {formatDate(selectedAuction.endTime)}
@@ -266,6 +321,17 @@ const AuctionManagement = () => {
           )}
         </Modal.Body>
         <Modal.Footer>
+          {selectedAuction && isPendingAuction(selectedAuction) && (
+            <Button
+              variant="success"
+              onClick={() => {
+                void handleApproveAuction(selectedAuction);
+                setShowDetailsModal(false);
+              }}
+            >
+              Confirm Auction
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>
             Close
           </Button>

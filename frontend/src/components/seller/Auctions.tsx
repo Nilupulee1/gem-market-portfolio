@@ -4,6 +4,7 @@ import { Search, Plus, Eye, Trash2, TrendingUp, Clock, Target, Users } from 'luc
 import type { Gem, Auction } from '../../types';
 import { gemAPI, auctionAPI } from '../../api/axios';
 import CreateAuctionModal from './CreateAuctionModal';
+import { useLocation } from 'react-router-dom';
 
 interface AuctionsPageProps {
   onContactWinner?: (
@@ -13,10 +14,12 @@ interface AuctionsPageProps {
 }
 
 const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
+  const location = useLocation();
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [myGems, setMyGems] = useState<Gem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [paymentNotice, setPaymentNotice] = useState<{ variant: 'success' | 'warning' | 'danger'; message: string } | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedGem, setSelectedGem] = useState<Gem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,6 +38,13 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
 
   const getAuctionStatus = (auction: Auction) => {
     const backendStatus = auction.status?.toLowerCase() || '';
+    if (backendStatus === 'pending_payment') {
+      if (auction.paymentConfirmed || auction.paymentStatus === 'completed') {
+        return 'active';
+      }
+
+      return 'pending';
+    }
     if (backendStatus !== 'active') return backendStatus || 'ended';
     return toTimestamp(auction.endTime) > Date.now() ? 'active' : 'ended';
   };
@@ -55,6 +65,79 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
     fetchAuctions();
     fetchMyGems();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const paymentState = params.get('payment');
+    const auctionId = params.get('auctionId');
+
+    if (!paymentState) {
+      return;
+    }
+
+    if (paymentState === 'success') {
+      const activateAuction = async () => {
+        try {
+          if (auctionId) {
+            await auctionAPI.updateAuctionStatus(auctionId, { status: 'active' });
+            setAuctions((currentAuctions) =>
+              currentAuctions.map((auction) =>
+                auction._id === auctionId
+                  ? {
+                      ...auction,
+                      status: 'active',
+                      paymentConfirmed: true,
+                      paymentStatus: 'completed',
+                    }
+                  : auction
+              )
+            );
+          }
+
+          setPaymentNotice({
+            variant: 'success',
+            message: auctionId
+              ? `Payment completed for auction ${auctionId}. The listing is now live.`
+              : 'Payment completed. The listing is now live.',
+          });
+        } catch (error) {
+          console.error('Error activating auction after payment:', error);
+          setPaymentNotice({
+            variant: 'warning',
+            message: auctionId
+              ? `Payment completed for auction ${auctionId}, but the listing is still syncing. Please refresh in a moment.`
+              : 'Payment completed, but the listing is still syncing. Please refresh in a moment.',
+          });
+        } finally {
+          fetchAuctions();
+        }
+      };
+
+      void activateAuction();
+      return;
+    }
+
+    if (paymentState === 'cancelled') {
+      setPaymentNotice({
+        variant: 'warning',
+        message: auctionId
+          ? `Payment was cancelled for auction ${auctionId}. The listing remains pending.`
+          : 'Payment was cancelled. The listing remains pending.',
+      });
+      fetchAuctions();
+      return;
+    }
+
+    if (paymentState === 'declined') {
+      setPaymentNotice({
+        variant: 'danger',
+        message: auctionId
+          ? `PayHere declined payment for auction ${auctionId}. Please try a different sandbox card.`
+          : 'PayHere declined the payment. Please try a different sandbox card.',
+      });
+      fetchAuctions();
+    }
+  }, [location.search]);
 
   const fetchAuctions = async () => {
     try {
@@ -188,6 +271,12 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
   return (
     <div>
       {/* Header Section */}
+      {paymentNotice && (
+        <Alert variant={paymentNotice.variant} dismissible onClose={() => setPaymentNotice(null)} className="mb-4">
+          {paymentNotice.message}
+        </Alert>
+      )}
+
       <div className="d-flex justify-content-between align-items-start mb-5 animate-fade-up">
         <div className="dashboard-title">
           <h4 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Marketplace Auctions</h4>

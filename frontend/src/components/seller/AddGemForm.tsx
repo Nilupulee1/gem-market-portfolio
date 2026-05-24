@@ -4,6 +4,8 @@ import { Upload } from 'lucide-react';
 import { gemAPI, auctionAPI } from '../../api/axios';
 import { AxiosError } from 'axios';
 
+const LISTING_PLACEMENT_FEE_PERCENT = 5;
+
 interface AddGemFormProps {
   onSuccess: () => void;
 }
@@ -45,6 +47,34 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const calculateListingFee = (startBidValue = auctionStartingBid) => {
+    const bid = parseFloat(startBidValue);
+
+    if (!Number.isFinite(bid) || bid <= 0) {
+      return 0;
+    }
+
+    return Math.round((bid * LISTING_PLACEMENT_FEE_PERCENT) / 100);
+  };
+
+  const submitPayHereForm = (checkoutUrl: string, fields: Record<string, string>) => {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = checkoutUrl;
+    form.style.display = 'none';
+
+    Object.entries(fields).forEach(([key, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,6 +158,13 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
       return;
     }
 
+    const listingPlacementFee = calculateListingFee();
+
+    if (listingType === 'auction' && listingPlacementFee <= 0) {
+      setError('Please enter a valid starting bid');
+      return;
+    }
+
     if (listingType === 'fixed' && !fixedPrice) {
       setError('Please enter fixed price');
       return;
@@ -170,12 +207,15 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
           gemId: createdGem._id,
           startPrice: parseFloat(auctionStartingBid),
           minimumBidIncrement: parseFloat(minimumBidIncrement || '1000'),
+          listingPlacementFee,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString()
         };
 
-        await auctionAPI.createAuction(auctionData);
-        setSuccess('Gem and auction created successfully!');
+        const response = await auctionAPI.initiatePayHereCheckout(auctionData);
+        const { checkoutUrl, fields } = response.data.payhere;
+        setSuccess('Gem created. Redirecting to PayHere sandbox...');
+        submitPayHereForm(checkoutUrl, fields);
       }
 
       setTimeout(() => {
@@ -645,6 +685,32 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                         />
                       </Form.Group>
 
+                      <Form.Group className="mb-3">
+                        <Form.Label className="fw-semibold">Listing Placement Fee (%) *</Form.Label>
+                        <Form.Control
+                          type="number"
+                          value={LISTING_PLACEMENT_FEE_PERCENT}
+                          readOnly
+                          disabled
+                          className="surface-muted"
+                          size="lg"
+                        />
+                        <Form.Text className="text-muted">
+                          Fixed at 5% of your starting bid. Calculated fee: Rs.{calculateListingFee().toLocaleString()}.
+                        </Form.Text>
+                      </Form.Group>
+
+                      <div className="p-3 rounded mb-3" style={{ background: 'var(--page-surface)', border: '1px solid var(--border)' }}>
+                        <div className="d-flex justify-content-between align-items-start gap-3">
+                          <div>
+                            <h6 className="fw-bold mb-1">PayHere Sandbox Payment</h6>
+                            <p className="text-muted small mb-0">
+                                Launch the PayHere sandbox checkout to pay the calculated listing fee.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       <Row>
                         <Col md={6}>
                           <Form.Group className="mb-3">
@@ -700,7 +766,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                       disabled={loading || !agreeToTerms}
                       className="px-5"
                     >
-                      {loading ? 'Submitting...' : 'List Gemstone ✓'}
+                      {loading ? 'Submitting...' : listingType === 'auction' ? 'Pay via PayHere Sandbox' : 'List Gemstone ✓'}
                     </Button>
                   </div>
                 </Card.Body>

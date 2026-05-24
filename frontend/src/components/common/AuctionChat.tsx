@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import '../../styles/chat.css';
 import { Form, Button, Spinner, Card } from 'react-bootstrap';
 import { Send, Loader } from 'lucide-react';
 import axiosInstance from '../../api/axios';

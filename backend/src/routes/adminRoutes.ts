@@ -6,7 +6,8 @@ import {
   getPendingGems,
   reviewGem,
   getAllUsers,
-  getStatistics
+  getStatistics,
+  getAllAuctions
 } from '../controllers/adminController';
 
 const router = express.Router();
@@ -17,5 +18,6 @@ router.get('/gems/pending', getPendingGems);
 router.post('/gems/review', reviewGem);
 router.get('/users', getAllUsers);
 router.get('/statistics', getStatistics);
+router.get('/auctions', getAllAuctions);
 
 export default router;

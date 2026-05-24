@@ -2,8 +2,9 @@ import { Response } from 'express';
 import cloudinary from '../config/cloudinary';
 import { AuthRequest } from '../middleware/auth';
 import Gem from '../models/Gem';
+import Auction from '../models/Auction';
 import User from '../models/User';
-import { GemStatus } from '../types';
+import { AuctionStatus, GemStatus } from '../types';
 
 const extractCloudinaryPublicId = (url: string) => {
   try {
@@ -62,6 +63,25 @@ const withCertificateAccessUrl = <T extends { certificate?: { url?: string; mime
     : gem.certificate,
 });
 
+const normalizeAuctionForAdmin = (auction: any) => {
+  if (
+    auction &&
+    auction.status === AuctionStatus.PENDING_PAYMENT &&
+    (auction.paymentConfirmed === true || auction.paymentStatus === 'completed')
+  ) {
+    return {
+      ...auction,
+      status: AuctionStatus.PENDING_PAYMENT,
+      approvalState: 'ready-for-approval',
+    };
+  }
+
+  return {
+    ...auction,
+    approvalState: auction?.status === AuctionStatus.ACTIVE ? 'live' : 'payment-pending',
+  };
+};
+
 export const getPendingGems = async (req: AuthRequest, res: Response) => {
   try {
     const gems = await Gem.find({ status: GemStatus.PENDING })
@@ -118,14 +138,38 @@ export const getStatistics = async (req: AuthRequest, res: Response) => {
     const totalGems = await Gem.countDocuments();
     const pendingGems = await Gem.countDocuments({ status: GemStatus.PENDING });
     const approvedGems = await Gem.countDocuments({ status: GemStatus.APPROVED });
+    const totalAuctions = await Auction.countDocuments();
+    const activeAuctions = await Auction.countDocuments({ status: AuctionStatus.ACTIVE });
 
     res.json({
       statistics: {
         totalUsers,
         totalGems,
         pendingGems,
-        approvedGems
+        approvedGems,
+        totalAuctions,
+        activeAuctions,
       }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const getAllAuctions = async (req: AuthRequest, res: Response) => {
+  try {
+    const auctions = await Auction.find()
+      .populate('gem')
+      .populate('seller', 'name email')
+      .populate('bids.bidder', 'name email')
+      .populate('winner', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      auctions: auctions.map((auction) => ({
+        ...normalizeAuctionForAdmin(auction.toObject()),
+        gem: withCertificateAccessUrl((auction.gem as any)?.toObject?.() || auction.gem),
+      })),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });

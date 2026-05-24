@@ -33,7 +33,14 @@ const sidebarItems: Array<{ id: TabType; label: string; icon: typeof TrendingUp 
   { id: 'auctions', label: 'Revenue', icon: Gavel },
 ];
 
-const formatCompactNumber = (value: number) => value.toLocaleString();
+const formatCompactNumber = (value?: number | null) => {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) return '0';
+  try {
+    return Number(value).toLocaleString();
+  } catch {
+    return String(value);
+  }
+};
 
 const buildSparkline = (values: number[], width = 600, height = 220) => {
   const maxValue = Math.max(...values, 1);
