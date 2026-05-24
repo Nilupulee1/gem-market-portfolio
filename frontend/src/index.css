@@ -31,6 +31,7 @@ html {
   --page-surface: #ffffff;
   --page-surface-elevated: #fbfcff;
   --page-surface-muted: #f1f3f6;
+  --section-shell-bg: linear-gradient(180deg, rgba(244,246,250,0.7), rgba(243,238,252,0.65));
 
   /* Text */
   --text-primary: #1f2a37;
@@ -45,6 +46,15 @@ html {
   /* Nav / footer */
   --nav-bg: rgba(248, 249, 252, 0.98);
   --nav-border: rgba(17, 26, 39, 0.1);
+  --nav-text: var(--text-primary);
+  --nav-link: var(--color-primary);
+  --nav-link-hover: var(--color-bright);
+  --nav-button-bg: rgba(255, 255, 255, 0.92);
+  --nav-button-border: rgba(31, 79, 130, 0.18);
+  --nav-button-text: var(--color-primary);
+  --nav-button-hover-bg: #f8fbff;
+  --nav-button-hover-border: #163b62;
+  --nav-button-shadow: 0 10px 24px rgba(31, 79, 130, 0.08);
   --footer-bg: rgba(255, 255, 255, 0.96);
   --footer-border: rgba(17, 26, 39, 0.08);
 
@@ -52,6 +62,12 @@ html {
   --input-bg: #fbfcfd;
   --input-border: #ccd5df;
   --chip-bg: rgba(35, 73, 118, 0.08);
+  --chip-border: rgba(35, 73, 118, 0.18);
+  --chip-text: var(--color-primary);
+  --surface-border: rgba(17, 26, 39, 0.06);
+  --surface-shadow: 0 12px 30px rgba(17, 26, 39, 0.06);
+  --surface-gradient: linear-gradient(180deg, #ffffff, #fbfdff);
+  --surface-strong-gradient: linear-gradient(180deg, #ffffff, #fcfdff);
 
   /* Brand palette (applied across the app) */
   --color-navy: #0f2340;    /* deep navy */
@@ -125,6 +141,7 @@ html[data-theme='dark'] {
   --page-surface: #0f1a2b;
   --page-surface-elevated: #132033;
   --page-surface-muted: #101a2a;
+  --section-shell-bg: linear-gradient(180deg, rgba(7,17,31,0.88), rgba(11,22,40,0.96));
   --text-primary: #e8eef8;
   --text-secondary: #a7b2c4;
   --text-inverse: #09111d;
@@ -133,14 +150,28 @@ html[data-theme='dark'] {
   --shadow-soft: 0 20px 42px rgba(0, 0, 0, 0.32);
   --nav-bg: rgba(9, 15, 27, 0.92);
   --nav-border: rgba(148, 163, 184, 0.14);
+  --nav-text: #e8eef8;
+  --nav-link: #dbe8ff;
+  --nav-link-hover: #ffffff;
+  --nav-button-bg: rgba(15, 26, 43, 0.92);
+  --nav-button-border: rgba(127, 179, 255, 0.2);
+  --nav-button-text: #dbe8ff;
+  --nav-button-hover-bg: rgba(127, 179, 255, 0.12);
+  --nav-button-hover-border: rgba(127, 179, 255, 0.34);
+  --nav-button-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
   --footer-bg: rgba(8, 14, 25, 0.96);
   --footer-border: rgba(148, 163, 184, 0.12);
   --input-bg: #0c1728;
   --input-border: #25324c;
   --chip-bg: rgba(47,109,225,0.12);
+  --chip-border: rgba(127,179,255,0.2);
   --chip-text: #dbe8ff;
   --brand-navy: #0f2340;
   --brand-navy-strong: #081426;
+  --surface-border: rgba(148, 163, 184, 0.14);
+  --surface-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+  --surface-gradient: linear-gradient(180deg, rgba(15, 26, 43, 0.98), rgba(10, 17, 29, 0.94));
+  --surface-strong-gradient: linear-gradient(180deg, rgba(10, 17, 29, 0.98), rgba(7, 11, 20, 0.98));
 }
 
 body {
@@ -160,7 +191,7 @@ body {
   align-items: center;
   gap: 8px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--nav-border);
   background: var(--page-surface-elevated);
   color: var(--text-primary);
   padding: 10px 14px;
@@ -184,13 +215,13 @@ body {
   align-items: center;
   gap: 8px;
   border-radius: 999px;
-  border: 1px solid rgba(85, 122, 181, 0.18);
-  background: rgba(255, 255, 255, 0.9);
-  color: #163252;
+  border: 1px solid var(--nav-button-border);
+  background: var(--nav-button-bg);
+  color: var(--nav-button-text);
   padding: 9px 14px;
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 10px 24px rgba(31, 79, 130, 0.08);
+  box-shadow: var(--nav-button-shadow);
   backdrop-filter: blur(12px);
   transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
@@ -584,6 +615,7 @@ h6,
   border-bottom: 1px solid var(--nav-border);
   border-radius: 0;
   background: var(--nav-bg);
+  color: var(--nav-text);
   backdrop-filter: blur(10px);
   padding: 0 24px;
   transition: all 0.3s ease;
@@ -611,7 +643,7 @@ h6,
   font-weight: 700;
   line-height: 1;
   font-family: 'Playfair Display', Georgia, serif;
-  color: var(--color-navy);
+  color: var(--nav-text);
 }
 
 .lux-nav-actions {
@@ -629,13 +661,13 @@ h6,
   gap: 8px;
   padding: 10px 10px;
   text-decoration: none;
-  color: var(--color-primary);
+  color: var(--nav-link);
   font-size: 16px;
   font-weight: 600;
 }
 
 .lux-nav-link:hover {
-  color: var(--color-bright);
+  color: var(--nav-link-hover);
 }
 
 .lux-link-underline {
@@ -646,7 +678,7 @@ h6,
   height: 2px;
   transform: scaleX(0);
   transform-origin: left;
-  background: var(--color-primary);
+  background: var(--nav-link-hover);
   transition: transform 0.3s ease;
 }
 
@@ -668,16 +700,16 @@ h6,
 }
 
 .lux-login-btn {
-  color: #1f4f82;
-  background: #ffffff;
-  border: 1.5px solid #1f4f82 !important;
-  box-shadow: 0 4px 12px rgba(31, 79, 130, 0.12);
+  color: var(--nav-button-text);
+  background: var(--nav-button-bg);
+  border: 1.5px solid var(--nav-button-border) !important;
+  box-shadow: var(--nav-button-shadow);
 }
 
 .lux-login-btn:hover {
-  background: #f8fbff;
-  border-color: #163b62 !important;
-  box-shadow: 0 6px 16px rgba(31, 79, 130, 0.18);
+  background: var(--nav-button-hover-bg);
+  border-color: var(--nav-button-hover-border) !important;
+  box-shadow: var(--nav-button-shadow);
 }
 
 .lux-getstarted-btn,
@@ -693,14 +725,14 @@ h6,
 }
 
 .lux-logout-btn {
-  color: var(--color-primary);
-  background: rgba(47,109,225,0.08);
-  border: 1px solid rgba(47,109,225,0.18);
+  color: var(--nav-button-text);
+  background: var(--nav-button-bg);
+  border: 1px solid var(--nav-button-border);
 }
 
 .lux-logout-btn:hover {
   transform: translateY(-1px);
-  background: rgba(47,109,225,0.14);
+  background: var(--nav-button-hover-bg);
 }
 
 @media (max-width: 992px) {
@@ -1238,7 +1270,7 @@ h6,
   gap: 0.6rem;
   margin-bottom: 0.5rem;
   border-radius: 10px;
-  color: #4d5b6c;
+  color: var(--text-secondary);
   padding: 0.7rem 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -1247,23 +1279,23 @@ h6,
 }
 
 .sidebar-nav-link:hover {
-  color: var(--brand-navy);
-  background: #f6f8fb;
+  color: var(--text-primary);
+  background: var(--page-surface-elevated);
 }
 
 .sidebar-nav-link.active {
-  color: var(--brand-navy);
-  background: rgba(35, 73, 118, 0.08);
-  border-color: rgba(35, 73, 118, 0.24);
+  color: var(--nav-link-hover);
+  background: var(--chip-bg);
+  border-color: var(--chip-border);
 }
 
 .profile-chip {
   display: inline-block;
   padding: 0.26rem 0.62rem;
   border-radius: 999px;
-  border: 1px solid rgba(35, 73, 118, 0.22);
-  background: rgba(35, 73, 118, 0.08);
-  color: var(--primary-color);
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
+  color: var(--chip-text);
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -2525,15 +2557,15 @@ h6,
 /* Seller dashboard enhancements */
 .dashboard-shell {
   padding: 28px 24px;
-  background: linear-gradient(180deg, rgba(244,246,250,0.6), rgba(243,238,252,0.6));
+  background: var(--section-shell-bg);
   min-height: calc(100vh - 60px);
 }
 
 .sidebar-card {
   border-radius: 14px;
-  border: 1px solid rgba(17,26,39,0.06);
-  background: linear-gradient(180deg, #ffffff, #fbfdff);
-  box-shadow: 0 10px 30px rgba(17,26,39,0.06);
+  border: 1px solid var(--surface-border);
+  background: var(--surface-gradient);
+  box-shadow: var(--surface-shadow);
 }
 
 .sidebar-nav-link {
@@ -2548,32 +2580,32 @@ h6,
 }
 
 .sidebar-nav-link:hover {
-  background: rgba(31,79,130,0.06);
-  color: var(--brand-navy);
+  background: var(--page-surface-elevated);
+  color: var(--text-primary);
 }
 
 .sidebar-nav-link.active {
-  background: linear-gradient(90deg, rgba(75,110,168,0.12), rgba(75,110,168,0.06));
-  color: var(--brand-navy-strong);
+  background: var(--chip-bg);
+  color: var(--chip-text);
   font-weight: 600;
-  box-shadow: inset 4px 0 0 rgba(75,110,168,0.12);
+  box-shadow: inset 4px 0 0 var(--chip-border);
 }
 
 .profile-chip {
   display: inline-block;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(31,79,130,0.06);
-  color: var(--text-secondary);
+  background: var(--chip-bg);
+  color: var(--chip-text);
   font-size: 12px;
   font-weight: 600;
 }
 
 .stat-card {
   border-radius: 14px;
-  border: 1px solid rgba(17,26,39,0.06);
-  background: linear-gradient(180deg, #ffffff, #fbfdff);
-  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--surface-border);
+  background: var(--surface-gradient);
+  box-shadow: var(--surface-shadow);
 }
 
 .stat-icon {
@@ -2593,9 +2625,9 @@ h6,
 
 .content-card {
   border-radius: 14px;
-  border: 1px solid rgba(17,26,39,0.06);
-  background: #ffffff;
-  box-shadow: 0 12px 30px rgba(17,26,39,0.04);
+  border: 1px solid var(--surface-border);
+  background: var(--surface-strong-gradient);
+  box-shadow: var(--surface-shadow);
 }
 
 .surface-muted {
@@ -2808,25 +2840,29 @@ html[data-theme='dark'] .content-card {
   color: var(--text-secondary);
 }
 
+html[data-theme='dark'] .lux-nav-link {
+  color: var(--nav-link);
+}
+
 html[data-theme='dark'] .lux-nav-link:hover,
 html[data-theme='dark'] .sidebar-nav-link.active,
 html[data-theme='dark'] .sidebar-nav-link:hover {
-  color: var(--text-primary);
+  color: var(--nav-link-hover);
 }
 
 html[data-theme='dark'] .lux-login-btn {
-  background: #0f1a2b;
-  border-color: #3b82f6 !important;
-  color: #7fb3ff;
+  background: var(--nav-button-bg);
+  border-color: var(--nav-button-border) !important;
+  color: var(--nav-button-text);
 }
 
 html[data-theme='dark'] .lux-link-underline {
-  background: #9cc1ff;
+  background: var(--nav-link-hover);
 }
 
 html[data-theme='dark'] .lux-login-btn:hover {
-  background: rgba(127, 179, 255, 0.15);
-  border-color: #7fb3ff !important;
+  background: var(--nav-button-hover-bg);
+  border-color: var(--nav-button-hover-border) !important;
 }
 
 html[data-theme='dark'] .lux-home .lux-gem-price {
@@ -2856,9 +2892,9 @@ html[data-theme='dark'] .lux-mobile-primary {
 }
 
 html[data-theme='dark'] .lux-logout-btn {
-  color: #dbe8ff;
-  background: rgba(127, 179, 255, 0.1);
-  border-color: rgba(127, 179, 255, 0.2);
+  color: var(--nav-button-text);
+  background: var(--nav-button-bg);
+  border-color: var(--nav-button-border);
 }
 
 html[data-theme='dark'] .lux-mobile-toggle,
@@ -2866,6 +2902,13 @@ html[data-theme='dark'] .theme-toggle {
   background: var(--page-surface-elevated);
   color: var(--text-primary);
   border-color: var(--border);
+}
+
+html[data-theme='dark'] .lux-theme-toggle {
+  background: var(--nav-button-bg);
+  color: var(--nav-button-text);
+  border-color: var(--nav-button-border);
+  box-shadow: var(--nav-button-shadow);
 }
 
 html[data-theme='dark'] .lux-mobile-panel {

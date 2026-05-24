@@ -468,20 +468,26 @@
 
 /* ===== Buyer Dashboard Styles ===== */
 .buyer-shell {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  background:
-    radial-gradient(900px 540px at 12% -5%, rgba(77, 151, 255, 0.22), transparent 65%),
-    linear-gradient(180deg, #eef3fa 0%, #f8fbff 100%);
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  background: var(--section-shell-bg);
 }
 
 .buyer-sidebar {
-  background: linear-gradient(180deg, #f6f9ff 0%, #eef3fb 100%);
-  border-right: 1px solid #dce7f7;
+  width: 260px;
+  flex: 0 0 260px;
+  background: var(--surface-gradient);
+  border-right: 1px solid var(--surface-border);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: 4px 0 24px rgba(31, 79, 130, 0.02);
+  position: relative;
+  z-index: 1;
 }
 
 .buyer-brand {
@@ -489,7 +495,8 @@
   align-items: center;
   gap: 10px;
   padding: 18px 20px;
-  border-bottom: 1px solid #dce7f7;
+  border-bottom: 1px solid var(--surface-border);
+  flex-shrink: 0;
 }
 
 .buyer-brand img {
@@ -510,6 +517,7 @@
   gap: 12px;
   align-items: center;
   padding: 18px 20px;
+  flex-shrink: 0;
 }
 
 .buyer-avatar {
@@ -526,7 +534,7 @@
 
 .buyer-role {
   margin: 0;
-  color: #2f77ff;
+  color: var(--nav-link);
   font-size: 13px;
   font-weight: 600;
 }
@@ -538,24 +546,22 @@
   gap: 16px;
   padding: 22px 24px;
   border-radius: 24px;
-  border: 1px solid #d7e3f5;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(245, 250, 255, 0.96)),
-    linear-gradient(135deg, rgba(47, 109, 225, 0.07), rgba(56, 189, 248, 0.08));
-  box-shadow: 0 16px 36px rgba(15, 35, 69, 0.08);
+  border: 1px solid var(--surface-border);
+  background: var(--surface-strong-gradient);
+  box-shadow: var(--surface-shadow);
 }
 
 .buyer-dashboard-hero h3 {
   margin: 0 0 8px;
   font-size: 28px;
-  color: #172033;
+  color: var(--text-primary);
 }
 
 .buyer-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #2f6de1;
+  color: var(--nav-link);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 12px;
@@ -570,7 +576,7 @@
 }
 
 .buyer-overview-panel {
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--page-surface);
 }
 
 .buyer-metric-row {
@@ -582,25 +588,30 @@
 .buyer-metric-card {
   border-radius: 16px;
   padding: 14px;
-  border: 1px solid #dbe7f7;
-  background: linear-gradient(180deg, #ffffff, #f7fbff);
+  border: 1px solid var(--surface-border);
+  background: var(--surface-gradient);
 }
 
 .buyer-metric-card span {
   display: block;
   margin-bottom: 8px;
-  color: #6b7f98;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
 }
 
 .buyer-metric-card strong {
-  color: #172033;
+  color: var(--text-primary);
   font-size: 18px;
 }
 
 .buyer-nav {
-  padding: 8px;
+  padding: 10px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .buyer-nav button {
@@ -608,21 +619,20 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #deebff;
+  border: 1px solid var(--surface-border);
   border-radius: 10px;
-  background: #f8fbff;
-  color: #29405f;
+  background: var(--page-surface-elevated);
+  color: var(--text-secondary);
   padding: 12px 14px;
-  margin-bottom: 8px;
   text-align: left;
   font-weight: 600;
   transition: all 0.25s ease;
 }
 
 .buyer-nav button.active {
-  background: #dbeafe;
-  border-color: #93c5fd;
-  color: #1158cc;
+  background: var(--chip-bg);
+  border-color: var(--chip-border);
+  color: var(--nav-link-hover);
 }
 
 .buyer-nav button:hover {
@@ -726,6 +736,11 @@
 }
 
 .buyer-content {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 22px;
 }
 
@@ -764,7 +779,10 @@
 
 .buyer-sidebar-bottom {
   margin-top: auto;
-  padding: 14px;
+  padding: 14px 14px 16px;
+  border-top: 1px solid #dce7f7;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.45));
+  flex-shrink: 0;
 }
 
 .section-head {
@@ -972,7 +990,106 @@
 
 .market-empty-state p {
   margin: 0;
-  color: #6a7d95;
+}
+
+/* ===== Dark Mode Overrides for Buyer Dashboard ===== */
+html[data-theme='dark'] .buyer-shell {
+  background: var(--section-shell-bg);
+}
+
+html[data-theme='dark'] .buyer-sidebar {
+  background: var(--surface-gradient);
+  border-right-color: var(--surface-border);
+}
+
+html[data-theme='dark'] .buyer-brand {
+  border-bottom-color: var(--surface-border);
+}
+
+html[data-theme='dark'] .buyer-avatar {
+  background: linear-gradient(135deg, #4d7ed4, #7fb3ff);
+  color: #fff;
+}
+
+html[data-theme='dark'] .buyer-profile,
+html[data-theme='dark'] .buyer-topbar {
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] .buyer-dashboard-hero {
+  border-color: var(--surface-border);
+  background: var(--surface-strong-gradient);
+  box-shadow: var(--surface-shadow);
+}
+
+html[data-theme='dark'] .buyer-dashboard-hero h3,
+html[data-theme='dark'] .buyer-eyebrow {
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .buyer-overview-panel {
+  background: var(--page-surface);
+}
+
+html[data-theme='dark'] .buyer-metric-card {
+  border-color: var(--surface-border);
+  background: var(--surface-gradient);
+}
+
+html[data-theme='dark'] .buyer-metric-card span {
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] .buyer-metric-card strong {
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .buyer-nav button {
+  border-color: var(--surface-border);
+  background: var(--page-surface-elevated);
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] .buyer-nav button.active {
+  background: var(--chip-bg);
+  border-color: var(--chip-border);
+  color: var(--chip-text);
+}
+
+html[data-theme='dark'] .buyer-nav button:hover {
+  background: var(--page-surface-elevated);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .watch-btn,
+html[data-theme='dark'] .ghost-btn {
+  background: rgba(127, 179, 255, 0.08);
+  border-color: rgba(127, 179, 255, 0.18);
+  color: #dbe8ff;
+}
+
+html[data-theme='dark'] .bid-btn {
+  background: linear-gradient(135deg, #4d7ed4, #7fb3ff);
+  color: #07111f;
+}
+
+html[data-theme='dark'] .alert-btn {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.24);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .auction-timer {
+  color: #9cc1ff;
+}
+
+html[data-theme='dark'] .bid-price {
+  color: #e8eef8;
+}
+
+html[data-theme='dark'] .market-empty-state {
+  border-color: var(--surface-border);
+  background: var(--page-surface);
 }
 
 .modal-overlay {
@@ -1050,17 +1167,30 @@
 
 @media (max-width: 1100px) {
   .buyer-shell {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .buyer-sidebar {
+    width: 100%;
+    flex: 0 0 auto;
+    height: auto;
     min-height: auto;
+    overflow: visible;
   }
 
   .buyer-nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+    overflow: visible;
+  }
+
+  .buyer-content {
+    height: auto;
+    overflow: visible;
   }
 }
 
