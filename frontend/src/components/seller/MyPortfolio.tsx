@@ -1,84 +1,187 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Card, Button, Form, Modal, Alert } from 'react-bootstrap';
-import { Eye, Edit2, Trash2 } from 'lucide-react';
+import { Row, Col, Card, Form, Modal, Alert } from 'react-bootstrap';
+import { Eye, Edit2, Trash2, Gem } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { gemAPI } from '../../api/axios';
-import type { Gem } from '../../types';
+import type { Gem as GemType } from '../../types';
 import GemDetailsModal from './GemDetailsModal';
 
 interface MyPortfolioProps {
-  gems: Gem[];
+  gems: GemType[];
   onRefresh: () => void;
 }
 
+const FILTER_OPTIONS = ['All Gems', 'Approved', 'Pending', 'Rejected'] as const;
+
+const STATUS_CONFIG = {
+  approved: { label: 'Approved', color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)', dot: '#10b981' },
+  pending:  { label: 'Pending',  color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b' },
+  rejected: { label: 'Rejected', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.25)',  dot: '#ef4444' },
+} as const;
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG];
+  if (!cfg) return <span className="port-status-badge port-status-default">{status}</span>;
+  return (
+    <span className="port-status-badge" style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+      <span className="port-status-dot" style={{ background: cfg.dot }} />
+      {cfg.label}
+    </span>
+  );
+};
+
+const StatsBar = ({ gems }: { gems: GemType[] }) => {
+  const approved = gems.filter(g => g.status === 'approved').length;
+  const pending  = gems.filter(g => g.status === 'pending').length;
+  const rejected = gems.filter(g => g.status === 'rejected').length;
+  const total    = gems.length;
+  const totalCt  = gems.reduce((s, g) => s + Number(g.carat || 0), 0);
+
+  return (
+    <div className="port-stats-bar animate-fade-up">
+      <div className="port-stat">
+        <span className="port-stat-value">{total}</span>
+        <span className="port-stat-label">Total gems</span>
+      </div>
+      <div className="port-stat-divider" />
+      <div className="port-stat">
+        <span className="port-stat-value" style={{ color: '#10b981' }}>{approved}</span>
+        <span className="port-stat-label">Approved</span>
+      </div>
+      <div className="port-stat-divider" />
+      <div className="port-stat">
+        <span className="port-stat-value" style={{ color: '#f59e0b' }}>{pending}</span>
+        <span className="port-stat-label">Pending</span>
+      </div>
+      <div className="port-stat-divider" />
+      <div className="port-stat">
+        <span className="port-stat-value" style={{ color: '#ef4444' }}>{rejected}</span>
+        <span className="port-stat-label">Rejected</span>
+      </div>
+      <div className="port-stat-divider" />
+      <div className="port-stat">
+        <span className="port-stat-value">{totalCt.toFixed(2)}</span>
+        <span className="port-stat-label">Total carats</span>
+      </div>
+    </div>
+  );
+};
+
+const GemCard = ({
+  gem,
+  index,
+  onView,
+  onEdit,
+  onDelete,
+}: {
+  gem: GemType;
+  index: number;
+  onView: (g: GemType) => void;
+  onEdit: (g: GemType) => void;
+  onDelete: (g: GemType) => void;
+}) => (
+  <Col md={6} lg={4} key={gem._id} className={`animate-fade-up delay-${Math.min(5, index + 1)}`}>
+    <Card className="gem-card h-100">
+      {/* Image — matches dashboard gem-image-container */}
+      <div className="gem-image-container">
+        <img
+          src={gem.images[0] || 'https://via.placeholder.com/400x280?text=No+Image'}
+          alt={gem.type}
+          className="gem-image"
+          onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
+        />
+        <div className={`gem-status-badge gem-status-${gem.status}`}>
+          {gem.status}
+        </div>
+      </div>
+
+      {/* Body — matches dashboard gem-card-body */}
+      <div className="gem-card-body">
+        <div className="gem-type">{gem.type}</div>
+        <div className="gem-details">
+          <div><strong>Carat:</strong> {gem.carat}</div>
+          <div><strong>Origin:</strong> {gem.origin}</div>
+          <div><strong>Color:</strong> {gem.color}</div>
+          {gem.cut && <div><strong>Cut:</strong> {gem.cut}</div>}
+          {gem.clarity && <div><strong>Clarity:</strong> {gem.clarity}</div>}
+        </div>
+        <div className="gem-actions">
+          <button
+            className={`gem-actions button btn-primary btn-view-details btn-status-${gem.status}`}
+            onClick={() => onView(gem)}
+          >
+            <Eye size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
+            View Details
+          </button>
+          <button
+            className={`gem-actions button btn-manage btn-status-${gem.status}`}
+            onClick={() => onEdit(gem)}
+            title="Edit gem"
+          >
+            <Edit2 size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+            Edit
+          </button>
+          <button
+            className="gem-actions button btn-manage btn-delete-outline"
+            onClick={() => onDelete(gem)}
+            title="Delete gem"
+          >
+            <Trash2 size={13} style={{ display: 'inline', verticalAlign: 'middle' }} />
+          </button>
+        </div>
+      </div>
+    </Card>
+  </Col>
+);
+
+const FORM_FIELDS = [
+  { key: 'type',        label: 'Gem Type',    col: 6, type: 'text' },
+  { key: 'carat',       label: 'Carat',       col: 6, type: 'number' },
+  { key: 'cut',         label: 'Cut',         col: 6, type: 'text' },
+  { key: 'clarity',     label: 'Clarity',     col: 6, type: 'text' },
+  { key: 'color',       label: 'Color',       col: 6, type: 'text' },
+  { key: 'origin',      label: 'Origin',      col: 6, type: 'text' },
+  { key: 'description', label: 'Description', col: 12, type: 'textarea' },
+] as const;
+
 const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
-  const [selectedGem, setSelectedGem] = useState<Gem | null>(null);
+  const [selectedGem,      setSelectedGem]      = useState<GemType | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [gemToDelete, setGemToDelete] = useState<Gem | null>(null);
-  const [filterStatus, setFilterStatus] = useState('All Gems');
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [actionError, setActionError] = useState('');
+  const [showEditModal,    setShowEditModal]    = useState(false);
+  const [showDeleteModal,  setShowDeleteModal]  = useState(false);
+  const [gemToDelete,      setGemToDelete]      = useState<GemType | null>(null);
+  const [filterStatus,     setFilterStatus]     = useState<string>('All Gems');
+  const [isSaving,         setIsSaving]         = useState(false);
+  const [isDeleting,       setIsDeleting]       = useState(false);
+  const [actionError,      setActionError]      = useState('');
   const [editForm, setEditForm] = useState({
-    type: '',
-    carat: '',
-    cut: '',
-    clarity: '',
-    color: '',
-    origin: '',
-    description: '',
+    type: '', carat: '', cut: '', clarity: '', color: '', origin: '', description: '',
   });
 
   useEffect(() => {
-    if (!showEditModal || !selectedGem) {
-      return;
-    }
-
+    if (!showEditModal || !selectedGem) return;
     setEditForm({
-      type: selectedGem.type,
-      carat: String(selectedGem.carat),
-      cut: selectedGem.cut,
-      clarity: selectedGem.clarity,
-      color: selectedGem.color,
-      origin: selectedGem.origin,
+      type:        selectedGem.type,
+      carat:       String(selectedGem.carat),
+      cut:         selectedGem.cut,
+      clarity:     selectedGem.clarity,
+      color:       selectedGem.color,
+      origin:      selectedGem.origin,
       description: selectedGem.description,
     });
   }, [showEditModal, selectedGem]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <span className="status-pill approved">Approved</span>;
-      case 'pending':
-        return <span className="status-pill pending">Pending</span>;
-      case 'rejected':
-        return <span className="status-pill rejected">Rejected</span>;
-      default:
-        return <span className="status-pill default text-capitalize">{status}</span>;
-    }
-  };
+  const filteredGems = useMemo(() =>
+    gems.filter(gem =>
+      filterStatus === 'All Gems' ? true : gem.status === filterStatus.toLowerCase()
+    ), [gems, filterStatus]);
 
-  const handleViewDetails = (gem: Gem) => {
-    setSelectedGem(gem);
-    setShowDetailsModal(true);
-  };
-
-  const handleEdit = (gem: Gem) => {
-    setSelectedGem(gem);
-    setActionError('');
-    setShowEditModal(true);
-  };
-
-  const handleDeleteClick = (gem: Gem) => {
-    setGemToDelete(gem);
-    setShowDeleteModal(true);
-  };
+  const handleViewDetails  = (gem: GemType) => { setSelectedGem(gem); setShowDetailsModal(true); };
+  const handleEdit         = (gem: GemType) => { setSelectedGem(gem); setActionError(''); setShowEditModal(true); };
+  const handleDeleteClick  = (gem: GemType) => { setGemToDelete(gem); setShowDeleteModal(true); };
 
   const handleDeleteConfirm = async () => {
     if (!gemToDelete) return;
-
     try {
       setIsDeleting(true);
       setActionError('');
@@ -86,313 +189,207 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
       setShowDeleteModal(false);
       setGemToDelete(null);
       await onRefresh();
-    } catch (error) {
-      console.error('Error deleting gem:', error);
+    } catch {
       setActionError('Failed to delete gem. Please try again.');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleEditFormChange = (field: keyof typeof editForm, value: string) => {
-    setEditForm((prev) => ({ ...prev, [field]: value }));
-  };
-
   const handleEditSave = async () => {
-    if (!selectedGem) {
-      return;
-    }
-
+    if (!selectedGem) return;
     if (!editForm.type || !editForm.carat || !editForm.cut || !editForm.clarity || !editForm.color || !editForm.origin) {
       setActionError('Please fill all required fields before saving.');
       return;
     }
-
     try {
       setIsSaving(true);
       setActionError('');
       await gemAPI.updateGem(selectedGem._id, {
-        type: editForm.type,
-        carat: Number(editForm.carat),
-        cut: editForm.cut,
-        clarity: editForm.clarity,
-        color: editForm.color,
-        origin: editForm.origin,
+        type:        editForm.type,
+        carat:       Number(editForm.carat),
+        cut:         editForm.cut,
+        clarity:     editForm.clarity,
+        color:       editForm.color,
+        origin:      editForm.origin,
         description: editForm.description,
       });
-
       setShowEditModal(false);
       setSelectedGem(null);
       await onRefresh();
     } catch (error) {
-      console.error('Error updating gem:', error);
       const axiosError = error as AxiosError<{ message?: string }>;
-      setActionError(
-        axiosError.response?.data?.message || 'Failed to update gem. Please try again.'
-      );
+      setActionError(axiosError.response?.data?.message || 'Failed to update gem. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Filter gems based on status
-  const filteredGems = useMemo(() => gems.filter(gem => {
-    if (filterStatus === 'All Gems') return true;
-    return gem.status === filterStatus.toLowerCase();
-  }), [gems, filterStatus]);
+  const closeEdit = () => { setShowEditModal(false); setSelectedGem(null); setActionError(''); };
+  const closeDelete = () => { setShowDeleteModal(false); setGemToDelete(null); setActionError(''); };
 
   return (
-    <div>
-      <div className="d-flex flex-column flex-sm-row justify-content-between align-sm-items-center gap-3 mb-4 animate-fade-up">
-        <div className="dashboard-title mb-0">
-          <h4>Collector Portfolio</h4>
-          <p>Manage and organize your gem collection</p>
+    <div className="port-root">
+
+      {/* ── Header ── */}
+      <div className="port-header animate-fade-up">
+        <div>
+          <h4 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+            Gem Collection
+          </h4>
+          <p style={{ margin: '4px 0 0', fontSize: 13.5, color: 'var(--text-secondary)' }}>
+            Manage, view, and edit your listed gems
+          </p>
         </div>
-        <div className="filter-group-premium">
-          {['All Gems', 'Approved', 'Pending', 'Rejected'].map((status) => (
+
+        {/* Filter pill group — no filter icon */}
+        <div className="port-filter-group" role="group" aria-label="Filter gems by status">
+          {FILTER_OPTIONS.map(opt => (
             <button
-              key={status}
+              key={opt}
               type="button"
-              className={`filter-btn-premium ${filterStatus === status ? 'active' : ''}`}
-              onClick={() => setFilterStatus(status)}
+              className={`port-filter-btn ${filterStatus === opt ? 'active' : ''} port-filter-${opt.replace(' ', '-').toLowerCase()}`}
+              onClick={() => setFilterStatus(opt)}
             >
-              {status}
+              {opt}
             </button>
           ))}
         </div>
       </div>
 
+      {/* ── Stats bar ── */}
+      {gems.length > 0 && <StatsBar gems={gems} />}
+
+      {/* ── Gem Grid ── */}
       {filteredGems.length === 0 ? (
         <Card className="content-card animate-fade-up delay-1">
-          <Card.Body className="text-center py-5">
-            <div className="empty-state-icon" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.8 }}>💎</div>
-            <h5 className="fw-bold mb-2">
-              {gems.length === 0 
-                ? 'Your Portfolio is Empty' 
-                : `No ${filterStatus.toLowerCase()} gems found`}
+          <Card.Body className="port-empty">
+            <div className="port-empty-icon">💎</div>
+            <h5 className="port-empty-title">
+              {gems.length === 0 ? 'Your portfolio is empty' : `No ${filterStatus.toLowerCase()} gems found`}
             </h5>
-            <p className="text-muted mb-4">
-              {gems.length === 0 
-                ? 'Start building your collector portfolio by adding your first exquisite gem.' 
-                : 'Try changing your filter status to see more items.'}
+            <p className="port-empty-text">
+              {gems.length === 0
+                ? 'Start building your portfolio by adding your first exquisite gem.'
+                : 'Try changing your filter to see more items.'}
             </p>
             {gems.length === 0 && (
-              <Button className="btn-primary">Add Your First Gem</Button>
+              <button className="port-btn-add-first">
+                <Gem size={14} style={{ display: 'inline', marginRight: 6 }} />
+                Add Your First Gem
+              </button>
             )}
           </Card.Body>
         </Card>
       ) : (
         <Row className="g-4">
-          {filteredGems.map((gem, index) => (
-            <Col md={6} lg={4} key={gem._id} className={`animate-fade-up delay-${Math.min(5, index + 1)}`}>
-              <Card className="gem-card h-100 hover-card">
-                <div className="gem-image-container surface-muted" style={{ height: '250px' }}>
-                  <img
-                    src={gem.images[0] || 'https://via.placeholder.com/300x250'}
-                    alt={gem.type}
-                    className="gem-image"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = 'https://via.placeholder.com/300x250?text=Image+Not+Found';
-                    }}
-                  />
-                  <div className="position-absolute top-0 end-0 m-2">
-                    {getStatusBadge(gem.status)}
-                  </div>
-                </div>
-                <Card.Body className="gem-card-body">
-                  <div className="gem-type mb-2">{gem.type}</div>
-                  <div className="gem-details mb-3">
-                    <div><strong>Carat:</strong> {gem.carat}</div>
-                    <div><strong>Cut:</strong> {gem.cut}</div>
-                    <div><strong>Origin:</strong> {gem.origin}</div>
-                  </div>
-                  <div className="d-flex gap-2">
-                    <Button 
-                      className="btn-primary d-flex align-items-center justify-content-center" 
-                      size="sm" 
-                      style={{ flexGrow: 1 }}
-                      onClick={() => handleViewDetails(gem)}
-                    >
-                      <Eye size={14} className="me-2" />
-                      View Details
-                    </Button>
-                    <Button 
-                      className="btn-secondary d-flex align-items-center justify-content-center" 
-                      size="sm"
-                      onClick={() => handleEdit(gem)}
-                      title="Edit Gem"
-                    >
-                      <Edit2 size={14} />
-                    </Button>
-                    <Button 
-                      variant="outline-danger"
-                      className="d-flex align-items-center justify-content-center" 
-                      size="sm"
-                      onClick={() => handleDeleteClick(gem)}
-                      title="Delete Gem"
-                      style={{ border: '1px solid #fee2e2', color: '#ef4444' }}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
+          {filteredGems.map((gem, i) => (
+            <GemCard
+              key={gem._id}
+              gem={gem}
+              index={i}
+              onView={handleViewDetails}
+              onEdit={handleEdit}
+              onDelete={handleDeleteClick}
+            />
           ))}
         </Row>
       )}
 
-      {/* Gem Details Modal */}
+      {/* ── Details Modal ── */}
       <GemDetailsModal
         show={showDetailsModal}
-        onHide={() => {
-          setShowDetailsModal(false);
-          setSelectedGem(null);
-        }}
+        onHide={() => { setShowDetailsModal(false); setSelectedGem(null); }}
         gem={selectedGem}
       />
 
-      <Modal
-        show={showEditModal}
-        onHide={() => {
-          setShowEditModal(false);
-          setSelectedGem(null);
-          setActionError('');
-        }}
-        centered
-      >
-        <Modal.Header closeButton className="modal-header-gradient">
-          <Modal.Title>Edit Gem Details</Modal.Title>
+      {/* ── Edit Modal ── */}
+      <Modal show={showEditModal} onHide={closeEdit} centered size="lg">
+        <Modal.Header closeButton className="port-modal-header">
+          <Modal.Title className="port-modal-title">
+            <Edit2 size={18} style={{ display: 'inline', marginRight: 10, verticalAlign: 'middle' }} />
+            Edit Gem Details
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          {actionError && <Alert variant="danger">{actionError}</Alert>}
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Type</Form.Label>
-                <Form.Control
-                  value={editForm.type}
-                  onChange={(event) => handleEditFormChange('type', event.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Carat</Form.Label>
-                <Form.Control
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={editForm.carat}
-                  onChange={(event) => handleEditFormChange('carat', event.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Cut</Form.Label>
-                <Form.Control
-                  value={editForm.cut}
-                  onChange={(event) => handleEditFormChange('cut', event.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Clarity</Form.Label>
-                <Form.Control
-                  value={editForm.clarity}
-                  onChange={(event) => handleEditFormChange('clarity', event.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Color</Form.Label>
-                <Form.Control
-                  value={editForm.color}
-                  onChange={(event) => handleEditFormChange('color', event.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Origin</Form.Label>
-                <Form.Control
-                  value={editForm.origin}
-                  onChange={(event) => handleEditFormChange('origin', event.target.value)}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={12}>
-              <Form.Group className="mb-2">
-                <Form.Label>Description</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={editForm.description}
-                  onChange={(event) => handleEditFormChange('description', event.target.value)}
-                />
-              </Form.Group>
-            </Col>
+        <Modal.Body className="port-modal-body">
+          {actionError && (
+            <Alert variant="danger" className="port-alert-error">{actionError}</Alert>
+          )}
+          <Row className="g-3">
+            {FORM_FIELDS.map(({ key, label, col, type }) => (
+              <Col md={col} key={key}>
+                <Form.Group>
+                  <Form.Label className="port-form-label">{label}</Form.Label>
+                  {type === 'textarea' ? (
+                    <Form.Control
+                      as="textarea"
+                      rows={3}
+                      className="port-form-control"
+                      value={editForm[key]}
+                      onChange={e => setEditForm(p => ({ ...p, [key]: e.target.value }))}
+                    />
+                  ) : (
+                    <Form.Control
+                      type={type}
+                      step={type === 'number' ? '0.01' : undefined}
+                      min={type === 'number' ? '0' : undefined}
+                      className="port-form-control"
+                      value={editForm[key]}
+                      onChange={e => setEditForm(p => ({ ...p, [key]: e.target.value }))}
+                    />
+                  )}
+                </Form.Group>
+              </Col>
+            ))}
           </Row>
         </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowEditModal(false);
-              setSelectedGem(null);
-              setActionError('');
-            }}
-          >
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleEditSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </Button>
+        <Modal.Footer className="port-modal-footer">
+          <button className="port-modal-cancel" onClick={closeEdit}>Cancel</button>
+          <button className="port-modal-save" onClick={handleEditSave} disabled={isSaving}>
+            {isSaving ? (
+              <><span className="port-spinner" /> Saving…</>
+            ) : (
+              'Save Changes'
+            )}
+          </button>
         </Modal.Footer>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        show={showDeleteModal}
-        onHide={() => {
-          setShowDeleteModal(false);
-          setGemToDelete(null);
-          setActionError('');
-        }}
-        centered
-      >
-        <Modal.Header closeButton className="modal-header-gradient">
-          <Modal.Title>Confirm Delete</Modal.Title>
+      {/* ── Delete Modal ── */}
+      <Modal show={showDeleteModal} onHide={closeDelete} centered>
+        <Modal.Header closeButton className="port-modal-header port-modal-header-danger">
+          <Modal.Title className="port-modal-title">
+            <Trash2 size={18} style={{ display: 'inline', marginRight: 10, verticalAlign: 'middle' }} />
+            Confirm Delete
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          {actionError && <Alert variant="danger">{actionError}</Alert>}
-          <p>Are you sure you want to delete this gem from your portfolio?</p>
+        <Modal.Body className="port-modal-body">
+          {actionError && <Alert variant="danger" className="port-alert-error">{actionError}</Alert>}
+          <p style={{ color: 'var(--text-primary)', marginBottom: 16 }}>
+            Are you sure you want to remove this gem from your portfolio?
+          </p>
           {gemToDelete && (
-            <div className="alert alert-warning" style={{ borderLeft: '4px solid #f59e0b', borderRadius: '8px' }}>
-              <strong>{gemToDelete.type}</strong>
-              <br />
-              <small>Carat: {gemToDelete.carat} | Origin: {gemToDelete.origin}</small>
+            <div className="port-delete-preview">
+              <div className="port-delete-preview-icon">💎</div>
+              <div>
+                <div className="port-delete-preview-name">{gemToDelete.type}</div>
+                <div className="port-delete-preview-meta">
+                  {gemToDelete.carat} ct &middot; {gemToDelete.origin}
+                </div>
+              </div>
             </div>
           )}
-          <p className="text-muted mb-0">This action cannot be undone.</p>
+          <p className="port-delete-warning">⚠ This action cannot be undone.</p>
         </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowDeleteModal(false);
-              setGemToDelete(null);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDeleteConfirm}>
-            {isDeleting ? 'Deleting...' : 'Delete Gem'}
-          </Button>
+        <Modal.Footer className="port-modal-footer">
+          <button className="port-modal-cancel" onClick={closeDelete}>Cancel</button>
+          <button className="port-modal-delete" onClick={handleDeleteConfirm} disabled={isDeleting}>
+            {isDeleting ? (
+              <><span className="port-spinner port-spinner-white" /> Deleting…</>
+            ) : (
+              'Delete Gem'
+            )}
+          </button>
         </Modal.Footer>
       </Modal>
     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from './store/authStore';
 import { gemAPI } from './api/axios';
@@ -106,7 +106,22 @@ interface HomePageProps {
   featuredGemsLoading: boolean;
 }
 
-const HomePage = ({ featuredGems, featuredGemsLoading }: HomePageProps) => (
+const HomePage = ({ featuredGems, featuredGemsLoading }: HomePageProps) => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const dashboardPath = user.role === UserRole.SELLER ? '/seller' : user.role === UserRole.ADMIN ? '/admin' : '/buyer';
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  if (isAuthenticated) {
+    return null;
+  }
+
+  return (
   <main className="lux-home">
     <section className="lux-hero-section lux-hero-bg" style={{ backgroundImage: `url(${heroImage})` }}>
       <div className="lux-hero-overlay" aria-hidden="true" />
@@ -305,10 +320,11 @@ const HomePage = ({ featuredGems, featuredGemsLoading }: HomePageProps) => (
       </motion.div>
     </section>
   </main>
-);
+  );
+};
 
 function App() {
-  const { initAuth, token, user } = useAuthStore();
+  const { initAuth, token, user, isInitialized } = useAuthStore();
   const unreadCount = useChatStore((state) => state.unreadCount);
   const initChatState = useChatStore((state) => state.initChatState);
   const incrementUnreadCount = useChatStore((state) => state.incrementUnreadCount);
@@ -417,6 +433,10 @@ function App() {
       currentSocket.disconnect();
     };
   }, [token, user?.id, incrementUnreadCount, initChatState]);
+
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <BrowserRouter>

@@ -20,6 +20,7 @@ const Header = ({
   const unreadCount = useChatStore((state) => state.unreadCount);
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 12);
@@ -29,6 +30,8 @@ const Header = ({
   }, []);
 
   const handleLogout = () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     logout();
     navigate('/login');
   };
@@ -117,10 +120,12 @@ const Header = ({
               <button
                 type="button"
                 onClick={handleLogout}
+                disabled={isLoggingOut}
                 className="lux-logout-btn"
+                style={{ opacity: isLoggingOut ? 0.6 : 1, cursor: isLoggingOut ? 'not-allowed' : 'pointer' }}
               >
                 <LogOut size={16} />
-                Logout
+                {isLoggingOut ? 'Signing out...' : 'Logout'}
               </button>
             </>
           ) : (
