@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Nav, Button } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { gemAPI } from '../../api/axios';
-import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, Settings, LogOut, Moon, Sun } from 'lucide-react';
+import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, LogOut, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MyPortfolio from './MyPortfolio';
 import AddGemForm from './AddGemForm';
@@ -371,25 +371,25 @@ const SellerDashboard = ({
                       <h5 className="mb-0">My Listings</h5>
                       <div className="filter-button-group">
                         <button 
-                          className={`filter-button ${listingFilter === 'all' ? 'active' : ''}`}
+                          className={`filter-button filter-button-all ${listingFilter === 'all' ? 'active' : ''}`}
                           onClick={() => setListingFilter('all')}
                         >
                           All
                         </button>
                         <button 
-                          className={`filter-button ${listingFilter === 'approved' ? 'active' : ''}`}
+                          className={`filter-button filter-button-approved ${listingFilter === 'approved' ? 'active' : ''}`}
                           onClick={() => setListingFilter('approved')}
                         >
                           Approved
                         </button>
                         <button 
-                          className={`filter-button ${listingFilter === 'pending' ? 'active' : ''}`}
+                          className={`filter-button filter-button-pending ${listingFilter === 'pending' ? 'active' : ''}`}
                           onClick={() => setListingFilter('pending')}
                         >
                           Pending
                         </button>
                         <button 
-                          className={`filter-button ${listingFilter === 'rejected' ? 'active' : ''}`}
+                          className={`filter-button filter-button-rejected ${listingFilter === 'rejected' ? 'active' : ''}`}
                           onClick={() => setListingFilter('rejected')}
                         >
                           Rejected
@@ -399,8 +399,8 @@ const SellerDashboard = ({
 
                     {loading ? (
                       <Row className="g-3">
-                        {[1, 2, 3, 4].map((i) => (
-                          <Col md={6} key={i}>
+                        {[1, 2, 3].map((i) => (
+                          <Col md={4} key={i}>
                             <div className="skeleton-card skeleton-shimmer">
                               <div className="d-flex gap-3">
                                 <div className="skeleton-circle skeleton-shimmer" style={{ width: '80px', height: '80px', flexShrink: 0 }} />
@@ -439,7 +439,7 @@ const SellerDashboard = ({
                     ) : (
                       <Row className="g-3">
                         {dashboardListedGems.map((gem) => (
-                          <Col md={6} key={gem._id}>
+                          <Col md={4} key={gem._id}>
                             <Card className="gem-card">
                               <div className="gem-image-container">
                                 <img
@@ -460,13 +460,13 @@ const SellerDashboard = ({
                                 </div>
                                 <div className="gem-actions">
                                   <button 
-                                    className="gem-actions button btn-primary"
+                                    className={`gem-actions button btn-primary btn-view-details btn-status-${gem.status}`}
                                     onClick={() => setActiveTab('portfolio')}
                                   >
                                     View Details
                                   </button>
                                   <button 
-                                    className="gem-actions button btn-secondary"
+                                    className={`gem-actions button btn-manage btn-status-${gem.status}`}
                                     onClick={() => setActiveTab('portfolio')}
                                   >
                                     Manage
@@ -609,10 +609,6 @@ const SellerDashboard = ({
           </Nav>
 
           <div className="sidebar-button-group">
-            <Button variant="outline-secondary" size="sm" className="w-100 d-flex align-items-center justify-content-center gap-2 mb-2">
-              <Settings size={16} />
-              Settings
-            </Button>
             <Button variant="outline-danger" size="sm" className="w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
               <LogOut size={16} />
               Sign Out

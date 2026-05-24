@@ -356,15 +356,46 @@
 }
 
 .filter-button:hover {
-  border-color: var(--seller-secondary);
-  color: var(--seller-secondary);
   background: var(--chip-bg);
 }
 
 .filter-button.active {
-  background: var(--seller-secondary);
   color: white;
-  border-color: var(--seller-secondary);
+  border-color: transparent;
+}
+
+/* Color-coded filter buttons */
+.filter-button-all {
+  --btn-color: var(--seller-secondary);
+}
+
+.filter-button-all.active {
+  background: var(--seller-secondary);
+}
+
+.filter-button-approved {
+  --btn-color: #10b981;
+}
+
+.filter-button-approved.active {
+  background: #10b981;
+}
+
+.filter-button-pending {
+  --btn-color: #f59e0b;
+}
+
+.filter-button-pending.active {
+  background: #f59e0b;
+  color: white;
+}
+
+.filter-button-rejected {
+  --btn-color: #ef4444;
+}
+
+.filter-button-rejected.active {
+  background: #ef4444;
 }
 
 /* ===== Gem Card ===== */
@@ -472,25 +503,72 @@
   border-radius: 6px;
   border: none;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.gem-actions .btn-primary {
-  background: var(--seller-secondary);
+/* View Details button - changes color based on status */
+.btn-view-details {
   color: white;
 }
 
-.gem-actions .btn-primary:hover {
-  background: var(--color-primary);
+.btn-status-approved.btn-view-details {
+  background: #10b981;
 }
 
-.gem-actions .btn-secondary {
+.btn-status-approved.btn-view-details:hover {
+  background: #059669;
+}
+
+.btn-status-pending.btn-view-details {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-status-pending.btn-view-details:hover {
+  background: #d97706;
+}
+
+.btn-status-rejected.btn-view-details {
+  background: #ef4444;
+}
+
+.btn-status-rejected.btn-view-details:hover {
+  background: #dc2626;
+}
+
+/* Manage button - always secondary with status-aware styling */
+.btn-manage {
   background: var(--page-surface-muted);
   color: var(--text-primary);
   border: 1px solid var(--border);
 }
 
-.gem-actions .btn-secondary:hover {
+.btn-manage:hover {
   background: var(--border);
+}
+
+.btn-status-approved.btn-manage {
+  border-color: #d1e7dc;
+}
+
+.btn-status-approved.btn-manage:hover {
+  background: #f0fdf4;
+}
+
+.btn-status-pending.btn-manage {
+  border-color: #fef3c7;
+}
+
+.btn-status-pending.btn-manage:hover {
+  background: #fffbeb;
+}
+
+.btn-status-rejected.btn-manage {
+  border-color: #fee2e2;
+}
+
+.btn-status-rejected.btn-manage:hover {
+  background: #fef2f2;
 }
 
 html[data-theme='dark'] .gem-card {
@@ -519,20 +597,66 @@ html[data-theme='dark'] .gem-status-cancelled {
   color: #cbd5e1;
 }
 
-html[data-theme='dark'] .gem-actions .btn-secondary {
+/* Dark theme - Manage button */
+html[data-theme='dark'] .btn-manage {
   background: rgba(15, 23, 42, 0.72);
   color: var(--text-primary);
   border-color: var(--border);
 }
 
-html[data-theme='dark'] .gem-actions .btn-secondary:hover {
+html[data-theme='dark'] .btn-manage:hover {
   background: rgba(30, 41, 59, 0.92);
   color: var(--text-primary);
 }
 
-html[data-theme='dark'] .gem-actions .btn-primary {
-  background: var(--seller-secondary);
-  color: #ffffff;
+html[data-theme='dark'] .btn-status-approved.btn-manage {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+html[data-theme='dark'] .btn-status-approved.btn-manage:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+html[data-theme='dark'] .btn-status-pending.btn-manage {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+html[data-theme='dark'] .btn-status-pending.btn-manage:hover {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+html[data-theme='dark'] .btn-status-rejected.btn-manage {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+html[data-theme='dark'] .btn-status-rejected.btn-manage:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Dark theme - View Details button */
+html[data-theme='dark'] .btn-status-approved.btn-view-details {
+  background: #10b981;
+}
+
+html[data-theme='dark'] .btn-status-approved.btn-view-details:hover {
+  background: #059669;
+}
+
+html[data-theme='dark'] .btn-status-pending.btn-view-details {
+  background: #f59e0b;
+  color: white;
+}
+
+html[data-theme='dark'] .btn-status-pending.btn-view-details:hover {
+  background: #d97706;
+}
+
+html[data-theme='dark'] .btn-status-rejected.btn-view-details {
+  background: #ef4444;
+}
+
+html[data-theme='dark'] .btn-status-rejected.btn-view-details:hover {
+  background: #dc2626;
 }
 
 html[data-theme='dark'] .filter-button {
@@ -541,8 +665,23 @@ html[data-theme='dark'] .filter-button {
   border-color: var(--border);
 }
 
-html[data-theme='dark'] .filter-button.active {
+html[data-theme='dark'] .filter-button-all.active {
   background: var(--seller-secondary);
+  color: #ffffff;
+}
+
+html[data-theme='dark'] .filter-button-approved.active {
+  background: #10b981;
+  color: #ffffff;
+}
+
+html[data-theme='dark'] .filter-button-pending.active {
+  background: #f59e0b;
+  color: white;
+}
+
+html[data-theme='dark'] .filter-button-rejected.active {
+  background: #ef4444;
   color: #ffffff;
 }
 

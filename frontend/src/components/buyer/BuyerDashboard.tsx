@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Compass,Gavel,Heart,LayoutDashboard,LogOut,Settings,Sparkle,Timer,X,MessageSquare } from 'lucide-react';
+import { Compass,Gavel,Heart,LayoutDashboard,LogOut,Sparkle,Timer,X,MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auctionAPI, buyerAPI, gemAPI } from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
@@ -753,9 +753,6 @@ const BuyerDashboard = () => {
         </nav>
 
         <div className="buyer-sidebar-bottom">
-          <button type="button" className="ghost-btn w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
-            <Settings size={16} /> Settings
-          </button>
           <button type="button" className="alert-btn w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
             <LogOut size={16} /> Sign Out
           </button>
