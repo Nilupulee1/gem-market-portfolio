@@ -30,6 +30,8 @@ export interface IUser extends Document {
   password: string;
   role: UserRole;
   isVerified: boolean;
+  passwordResetToken?: string | null;
+  passwordResetExpiry?: Date | null;
   createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }

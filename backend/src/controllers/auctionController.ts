@@ -112,11 +112,12 @@ const normalizeAuctionAfterPayment = (auction: any) => {
     };
   };
 
-export const createAuction = async (req: AuthRequest, res: Response) => {
+export const createAuction = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    console.log('📦 Creating auction with data:', req.body);
+    console.log('📦 Creating auction with data:', authReq.body);
     
-    const { gemId, startPrice, minimumBidIncrement, paymentConfirmed, startTime, endTime } = req.body;
+    const { gemId, startPrice, minimumBidIncrement, paymentConfirmed, startTime, endTime } = authReq.body;
 
     const startPriceValue = parseFloat(startPrice);
     const listingPlacementFee = calculateListingPlacementFee(startPriceValue);
@@ -143,7 +144,7 @@ export const createAuction = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Only approved gems can be auctioned' });
     }
 
-    if (gem.seller.toString() !== req.user!.userId) {
+    if (gem.seller.toString() !== authReq.user!.userId) {
       return res.status(403).json({ message: 'You can only auction your own gems' });
     }
 
@@ -159,7 +160,7 @@ export const createAuction = async (req: AuthRequest, res: Response) => {
 
     const auction = new Auction({
       gem: gemId,
-      seller: req.user!.userId,
+      seller: authReq.user!.userId,
       startPrice: startPriceValue,
       currentBid: startPriceValue,
       minimumBidIncrement: parseFloat(minimumBidIncrement),
@@ -198,9 +199,10 @@ export const createAuction = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const createPayHereCheckout = async (req: AuthRequest, res: Response) => {
+export const createPayHereCheckout = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { gemId, startPrice, minimumBidIncrement, startTime, endTime } = req.body;
+    const { gemId, startPrice, minimumBidIncrement, startTime, endTime } = authReq.body;
 
     if (!gemId || !Types.ObjectId.isValid(gemId)) {
       return res.status(400).json({ message: 'A valid gem is required' });
@@ -242,7 +244,7 @@ export const createPayHereCheckout = async (req: AuthRequest, res: Response) => 
       return res.status(400).json({ message: 'Only approved gems can be auctioned' });
     }
 
-    if (gem.seller.toString() !== req.user!.userId) {
+    if (gem.seller.toString() !== authReq.user!.userId) {
       return res.status(403).json({ message: 'You can only auction your own gems' });
     }
 
@@ -255,7 +257,7 @@ export const createPayHereCheckout = async (req: AuthRequest, res: Response) => 
       return res.status(400).json({ message: 'Gem already has an auction in progress' });
     }
 
-    const seller = await User.findById(req.user!.userId).select('name email');
+    const seller = await User.findById(authReq.user!.userId).select('name email');
     if (!seller) {
       return res.status(404).json({ message: 'Seller account not found' });
     }
@@ -273,13 +275,13 @@ export const createPayHereCheckout = async (req: AuthRequest, res: Response) => 
     const currency = process.env.PAYHERE_CURRENCY?.trim() || 'LKR';
     const amount = listingPlacementFee.toFixed(2);
     const { firstName, lastName } = splitSellerName(seller.name);
-    const appUrl = getAppUrl(req);
-    const apiBaseUrl = getApiBaseUrl(req);
+    const appUrl = getAppUrl(authReq);
+    const apiBaseUrl = getApiBaseUrl(authReq);
 
     const auction = new Auction({
       _id: auctionId,
       gem: gemId,
-      seller: req.user!.userId,
+      seller: authReq.user!.userId,
       startPrice: startPriceValue,
       currentBid: startPriceValue,
       minimumBidIncrement: minimumBidValue,
@@ -383,9 +385,10 @@ export const payHereNotify = async (req: Request, res: Response) => {
   }
 };
 
-export const placeBid = async (req: AuthRequest, res: Response) => {
+export const placeBid = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { auctionId, amount } = req.body;
+    const { auctionId, amount } = authReq.body;
 
     const auction = await Auction.findById(auctionId);
     if (!auction) {
@@ -420,12 +423,12 @@ export const placeBid = async (req: AuthRequest, res: Response) => {
     }
 
     // Don't allow seller to bid on their own auction
-    if (auction.seller.toString() === req.user!.userId) {
+    if (auction.seller.toString() === authReq.user!.userId) {
       return res.status(400).json({ message: 'You cannot bid on your own auction' });
     }
 
     auction.bids.push({
-      bidder: req.user!.userId as any,
+      bidder: authReq.user!.userId as any,
       amount: parseFloat(amount),
       timestamp: new Date()
     });
@@ -453,7 +456,8 @@ export const placeBid = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getActiveAuctions = async (req: AuthRequest, res: Response) => {
+export const getActiveAuctions = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
     console.log('📋 Fetching active auctions');
 
@@ -478,11 +482,12 @@ export const getActiveAuctions = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getMyAuctions = async (req: AuthRequest, res: Response) => {
+export const getMyAuctions = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    console.log('📋 Fetching my auctions for user:', req.user?.userId);
+    console.log('📋 Fetching my auctions for user:', authReq.user?.userId);
 
-    const auctions = await Auction.find({ seller: req.user!.userId })
+    const auctions = await Auction.find({ seller: authReq.user!.userId })
       .populate('gem')
       .populate('seller', 'name email')
       .populate('bids.bidder', 'name email')
@@ -504,9 +509,10 @@ export const getMyAuctions = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getAuctionById = async (req: AuthRequest, res: Response) => {
+export const getAuctionById = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const auction = await Auction.findById(req.params.id)
+    const auction = await Auction.findById(authReq.params.id)
       .populate('gem')
       .populate('seller', 'name email')
       .populate('bids.bidder', 'name email')
@@ -531,16 +537,17 @@ export const getAuctionById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const deleteAuction = async (req: AuthRequest, res: Response) => {
+export const deleteAuction = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const auction = await Auction.findById(req.params.id);
+    const auction = await Auction.findById(authReq.params.id);
 
     if (!auction) {
       return res.status(404).json({ message: 'Auction not found' });
     }
 
     // Only allow seller to delete their own auction
-    if (auction.seller.toString() !== req.user!.userId) {
+    if (auction.seller.toString() !== authReq.user!.userId) {
       return res.status(403).json({ message: 'You can only delete your own auctions' });
     }
 
@@ -549,9 +556,9 @@ export const deleteAuction = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Cannot delete auction with existing bids' });
     }
 
-    await Auction.findByIdAndDelete(req.params.id);
+    await Auction.findByIdAndDelete(authReq.params.id);
 
-    console.log('✅ Auction deleted:', req.params.id);
+    console.log('✅ Auction deleted:', authReq.params.id);
 
     res.json({ message: 'Auction deleted successfully' });
   } catch (error: any) {
@@ -563,18 +570,19 @@ export const deleteAuction = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const updateAuctionStatus = async (req: AuthRequest, res: Response) => {
+export const updateAuctionStatus = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { status } = req.body;
-    const auction = await Auction.findById(req.params.id);
+    const { status } = authReq.body;
+    const auction = await Auction.findById(authReq.params.id);
 
     if (!auction) {
       return res.status(404).json({ message: 'Auction not found' });
     }
 
     // Only allow seller or admin to update status
-    const isAdmin = req.user!.role === 'admin';
-    const isSeller = auction.seller.toString() === req.user!.userId;
+    const isAdmin = authReq.user!.role === 'admin';
+    const isSeller = auction.seller.toString() === authReq.user!.userId;
 
     if (!isAdmin && !isSeller) {
       return res.status(403).json({ message: 'Unauthorized' });

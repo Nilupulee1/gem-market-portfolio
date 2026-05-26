@@ -85,6 +85,22 @@ const startServer = async () => {
       console.log(`☁️  Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME}`);
       console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
     });
+
+    // Error handlers
+    httpServer.on('error', (error: any) => {
+      console.error('💥 HTTP Server Error:', error.message);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+      }
+    });
+
+    process.on('unhandledRejection', (reason: any) => {
+      console.error('❌ Unhandled Rejection:', reason);
+    });
+
+    process.on('uncaughtException', (error: any) => {
+      console.error('❌ Uncaught Exception:', error);
+    });
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);

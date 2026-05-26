@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import cloudinary from '../config/cloudinary';
 import { AuthRequest } from '../middleware/auth';
 import Gem from '../models/Gem';
@@ -76,14 +76,15 @@ const deleteCloudinaryAsset = async (url?: string) => {
   }
 };
 
-export const createGem = async (req: AuthRequest, res: Response) => {
+export const createGem = async (req: Request, res: Response) => {
   try {
+    const authReq = req as AuthRequest;
     console.log('📦 Received gem creation request');
-    console.log('👤 User:', req.user);
-    console.log('📝 Body:', req.body);
-    console.log('📁 Files:', req.files);
+    console.log('👤 User:', authReq.user);
+    console.log('📝 Body:', authReq.body);
+    console.log('📁 Files:', authReq.files);
 
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const files = authReq.files as { [fieldname: string]: Express.Multer.File[] };
     
     if (!files || !files.images || files.images.length === 0) {
       return res.status(400).json({ message: 'At least one image is required' });
@@ -103,20 +104,20 @@ export const createGem = async (req: AuthRequest, res: Response) => {
     const certificateUrl = certificateFile.path;
 
     const gemData = {
-      seller: req.user!.userId,
-      type: req.body.type,
-      carat: parseFloat(req.body.carat),
-      cut: req.body.cut,
-      clarity: req.body.clarity,
-      color: req.body.color,
-      origin: req.body.origin,
-      description: req.body.description,
+      seller: authReq.user!.userId,
+      type: authReq.body.type,
+      carat: parseFloat(authReq.body.carat),
+      cut: authReq.body.cut,
+      clarity: authReq.body.clarity,
+      color: authReq.body.color,
+      origin: authReq.body.origin,
+      description: authReq.body.description,
       images: imageUrls,
       certificate: {
         url: certificateUrl,
         mimeType: certificateFile.mimetype,
-        authority: req.body.certificateAuthority,
-        certificateNumber: req.body.certificateNumber
+        authority: authReq.body.certificateAuthority,
+        certificateNumber: authReq.body.certificateNumber
       },
       status: GemStatus.PENDING
     };
@@ -143,11 +144,12 @@ export const createGem = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getMyGems = async (req: AuthRequest, res: Response) => {
+export const getMyGems = async (req: Request, res: Response) => {
   try {
-    console.log('📋 Fetching gems for user:', req.user?.userId);
+    const authReq = req as AuthRequest;
+    console.log('📋 Fetching gems for user:', authReq.user?.userId);
     
-    const gems = await Gem.find({ seller: req.user!.userId })
+    const gems = await Gem.find({ seller: authReq.user!.userId })
       .sort({ createdAt: -1 });
     
     console.log('✅ Found gems:', gems.length);
@@ -164,7 +166,8 @@ export const getMyGems = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getApprovedGems = async (req: AuthRequest, res: Response) => {
+export const getApprovedGems = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
     const { type, minCarat, maxCarat, origin } = req.query;
     
@@ -194,7 +197,8 @@ export const getApprovedGems = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getGemById = async (req: AuthRequest, res: Response) => {
+export const getGemById = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
     const gem = await Gem.findById(req.params.id)
       .populate('seller', 'name email');
@@ -215,37 +219,38 @@ export const getGemById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const updateGem = async (req: AuthRequest, res: Response) => {
+export const updateGem = async (req: Request, res: Response) => {
   try {
-    const gem = await Gem.findById(req.params.id);
+    const authReq = req as AuthRequest;
+    const gem = await Gem.findById(authReq.params.id);
 
     if (!gem) {
       return res.status(404).json({ message: 'Gem not found' });
     }
 
     // Only allow seller to update their own gem
-    if (gem.seller.toString() !== req.user!.userId) {
+    if (gem.seller.toString() !== authReq.user!.userId) {
       return res.status(403).json({ message: 'You can only update your own gems' });
     }
 
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    const files = authReq.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
     const previousCertificateUrl = gem.certificate?.url;
 
     const allowedUpdates = ['type', 'carat', 'cut', 'clarity', 'color', 'origin', 'description'];
-    const updates = Object.keys(req.body);
+    const updates = Object.keys(authReq.body);
     
     updates.forEach(update => {
       if (allowedUpdates.includes(update)) {
-        (gem as any)[update] = req.body[update];
+        (gem as any)[update] = authReq.body[update];
       }
     });
 
-    if (req.body.certificateAuthority !== undefined) {
-      gem.certificate.authority = req.body.certificateAuthority;
+    if (authReq.body.certificateAuthority !== undefined) {
+      gem.certificate.authority = authReq.body.certificateAuthority;
     }
 
-    if (req.body.certificateNumber !== undefined) {
-      gem.certificate.certificateNumber = req.body.certificateNumber;
+    if (authReq.body.certificateNumber !== undefined) {
+      gem.certificate.certificateNumber = authReq.body.certificateNumber;
     }
 
     if (files?.images?.length) {
@@ -283,25 +288,26 @@ export const updateGem = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const deleteGem = async (req: AuthRequest, res: Response) => {
+export const deleteGem = async (req: Request, res: Response) => {
   try {
-    const gem = await Gem.findById(req.params.id);
+    const authReq = req as AuthRequest;
+    const gem = await Gem.findById(authReq.params.id);
 
     if (!gem) {
       return res.status(404).json({ message: 'Gem not found' });
     }
 
     // Only allow seller to delete their own gem
-    if (gem.seller.toString() !== req.user!.userId) {
+    if (gem.seller.toString() !== authReq.user!.userId) {
       return res.status(403).json({ message: 'You can only delete your own gems' });
     }
 
     // Check if gem is being used in an active auction
     // You can add this check if needed
 
-    await Gem.findByIdAndDelete(req.params.id);
+    await Gem.findByIdAndDelete(authReq.params.id);
 
-    console.log('✅ Gem deleted:', req.params.id);
+    console.log('✅ Gem deleted:', authReq.params.id);
 
     res.json({ message: 'Gem deleted successfully' });
   } catch (error: any) {

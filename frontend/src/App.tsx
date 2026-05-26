@@ -9,6 +9,7 @@ import Footer from './components/common/Footer';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import ForgotPassword from './components/auth/ForgotPassword';
 import SellerDashboard from './components/seller/SellerDashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
 import BuyerDashboard from './components/buyer/BuyerDashboard';
@@ -519,6 +520,8 @@ const AppLayout = ({
         <Route path="/" element={<HomePage featuredGems={featuredGems} featuredGemsLoading={featuredGemsLoading} />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ForgotPassword />} />
 
         <Route
           path="/seller/*"

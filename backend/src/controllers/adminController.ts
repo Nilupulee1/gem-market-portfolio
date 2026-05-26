@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import cloudinary from '../config/cloudinary';
 import { AuthRequest } from '../middleware/auth';
 import Gem from '../models/Gem';
@@ -82,7 +82,8 @@ const normalizeAuctionForAdmin = (auction: any) => {
   };
 };
 
-export const getPendingGems = async (req: AuthRequest, res: Response) => {
+export const getPendingGems = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
     const gems = await Gem.find({ status: GemStatus.PENDING })
       .populate('seller', 'name email')
@@ -94,9 +95,10 @@ export const getPendingGems = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const reviewGem = async (req: AuthRequest, res: Response) => {
+export const reviewGem = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { gemId, status, feedback } = req.body;
+    const { gemId, status, feedback } = authReq.body;
 
     if (![GemStatus.APPROVED, GemStatus.REJECTED].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
@@ -123,7 +125,8 @@ export const reviewGem = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getAllUsers = async (req: AuthRequest, res: Response) => {
+export const getAllUsers = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
     const users = await User.find().select('-password').sort({ createdAt: -1 });
     res.json({ users });
@@ -132,7 +135,8 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getStatistics = async (req: AuthRequest, res: Response) => {
+export const getStatistics = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
     const totalUsers = await User.countDocuments();
     const totalGems = await Gem.countDocuments();
@@ -156,7 +160,8 @@ export const getStatistics = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getAllAuctions = async (req: AuthRequest, res: Response) => {
+export const getAllAuctions = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
     const auctions = await Auction.find()
       .populate('gem')

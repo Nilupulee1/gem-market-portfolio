@@ -44,6 +44,10 @@ export const authAPI = {
     axiosInstance.post('/auth/register', data),
   login: (data: { email: string; password: string }) =>
     axiosInstance.post('/auth/login', data),
+  forgotPassword: (data: { email: string }) =>
+    axiosInstance.post('/auth/forgot-password', data),
+  resetPassword: (data: { token: string; password: string }) =>
+    axiosInstance.post('/auth/reset-password', data),
 };
 
 export const gemAPI = {

@@ -48,6 +48,8 @@ const Login = () => {
     }
   };
 
+
+
   return (
     <Container fluid className="auth-container p-0">
       <Row className="g-0 min-vh-100">
@@ -133,10 +135,11 @@ const Login = () => {
                   />
                   <Button
                     variant="link"
-                    className="auth-mini-btn"
-                    onClick={() => navigate('/register')}
+                    className="auth-mini-btn p-0"
+                    onClick={() => navigate('/forgot-password')}
+                    style={{ color: 'var(--primary-color)', textDecoration: 'none', fontSize: '0.875rem' }}
                   >
-                    Create account
+                    Forgot password?
                   </Button>
                 </div>
 
@@ -150,6 +153,8 @@ const Login = () => {
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </Form>
+
+
 
               <p className="text-center mt-4 mb-0" style={{ color: 'var(--text-secondary)' }}>
                 Don't have an account?{' '}

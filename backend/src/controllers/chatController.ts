@@ -8,10 +8,11 @@ import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
 
 // Send a message
-export const sendMessage = async (req: AuthRequest, res: Response) => {
+export const sendMessage = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { auctionId, gemId, recipientId, content } = req.body;
-    const senderId = req.user?.userId;
+    const { auctionId, gemId, recipientId, content } = authReq.body;
+    const senderId = authReq.user?.userId;
 
     if ((!auctionId && !gemId) || !recipientId || !content || !senderId) {
       return res.status(400).json({ error: 'Missing required fields (requires either auctionId or gemId)' });
@@ -131,12 +132,13 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 };
 
 // Get messages for a fixed gem
-export const getGemMessages = async (req: AuthRequest, res: Response) => {
+export const getGemMessages = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { gemId } = req.params;
-    const userId = req.user?.userId;
-    const { recipientId } = req.query; // the other person the current user is talking explicitly with
-    const { page = 1, limit = 50 } = req.query;
+    const { gemId } = authReq.params;
+    const userId = authReq.user?.userId;
+    const { recipientId } = authReq.query; // the other person the current user is talking explicitly with
+    const { page = 1, limit = 50 } = authReq.query;
 
     const query: any = recipientId
       ? { participants: { $all: [userId, recipientId] } }
@@ -174,11 +176,12 @@ export const getGemMessages = async (req: AuthRequest, res: Response) => {
 };
 
 // Get messages for an auction
-export const getAuctionMessages = async (req: AuthRequest, res: Response) => {
+export const getAuctionMessages = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { auctionId } = req.params;
-    const userId = req.user?.userId;
-    const { page = 1, limit = 50 } = req.query;
+    const { auctionId } = authReq.params;
+    const userId = authReq.user?.userId;
+    const { page = 1, limit = 50 } = authReq.query;
 
     // Verify user is involved in auction
     const auction = await Auction.findById(auctionId).populate('seller winner gem');
@@ -237,11 +240,12 @@ export const getAuctionMessages = async (req: AuthRequest, res: Response) => {
 };
 
 // Get messages for a conversation
-export const getConversationMessages = async (req: AuthRequest, res: Response) => {
+export const getConversationMessages = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { conversationId } = req.params;
-    const userId = req.user?.userId;
-    const { page = 1, limit = 50 } = req.query;
+    const { conversationId } = authReq.params;
+    const userId = authReq.user?.userId;
+    const { page = 1, limit = 50 } = authReq.query;
 
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
@@ -281,9 +285,10 @@ export const getConversationMessages = async (req: AuthRequest, res: Response) =
 };
 
 // Get conversations for current user
-export const getUserConversations = async (req: AuthRequest, res: Response) => {
+export const getUserConversations = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const userId = req.user?.userId;
+    const userId = authReq.user?.userId;
 
     const conversations = await Conversation.find({
       $or: [{ seller: userId }, { buyer: userId }]
@@ -307,10 +312,11 @@ export const getUserConversations = async (req: AuthRequest, res: Response) => {
 };
 
 // Mark messages as read
-export const markMessagesAsRead = async (req: AuthRequest, res: Response) => {
+export const markMessagesAsRead = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { auctionId, senderId, conversationId, gemId } = req.body;
-    const userId = req.user?.userId;
+    const { auctionId, senderId, conversationId, gemId } = authReq.body;
+    const userId = authReq.user?.userId;
 
     let conversation = null as any;
 
@@ -358,9 +364,10 @@ export const markMessagesAsRead = async (req: AuthRequest, res: Response) => {
 };
 
 // Get unread message count
-export const getUnreadCount = async (req: AuthRequest, res: Response) => {
+export const getUnreadCount = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const userId = req.user?.userId;
+    const userId = authReq.user?.userId;
 
     const conversations = await Conversation.find({
       $or: [
@@ -386,10 +393,11 @@ export const getUnreadCount = async (req: AuthRequest, res: Response) => {
 };
 
 // Delete a message (only sender can delete)
-export const deleteMessage = async (req: AuthRequest, res: Response) => {
+export const deleteMessage = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
   try {
-    const { messageId } = req.params;
-    const userId = req.user?.userId;
+    const { messageId } = authReq.params;
+    const userId = authReq.user?.userId;
 
     const message = await Message.findById(messageId);
     if (!message) {
