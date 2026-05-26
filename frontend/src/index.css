@@ -3102,4 +3102,346 @@ html[data-theme='dark'] .chat-header-subtitle {
   color: #8fb2ff;
 }
 
+/* ===== Winning Auction Card Styles ===== */
+.winning-auction-card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  margin-bottom: 24px;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.winning-auction-card .close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.winning-auction-card .close-btn:hover {
+  background: #ffffff;
+  border-color: #e0e0e0;
+}
+
+.winning-content {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 32px;
+  padding: 32px;
+}
+
+.winning-image-section {
+  position: relative;
+}
+
+.winning-image-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f5f5f5;
+  aspect-ratio: 3/4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.winning-gem-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.auction-ended-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(50, 50, 50, 0.85);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+}
+
+.winning-info-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.winning-header {
+  margin-bottom: 24px;
+}
+
+.winning-header h2 {
+  margin: 0 0 12px;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.winning-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.gem-highlight {
+  font-weight: 600;
+  color: var(--color-bright);
+}
+
+.winning-bid-section {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.winning-bid-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.winning-bid-amount {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-bright);
+}
+
+.finalize-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid rgba(31, 79, 130, 0.1);
+  border-radius: 10px;
+  background: rgba(31, 79, 130, 0.02);
+}
+
+.finalize-header h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.finalize-header p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.reveal-contact-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--color-bright);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(47, 109, 225, 0.08), rgba(47, 109, 225, 0.04));
+  color: var(--color-bright);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.reveal-contact-btn:hover {
+  background: linear-gradient(135deg, rgba(47, 109, 225, 0.16), rgba(47, 109, 225, 0.12));
+  border-color: var(--color-bright);
+}
+
+.btn-icon {
+  font-size: 14px;
+}
+
+.seller-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.contact-label {
+  min-width: 50px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.contact-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.gem-details-section {
+  margin-bottom: 20px;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-col.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.certificate-link {
+  font-size: 13px;
+  color: var(--color-bright);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.certificate-link:hover {
+  text-decoration: underline;
+}
+
+.gem-tabs {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.tab-btn {
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  color: var(--color-bright);
+  border-color: var(--color-bright);
+  background: rgba(47, 109, 225, 0.06);
+}
+
+/* Dark mode styles for winning auction card */
+html[data-theme='dark'] .winning-auction-card {
+  background: var(--page-surface-elevated);
+  border-color: var(--border);
+}
+
+html[data-theme='dark'] .winning-auction-card .close-btn {
+  background: rgba(15, 26, 43, 0.9);
+  border-color: var(--border);
+}
+
+html[data-theme='dark'] .winning-auction-card .close-btn:hover {
+  background: #1a2c3f;
+}
+
+html[data-theme='dark'] .winning-header h2,
+html[data-theme='dark'] .detail-value,
+html[data-theme='dark'] .contact-value {
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .finalize-section {
+  border-color: rgba(127, 179, 255, 0.2);
+  background: rgba(127, 179, 255, 0.06);
+}
+
+html[data-theme='dark'] .reveal-contact-btn {
+  background: linear-gradient(135deg, rgba(77, 126, 212, 0.12), rgba(77, 126, 212, 0.08));
+  border-color: var(--color-bright);
+  color: var(--color-bright);
+}
+
+html[data-theme='dark'] .reveal-contact-btn:hover {
+  background: linear-gradient(135deg, rgba(77, 126, 212, 0.2), rgba(77, 126, 212, 0.16));
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .winning-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 20px;
+  }
+
+  .winning-header h2 {
+    font-size: 22px;
+  }
+
+  .winning-bid-amount {
+    font-size: 24px;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 

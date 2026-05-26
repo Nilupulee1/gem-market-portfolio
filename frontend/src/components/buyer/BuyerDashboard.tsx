@@ -2,15 +2,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { Compass,Gavel,Heart,LayoutDashboard,LogOut,Sparkle,Timer,X,MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auctionAPI, buyerAPI, gemAPI } from '../../api/axios';
+import axiosInstance from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
 import type { Auction, Gem } from '../../types';
 import logo from '../../assets/logo.png';
 import { useChatStore } from '../../store/chatStore';
 import AuctionBid from './AuctionBid';
 import GemDetails from './GemDetails';
+import LiveAuctions from './LiveAuctions';
 import Marketplace from './Marketplace';
 import SellerContactModal from './SellerContactModal';
 import MessagesPage from './MessagesPage';
+import WinningAuctionCard from './WinningAuctionCard';
+import ActiveBidsCard from './ActiveBidsCard';
 
 type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist' | 'messages';
 
@@ -187,6 +191,8 @@ const BuyerDashboard = () => {
   const [selectedGemForContact, setSelectedGemForContact] = useState<{ name: string; id: string; images?: string[] } | null>(null);
   const [chatInitialContact, setChatInitialContact] = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
   const [chatInitialGem, setChatInitialGem] = useState<{ name: string; id: string } | null>(null);
+  const [conversations, setConversations] = useState<Array<{ auction?: { _id: string }; gem?: { _id: string } }>>([]);
+  const [dismissedWinningAuctions, setDismissedWinningAuctions] = useState<string[]>([]);
   const isBuyerAccount = user?.role === 'buyer';
 
   useEffect(() => {
@@ -206,6 +212,15 @@ const BuyerDashboard = () => {
         buyerAPI.getWonAuctions(),
       ]);
       const bidHistoryRes = await buyerAPI.getBidHistory();
+      
+      // Fetch conversations to check if buyer has contacted seller
+      let conversationsData = [];
+      try {
+        const conversationsRes = await axiosInstance.get('/chat/conversations');
+        conversationsData = Array.isArray(conversationsRes.data) ? conversationsRes.data : [];
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+      }
 
       setAllAuctions(activeRes.data.auctions || []);
       
@@ -215,6 +230,7 @@ const BuyerDashboard = () => {
       setDashboard(dashboardRes.data);
       setActiveBids(activeBidsRes.data.activeBids || []);
       setWonAuctions(wonRes.data.wonAuctions || []);
+      setConversations(conversationsData);
       const nextBidHistory = bidHistoryRes.data.bidHistory || [];
       setBidHistory(nextBidHistory);
 
@@ -236,6 +252,25 @@ const BuyerDashboard = () => {
   useEffect(() => {
     refreshData(true);
   }, []);
+
+  // Refresh conversations when returning to dashboard from messages
+  useEffect(() => {
+    if (view === 'dashboard') {
+      const refreshConversations = async () => {
+        try {
+          const conversationsRes = await axiosInstance.get('/chat/conversations');
+          setConversations(Array.isArray(conversationsRes.data) ? conversationsRes.data : []);
+        } catch (error) {
+          console.error('Failed to refresh conversations:', error);
+        }
+      };
+      refreshConversations();
+
+      // Set up periodic refresh every 3 seconds while on dashboard to catch new messages
+      const intervalId = window.setInterval(refreshConversations, 3000);
+      return () => window.clearInterval(intervalId);
+    }
+  }, [view]);
 
   const uniqueTypes = useMemo(() => {
     const typeSet = new Set(allAuctions.map((item) => item.gem.type));
@@ -260,6 +295,23 @@ const BuyerDashboard = () => {
     () => allAuctions.filter((item) => watchlistIds.includes(item._id)),
     [allAuctions, watchlistIds]
   );
+
+  const liveAuctions = useMemo(
+    () => allAuctions.filter((item) => new Date(item.endTime).getTime() > Date.now()),
+    [allAuctions]
+  );
+
+  // Get won auctions without conversations (haven't contacted seller yet)
+  const wonAuctionsWithoutContact = useMemo(() => {
+    const conversationAuctionIds = new Set(
+      conversations
+        .map((conv) => conv.auction?._id)
+        .filter(Boolean)
+    );
+    return wonAuctions.filter(
+      (auction) => !conversationAuctionIds.has(auction._id) && !dismissedWinningAuctions.includes(auction._id)
+    );
+  }, [wonAuctions, conversations, dismissedWinningAuctions]);
 
   const toggleWatchlist = (auctionId: string) => {
     const updated = watchlistIds.includes(auctionId)
@@ -343,6 +395,10 @@ const BuyerDashboard = () => {
     setChatInitialGem(selectedGemForContact);
     setView('messages');
     closeSellerContact();
+    // Refresh conversations after navigating to messages
+    setTimeout(() => {
+      refreshData();
+    }, 500);
   };
 
   const requestBidConfirmation = () => {
@@ -415,6 +471,10 @@ const BuyerDashboard = () => {
     navigate('/login');
   };
 
+  const handleDismissWinningAuction = (auctionId: string) => {
+    setDismissedWinningAuctions((prev) => [...prev, auctionId]);
+  };
+
   const renderDashboard = () => {
     const stats = dashboard?.stats;
     const winningBids = activeBids.filter((item) => item.isWinning).length;
@@ -457,6 +517,20 @@ const BuyerDashboard = () => {
             <strong>{leadRate}% winning</strong>
           </article>
         </div>
+
+        {/* Display winning auction cards for auctions without contact */}
+        {wonAuctionsWithoutContact.length > 0 && (
+          <div className="mb-4">
+            {wonAuctionsWithoutContact.map((auction) => (
+              <WinningAuctionCard
+                key={auction._id}
+                auction={auction}
+                onContactSeller={openSellerContact}
+                onDismiss={handleDismissWinningAuction}
+              />
+            ))}
+          </div>
+        )}
 
         <section className="buyer-overview-panel block-card">
           <div className="section-head">
@@ -578,28 +652,125 @@ const BuyerDashboard = () => {
 
   const renderAuctions = () => (
     <>
-      <div className="section-head">
+      <LiveAuctions
+        auctions={liveAuctions}
+        watchlistIds={watchlistIds}
+        nowMs={nowMs}
+        onToggleWatchlist={toggleWatchlist}
+        onOpenDetails={openDetails}
+        formatCurrency={formatCurrency}
+        formatRemaining={formatRemaining}
+        getLeadingBidderName={getLeadingBidderName}
+      />
+
+      <div className="section-head mt-5">
         <h3>My Auction Activity</h3>
       </div>
 
       <section className="block-card">
-        <h5 className="mb-3">Active Bids</h5>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '800', color: '#1a202c' }}>My Bids & Auctions</h3>
+            <p style={{ margin: 0, color: '#718096', fontSize: '14px' }}>Track your active and past auction participation.</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '24px', borderBottom: '2px solid #e2e8f0', marginBottom: '20px' }}>
+          <button
+            type="button"
+            style={{
+              padding: '12px 0',
+              border: 'none',
+              background: 'none',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#1a202c',
+              cursor: 'pointer',
+              borderBottom: '3px solid #1f4f82',
+              marginBottom: '-2px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>Active Bids</span>
+          </button>
+          <button
+            type="button"
+            style={{
+              padding: '12px 0',
+              border: 'none',
+              background: 'none',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#a0aec0',
+              cursor: 'pointer',
+              transition: 'color 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#718096')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#a0aec0')}
+          >
+            <span>Bidding History</span>
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+          <select
+            style={{
+              padding: '8px 12px',
+              border: '1px solid #cbd5e0',
+              borderRadius: '8px',
+              background: '#fff',
+              color: '#4a5568',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            <option>Sort by: End Time</option>
+            <option>Sort by: Bid Amount</option>
+            <option>Sort by: Recent</option>
+          </select>
+          <select
+            style={{
+              padding: '8px 12px',
+              border: '1px solid #cbd5e0',
+              borderRadius: '8px',
+              background: '#fff',
+              color: '#4a5568',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            <option>Status: All</option>
+            <option>Status: Winning</option>
+            <option>Status: Outbid</option>
+          </select>
+        </div>
+
+        {/* Active Bids Grid */}
         {activeBids.length === 0 ? (
           <p className="empty-note">You have no active bids at the moment.</p>
         ) : (
-          activeBids.map((item) => (
-            <div key={item.auction._id} className="d-flex justify-content-between border rounded-3 p-2 mb-2">
-              <div>
-                <strong>{item.auction.gem.type}</strong>
-                <p className="m-0 text-secondary">Highest by you: {formatCurrency(item.myHighestBid)}</p>
-                <small className={item.isWinning ? 'text-success' : 'text-danger'}>{item.isWinning ? 'Currently Leading' : 'Outbid'}</small>
-              </div>
-              <div className="text-end">
-                <p className="m-0">{formatCurrency(item.auction.currentBid)}</p>
-                <small className="text-secondary">{formatRemaining(item.auction.endTime, nowMs)}</small>
-              </div>
-            </div>
-          ))
+          <div className="market-grid">
+            {activeBids.map((item) => (
+              <ActiveBidsCard
+                key={item.auction._id}
+                item={item}
+                nowMs={nowMs}
+                formatCurrency={formatCurrency}
+                formatRemaining={formatRemaining}
+                onIncreaseBid={(bidItem) => {
+                  setSelectedAuction(bidItem.auction);
+                  setShowBidConfirm(true);
+                }}
+                onViewDetails={openDetails}
+              />
+            ))}
+          </div>
         )}
       </section>
 
@@ -774,16 +945,6 @@ const BuyerDashboard = () => {
         onClose={closeDetails}
         onBidAmountChange={setBidAmount}
         onRequestBidConfirmation={requestBidConfirmation}
-        onSetMinimumBid={() => {
-          if (selectedAuction) {
-            setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement));
-          }
-        }}
-        onSetDoubleBid={() => {
-          if (selectedAuction) {
-            setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement * 2));
-          }
-        }}
         formatCurrency={formatCurrency}
         formatDateTime={formatDateTime}
         getLeadingBidderName={getLeadingBidderName}
