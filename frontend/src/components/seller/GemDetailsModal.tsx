@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Modal, Button, Row, Col, Badge } from 'react-bootstrap';
+import { Modal } from 'react-bootstrap';
+import { ArrowLeft, Download, FileDown, ScanSearch } from 'lucide-react';
 import type { Gem } from '../../types';
 import PdfViewer from '../common/PdfViewer';
+import '../../styles/gemdetails.css';
 
 interface GemDetailsModalProps {
   show: boolean;
@@ -11,144 +13,224 @@ interface GemDetailsModalProps {
 
 const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [downloading, setDownloading] = useState(false);
 
-  // Reset image index when gem changes
-  useEffect(() => {
-    setActiveImageIndex(0);
-  }, [gem]);
+  useEffect(() => { setActiveImageIndex(0); }, [gem]);
 
   if (!gem) return null;
 
-  const certificateUrl = gem.certificate?.url || '';
-  const certificateAccessUrl = gem.certificate?.accessUrl || certificateUrl;
-  const normalizedUrl = certificateUrl.toLowerCase();
-  const isPdfCertificate =
+  const certificateUrl = gem.certificate?.accessUrl || gem.certificate?.url || '';
+  const normalizedUrl = (gem.certificate?.url || '').toLowerCase();
+  const isPdf =
     gem.certificate?.mimeType === 'application/pdf' ||
     normalizedUrl.includes('.pdf') ||
     normalizedUrl.includes('application/pdf');
+  const mainImage = gem.images[activeImageIndex] || gem.images[0] || 'https://via.placeholder.com/900x700';
 
-  const getStatusBadge = (status: string) => {
+  // ── Same download logic as admin PendingGems.handleDownloadCertificate ──
+  const handleDownloadCertificate = async () => {
+    if (!certificateUrl) return;
+    setDownloading(true);
+    try {
+      const response = await fetch(certificateUrl);
+      if (!response.ok) throw new Error(`Failed to fetch certificate: ${response.status}`);
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = `${gem.type.replace(/\s+/g, '_').toLowerCase()}-certificate.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      console.error('Failed to download certificate:', error);
+      window.open(certificateUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const getStatusClass = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <Badge bg="success" className="px-3 py-2 fw-semibold">Approved</Badge>;
-      case 'pending':
-        return <Badge bg="warning" className="px-3 py-2 fw-semibold text-dark">Pending Review</Badge>;
-      case 'rejected':
-        return <Badge bg="danger" className="px-3 py-2 fw-semibold">Rejected</Badge>;
-      default:
-        return <Badge bg="secondary" className="px-3 py-2 fw-semibold text-capitalize">{status}</Badge>;
+      case 'approved': return 'gd-status-approved';
+      case 'pending':  return 'gd-status-pending';
+      case 'rejected': return 'gd-status-rejected';
+      default:         return 'gd-status-pending';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'approved': return 'Approved';
+      case 'pending':  return 'Pending Review';
+      case 'rejected': return 'Rejected';
+      default:         return status;
     }
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="xl" centered contentClassName="port-gem-modal">
-      <Modal.Header closeButton className="port-modal-header">
-        <Modal.Title className="port-modal-title">{gem.type} - Detailed Portfolio</Modal.Title>
+    <Modal
+      show={show}
+      onHide={onHide}
+      size="xl"
+      centered
+      dialogClassName="gd-modal-dialog"
+      contentClassName="gd-modal-content"
+      backdrop="static"
+    >
+      <Modal.Header closeButton className="gd-modal-header gd-modal-header--compact">
+        <button type="button" className="gd-back-link" onClick={onHide}>
+          <ArrowLeft size={16} />
+          Back to Portfolio
+        </button>
       </Modal.Header>
-      <Modal.Body className="port-modal-body">
-        <div className="port-gem-detail-layout">
-          <div className="port-gem-gallery">
-            <div className="port-gem-hero-frame">
+
+      <Modal.Body className="gd-modal-body">
+        <div className="gd-layout">
+          {/* ─── Left — Media ─── */}
+          <section className="gd-media-panel">
+            <div className="gd-hero">
+              <span className="gd-hero-chip">Portfolio View</span>
               <img
-                src={gem.images[activeImageIndex] || 'https://via.placeholder.com/400'}
+                src={mainImage}
                 alt={gem.type}
-                className="port-gem-hero-image"
+                className="gd-hero-image"
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/900x700'; }}
               />
             </div>
+
             {gem.images.length > 1 && (
-              <div className="port-gem-thumbs">
-                {gem.images.map((img, index) => (
+              <div className="gd-thumb-row">
+                {gem.images.slice(0, 4).map((img, i) => (
                   <button
-                    key={index}
+                    key={i}
                     type="button"
-                    onClick={() => setActiveImageIndex(index)}
-                    className={`port-gem-thumb ${activeImageIndex === index ? 'active' : ''}`}
+                    className={`gd-thumb ${activeImageIndex === i ? 'active' : ''}`}
+                    onClick={() => setActiveImageIndex(i)}
                   >
-                    <img src={img} alt={`${gem.type} thumbnail ${index + 1}`} />
+                    <img src={img} alt={`${gem.type} ${i + 1}`} />
                   </button>
                 ))}
               </div>
             )}
-          </div>
 
-          <div className="port-gem-sidebar">
-            <div className="port-gem-panel">
-              <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
+            <div className="gd-story-card">
+              <div className="gd-section-heading">
                 <div>
-                  <div className="port-panel-kicker">Gemstone Metrics</div>
-                  <h5 className="port-panel-title mb-0">Overview</h5>
+                  <p>Heritage Story</p>
+                  <h3>About this gemstone</h3>
                 </div>
-                {getStatusBadge(gem.status)}
+                <span className="gd-story-badge">
+                  <ScanSearch size={14} />
+                  Portfolio
+                </span>
               </div>
+              <p className="gd-story-copy">
+                {gem.description || 'No descriptive backstory listed for this gemstone.'}
+              </p>
+              <div className="gd-story-meta">
+                <div><span>Origin</span><strong>{gem.origin}</strong></div>
+                <div><span>Color</span><strong>{gem.color}</strong></div>
+                <div><span>Status</span><strong style={{ textTransform: 'capitalize' }}>{gem.status}</strong></div>
+              </div>
+            </div>
+          </section>
 
-              <div className="port-metric-grid">
-                <div className="port-metric-item">
-                  <span>Carat Weight</span>
-                  <strong>{gem.carat} ct</strong>
+          {/* ─── Right — Panel ─── */}
+          <aside className="gd-panel">
+            {/* Header card */}
+            <div className="gd-surface-card gd-panel-header-card">
+              <div className="gd-panel-kicker-row">
+                <span className="gd-panel-kicker">Gemstone Details</span>
+                <span className={getStatusClass(gem.status)}>{getStatusLabel(gem.status)}</span>
+              </div>
+              <h2 className="gd-panel-title">{gem.type}</h2>
+              <p className="gd-panel-subtitle">
+                Detailed specifications and certification for your portfolio listing.
+              </p>
+            </div>
+
+            {/* Metrics card */}
+            <div className="gd-surface-card">
+              <div className="gd-metrics-list">
+                <div className="gd-metric-item">
+                  <span className="gd-metric-label">Carat Weight</span>
+                  <strong className="gd-metric-value">{gem.carat} ct</strong>
                 </div>
-                <div className="port-metric-item">
-                  <span>Shape & Cut</span>
-                  <strong>{gem.cut}</strong>
+                <div className="gd-metric-item">
+                  <span className="gd-metric-label">Shape &amp; Cut</span>
+                  <strong className="gd-metric-value">{gem.cut}</strong>
                 </div>
-                <div className="port-metric-item">
-                  <span>Clarity</span>
-                  <strong>{gem.clarity || 'VVS1'}</strong>
+                <div className="gd-metric-item">
+                  <span className="gd-metric-label">Clarity</span>
+                  <strong className="gd-metric-value">{gem.clarity || 'VVS1'}</strong>
                 </div>
-                <div className="port-metric-item">
-                  <span>Color Grade</span>
-                  <strong>{gem.color}</strong>
-                </div>
-                <div className="port-metric-item port-metric-wide">
-                  <span>Geographic Origin</span>
-                  <strong>{gem.origin}</strong>
+                <div className="gd-metric-item">
+                  <span className="gd-metric-label">Color Grade</span>
+                  <strong className="gd-metric-value">{gem.color}</strong>
                 </div>
               </div>
             </div>
 
-            <div className="port-gem-panel">
-              <div className="port-panel-kicker">Heritage Story</div>
-              <h5 className="port-panel-title mb-2">Story</h5>
-              <p className="port-panel-copy">{gem.description || 'No descriptive backstory listed for this gemstone.'}</p>
-            </div>
-
-            <div className="port-gem-panel">
-              <div className="port-panel-kicker">Authenticity & Lab Guarantee</div>
-              <h5 className="port-panel-title mb-2">Certification</h5>
-              <div className="port-cert-meta">
-                <div><strong>Authority:</strong> {gem.certificate.authority || 'Lab Verified'}</div>
-                <div><strong>Report Number:</strong> {gem.certificate.certificateNumber || 'N/A'}</div>
-              </div>
-              <div className="port-cert-preview">
-                {isPdfCertificate ? (
-                  <PdfViewer url={certificateAccessUrl} />
-                ) : (
-                  <img src={certificateAccessUrl} alt="Certificate" className="w-100" style={{ maxHeight: '230px', objectFit: 'contain' }} />
+            {/* Certificate card — with download button (same as admin) */}
+            <div className="gd-surface-card">
+              <div className="gd-cert-tile">
+                <div className="gd-cert-icon">
+                  <FileDown size={18} />
+                </div>
+                <div className="gd-cert-copy">
+                  <span>{gem.certificate?.authority || 'Certificate'}</span>
+                  <strong>Verified Digital Copy</strong>
+                </div>
+                {certificateUrl && (
+                  <a
+                    href={certificateUrl}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void handleDownloadCertificate();
+                    }}
+                    className={`gd-download-link ${downloading ? 'disabled' : ''}`}
+                    aria-label="Download certificate"
+                  >
+                    <Download size={16} />
+                  </a>
                 )}
               </div>
-              <a
-                href={certificateAccessUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bdr-btn-primary mt-3 d-inline-flex align-items-center justify-content-center"
-                style={{ textDecoration: 'none', width: 'fit-content' }}
-              >
-                Open Official Laboratory Report
-              </a>
+
+              <div className="gd-cert-meta">
+                <div><span>Authority</span><strong>{gem.certificate?.authority || 'Unknown'}</strong></div>
+                <div><span>Certificate No.</span><strong>{gem.certificate?.certificateNumber || 'N/A'}</strong></div>
+              </div>
+
+              {/* Inline preview */}
+              {certificateUrl && isPdf && (
+                <PdfViewer
+                  url={certificateUrl}
+                  fileName={`${gem.type.replace(/\s+/g, '_').toLowerCase()}-certificate.pdf`}
+                />
+              )}
+              {certificateUrl && !isPdf && (
+                <div style={{ marginTop: 14 }}>
+                  <img
+                    src={certificateUrl}
+                    alt="Certificate"
+                    style={{ width: '100%', borderRadius: 12, border: '1px solid #e2e8f0' }}
+                  />
+                </div>
+              )}
             </div>
 
+            {/* Admin feedback */}
             {gem.adminFeedback && (
-              <div className="port-feedback-banner">
-                <strong>Verification Office Feedback:</strong> {gem.adminFeedback}
+              <div className="gd-feedback-banner">
+                <strong>Verification Office Feedback:</strong>
+                {gem.adminFeedback}
               </div>
             )}
-          </div>
+          </aside>
         </div>
       </Modal.Body>
-      <Modal.Footer className="port-modal-footer">
-        <Button className="port-modal-cancel" onClick={onHide}>
-          Close Details
-        </Button>
-      </Modal.Footer>
     </Modal>
   );
 };

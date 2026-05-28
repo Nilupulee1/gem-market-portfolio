@@ -83,7 +83,7 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
   // Extract unique gems from conversation
   const uniqueGems = React.useMemo(() => {
     const gemsMap = new Map<string, { _id: string; name?: string; type?: string; images?: string[] }>();
-    
+
     messages.forEach((msg) => {
       const msgGem = msg.gem || msg.auction?.gem;
       if (msgGem?._id) {
@@ -146,7 +146,7 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
         }
 
         if (!url) return;
-        
+
         const response = await axiosInstance.get(url);
         const fetchedMessages = response.data.messages || [];
         setMessages((prev) => mergeUniqueMessages(prev, fetchedMessages));
@@ -170,7 +170,7 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
     };
 
     initSocket(token);
-    
+
     if (auctionId) {
       console.log('Joining auction room:', auctionId);
       joinAuction(auctionId);

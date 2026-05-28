@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Download, FileDown, ScanSearch } from 'lucide-react';
 import type { Auction } from '../../types';
 import PdfViewer from '../common/PdfViewer';
+import '../../styles/gemdetails.css';
 
 interface GemDetailsProps {
   selectedAuction: Auction | null;
@@ -52,6 +53,7 @@ const GemDetails = ({
   onOpenSellerContact,
 }: GemDetailsProps) => {
   const [countdown, setCountdown] = useState<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!selectedAuction) return;
@@ -62,13 +64,12 @@ const GemDetails = ({
         setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         return;
       }
-
-      const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((ms / (1000 * 60)) % 60);
-      const seconds = Math.floor((ms / 1000) % 60);
-
-      setCountdown({ days, hours, minutes, seconds });
+      setCountdown({
+        days: Math.floor(ms / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((ms / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((ms / (1000 * 60)) % 60),
+        seconds: Math.floor((ms / 1000) % 60),
+      });
     };
 
     calculateCountdown();
@@ -86,275 +87,320 @@ const GemDetails = ({
     }
   };
 
-  if (!selectedAuction && !selectedGemDetails) {
-    return <></>;
-  }
+  if (!selectedAuction && !selectedGemDetails) return <></>;
 
   const gem = (selectedGemDetails || selectedAuction?.gem)!;
   const certificateUrl = getCertificateAccessUrl(gem.certificate);
   const hasCertificate = Boolean(certificateUrl);
 
+  // ── Same download logic as admin PendingGems.handleDownloadCertificate ──
+  const handleDownloadCertificate = async () => {
+    if (!certificateUrl) return;
+    setDownloading(true);
+    try {
+      const response = await fetch(certificateUrl);
+      if (!response.ok) throw new Error(`Failed to fetch certificate: ${response.status}`);
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = `${gem.type.replace(/\s+/g, '_').toLowerCase()}-certificate.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      console.error('Failed to download certificate:', error);
+      window.open(certificateUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-sheet">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-          <strong>{gem.type}</strong>
-          <button className="ghost-btn" type="button" onClick={onClose}>
+    <div className="gd-overlay" role="dialog" aria-modal="true">
+      <div className="gd-sheet">
+        {/* ─── Header ─── */}
+        <div className="gd-sheet-header">
+          <span className="gd-sheet-title">{gem.type}</span>
+          <button className="gd-close-btn" type="button" onClick={onClose}>
             <X size={15} />
           </button>
         </div>
 
-        {loading && <p className="empty-note mb-3">Loading details...</p>}
+        {loading && <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 12px' }}>Loading details…</p>}
 
-        <div className="modal-grid">
-          <div>
-            <img className="modal-photo" src={gem.images?.[0] || 'https://via.placeholder.com/760x480'} alt={gem.type} />
-            <div className="metric-row mt-2">
-              <div className="metric">
-                <p>Certified Authentic</p>
-                <strong>{gem.certificate?.authority || 'Not available'}</strong>
-              </div>
-              <div className="metric">
-                <p>Certificate No</p>
-                <strong>{gem.certificate?.certificateNumber || 'Not provided'}</strong>
-              </div>
+        <div className="gd-layout">
+          {/* ═══ Left — Media + Certificate ═══ */}
+          <section className="gd-media-panel">
+            <div className="gd-hero">
+              <span className="gd-hero-chip">{selectedAuction ? 'Auction Listing' : 'Gem Listing'}</span>
+              <img
+                src={gem.images?.[0] || 'https://via.placeholder.com/900x700'}
+                alt={gem.type}
+                className="gd-hero-image"
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/900x700'; }}
+              />
             </div>
 
-            <div className="metric cert-preview-card mt-2">
-              <p>Certificate Preview</p>
-              <strong>{gem.certificate?.authority || 'No certificate metadata'}</strong>
-              <div className="certificate-frame mt-2">
-                {!hasCertificate ? (
-                  <div className="empty-note mb-0">Certificate preview unavailable</div>
-                ) : isPdfCertificate(gem.certificate) ? (
-                  <PdfViewer url={certificateUrl} />
-                ) : (
-                  <img
-                    src={certificateUrl}
-                    alt="Certificate"
-                    className="w-100 rounded"
-                  />
-                )}
+            {/* Story card */}
+            <div className="gd-story-card">
+              <div className="gd-section-heading">
+                <div>
+                  <p>Gem Story</p>
+                  <h3>About this gemstone</h3>
+                </div>
+                <span className="gd-story-badge">
+                  <ScanSearch size={14} />
+                  Listing
+                </span>
               </div>
-              {hasCertificate && (
-                <a
-                  className="btn btn-outline-primary btn-sm mt-2"
-                  href={certificateUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open Certificate
-                </a>
+              <p className="gd-story-copy">
+                {gem.description || 'No description provided for this gemstone.'}
+              </p>
+              {selectedAuction && (
+                <div className="gd-story-meta">
+                  <div><span>Auction Starts</span><strong>{new Date(selectedAuction.startTime).toLocaleDateString()}</strong></div>
+                  <div><span>Auction Ends</span><strong>{new Date(selectedAuction.endTime).toLocaleDateString()}</strong></div>
+                  <div><span>Status</span><strong style={{ textTransform: 'capitalize' }}>{selectedAuction.status}</strong></div>
+                </div>
               )}
             </div>
-          </div>
 
-          <div>
-                <div className="metric-row">
-                  <div className="metric"><p>Carat</p><strong>{gem.carat} ct</strong></div>
-                  <div className="metric"><p>Cut</p><strong>{gem.cut}</strong></div>
-                  <div className="metric"><p>Color</p><strong>{gem.color}</strong></div>
-                  <div className="metric"><p>Origin</p><strong>{gem.origin}</strong></div>
+            {/* Certificate card (same as admin) */}
+            {hasCertificate && (
+              <div className="gd-surface-card">
+                <div className="gd-cert-tile">
+                  <div className="gd-cert-icon">
+                    <FileDown size={18} />
+                  </div>
+                  <div className="gd-cert-copy">
+                    <span>{gem.certificate?.authority || 'Certificate'}</span>
+                    <strong>Verified Digital Copy</strong>
+                  </div>
+                  <a
+                    href={certificateUrl}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void handleDownloadCertificate();
+                    }}
+                    className={`gd-download-link ${downloading ? 'disabled' : ''}`}
+                    aria-label="Download certificate"
+                  >
+                    <Download size={16} />
+                  </a>
                 </div>
 
+                <div className="gd-cert-meta">
+                  <div><span>Authority</span><strong>{gem.certificate?.authority || 'N/A'}</strong></div>
+                  <div><span>Certificate No.</span><strong>{gem.certificate?.certificateNumber || 'N/A'}</strong></div>
+                </div>
+
+                {/* Inline preview */}
+                {isPdfCertificate(gem.certificate) ? (
+                  <PdfViewer
+                    url={certificateUrl}
+                    fileName={`${gem.type.replace(/\s+/g, '_').toLowerCase()}-certificate.pdf`}
+                  />
+                ) : (
+                  <div style={{ marginTop: 14 }}>
+                    <img
+                      src={certificateUrl}
+                      alt="Certificate"
+                      style={{ width: '100%', borderRadius: 12, border: '1px solid #e2e8f0' }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* ═══ Right — Panel ═══ */}
+          <aside className="gd-panel">
+            {/* Header */}
+            <div className="gd-surface-card gd-panel-header-card">
+              <div className="gd-panel-kicker-row">
+                <span className="gd-panel-kicker">Gem Details</span>
+                <span className="gd-panel-id">#{gem._id?.slice(-8)?.toUpperCase()}</span>
+              </div>
+              <h2 className="gd-panel-title">{gem.type}</h2>
+              <p className="gd-panel-subtitle">
+                {selectedAuction
+                  ? 'Review details and place your bid below.'
+                  : 'Gem specifications and listing details.'}
+              </p>
+            </div>
+
+            {/* Metrics */}
+            <div className="gd-surface-card">
+              <div className="gd-metrics-list">
+                <div className="gd-metric-item">
+                  <span className="gd-metric-label">Carat</span>
+                  <strong className="gd-metric-value">{gem.carat} ct</strong>
+                </div>
+                <div className="gd-metric-item">
+                  <span className="gd-metric-label">Cut</span>
+                  <strong className="gd-metric-value">{gem.cut}</strong>
+                </div>
+                <div className="gd-metric-item">
+                  <span className="gd-metric-label">Color</span>
+                  <strong className="gd-metric-value">{gem.color}</strong>
+                </div>
+                <div className="gd-metric-item">
+                  <span className="gd-metric-label">Origin</span>
+                  <strong className="gd-metric-value">{gem.origin}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Auction / Bidding ── */}
             {selectedAuction ? (
               <>
-                <div className="metric-row mb-3">
-                  <div className="metric">
-                    <p>Current Leader</p>
-                    <strong>{getLeadingBidderName(selectedAuction)}</strong>
-                  </div>
-                  <div className="metric">
-                    <p>Current Bid</p>
-                    <strong>{formatCurrency(selectedAuction.currentBid)}</strong>
-                  </div>
-                </div>
-
-                <p className="text-secondary">{gem.description}</p>
-
                 {selectedAuction.status === 'active' ? (
-                  <section className="block-card">
+                  <div className="gd-surface-card gd-bid-card">
                     {bidFeedback && (
-                      <div className={`alert ${bidFeedback.type === 'success' ? 'alert-success' : 'alert-warning'}`} role="alert">
+                      <div className={`gd-alert ${bidFeedback.type === 'success' ? 'gd-alert--success' : 'gd-alert--warning'}`}>
                         {bidFeedback.message}
                       </div>
                     )}
 
-                    {/* Countdown Timer */}
-                    {selectedAuction.status === 'active' && (
-                      <div className="mb-3" style={{ padding: '16px', backgroundColor: 'rgba(255, 193, 7, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 193, 7, 0.3)' }}>
-                        <p className="m-0 text-secondary small">Auction Ends In</p>
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107' }}>{String(countdown.days).padStart(2, '0')}</div>
-                            <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>DAYS</div>
-                          </div>
-                          <div style={{ fontSize: '20px', color: '#999' }}>:</div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107' }}>{String(countdown.hours).padStart(2, '0')}</div>
-                            <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>HOURS</div>
-                          </div>
-                          <div style={{ fontSize: '20px', color: '#999' }}>:</div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107' }}>{String(countdown.minutes).padStart(2, '0')}</div>
-                            <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>MINS</div>
-                          </div>
-                          <div style={{ fontSize: '20px', color: '#999' }}>:</div>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ffc107' }}>{String(countdown.seconds).padStart(2, '0')}</div>
-                            <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>SECS</div>
-                          </div>
-                        </div>
+                    {/* Countdown */}
+                    <p className="gd-bid-label">Auction Ends In</p>
+                    <div className="gd-countdown">
+                      <div className="gd-countdown-unit">
+                        <div className="gd-countdown-num">{String(countdown.days).padStart(2, '0')}</div>
+                        <div className="gd-countdown-lbl">DAYS</div>
                       </div>
-                    )}
+                      <span className="gd-countdown-sep">:</span>
+                      <div className="gd-countdown-unit">
+                        <div className="gd-countdown-num">{String(countdown.hours).padStart(2, '0')}</div>
+                        <div className="gd-countdown-lbl">HOURS</div>
+                      </div>
+                      <span className="gd-countdown-sep">:</span>
+                      <div className="gd-countdown-unit">
+                        <div className="gd-countdown-num">{String(countdown.minutes).padStart(2, '0')}</div>
+                        <div className="gd-countdown-lbl">MINS</div>
+                      </div>
+                      <span className="gd-countdown-sep">:</span>
+                      <div className="gd-countdown-unit">
+                        <div className="gd-countdown-num">{String(countdown.seconds).padStart(2, '0')}</div>
+                        <div className="gd-countdown-lbl">SECS</div>
+                      </div>
+                    </div>
 
-                    <p className="m-0 text-secondary small mb-2">Current Highest Bid</p>
-                    <div className="bid-price">{formatCurrency(selectedAuction.currentBid)}</div>
-                    <p className="text-secondary small mb-3">
+                    {/* Current bid */}
+                    <p className="gd-bid-label">Current Highest Bid</p>
+                    <div className="gd-bid-price">{formatCurrency(selectedAuction.currentBid)}</div>
+                    <p className="gd-bid-sub">
                       by <strong>{getLeadingBidderName(selectedAuction)}</strong>
                     </p>
 
-                    <p className="m-0 text-secondary small mb-2">Your Bid</p>
-                    <div className="d-flex gap-2 mb-3">
-                      <input
-                        className="buyer-search"
-                        value={bidAmount}
-                        onChange={(event) => onBidAmountChange(event.target.value)}
-                        type="number"
-                        min={selectedAuction.currentBid + selectedAuction.minimumBidIncrement}
-                        placeholder={String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement)}
-                      />
+                    {/* Bid input */}
+                    <p className="gd-bid-label">Your Bid</p>
+                    <input
+                      className="gd-bid-input"
+                      value={bidAmount}
+                      onChange={(e) => onBidAmountChange(e.target.value)}
+                      type="number"
+                      min={selectedAuction.currentBid + selectedAuction.minimumBidIncrement}
+                      placeholder={String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement)}
+                    />
+
+                    {/* Quick bids */}
+                    <div className="gd-quick-bids">
+                      <button className="gd-quick-bid-btn" type="button" onClick={() => addToCurrentBid(100)}>+Rs.100</button>
+                      <button className="gd-quick-bid-btn" type="button" onClick={() => addToCurrentBid(250)}>+Rs.250</button>
+                      <button className="gd-quick-bid-btn" type="button" onClick={() => addToCurrentBid(500)}>+Rs.500</button>
                     </div>
 
-                    {/* Quick Bid Buttons */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
-                      <button 
-                        className="ghost-btn" 
-                        type="button" 
-                        onClick={() => addToCurrentBid(100)}
-                        style={{ padding: '8px 12px', fontSize: '14px' }}
-                      >
-                        +Rs.100
-                      </button>
-                      <button 
-                        className="ghost-btn" 
-                        type="button" 
-                        onClick={() => addToCurrentBid(250)}
-                        style={{ padding: '8px 12px', fontSize: '14px' }}
-                      >
-                        +Rs.250
-                      </button>
-                      <button 
-                        className="ghost-btn" 
-                        type="button" 
-                        onClick={() => addToCurrentBid(500)}
-                        style={{ padding: '8px 12px', fontSize: '14px' }}
-                      >
-                        +Rs.500
-                      </button>
-                    </div>
-
-                    <button className="bid-btn w-100" type="button" disabled={placingBid} onClick={onRequestBidConfirmation}>
-                      {placingBid ? 'Placing...' : 'Place Bid'}
+                    <button className="gd-place-bid-btn" type="button" disabled={placingBid} onClick={onRequestBidConfirmation}>
+                      {placingBid ? 'Placing…' : 'Place Bid'}
                     </button>
 
-                    <p className="text-secondary small mt-2 mb-0">
+                    <p className="gd-min-increment">
                       Minimum increment: {formatCurrency(selectedAuction.minimumBidIncrement)}
                     </p>
-                  </section>
+                  </div>
                 ) : (
-                  <section className="block-card">
-                    <p className="m-0 text-secondary">Auction ended</p>
-                    <div className="bid-price">Winner: {getLeadingBidderName(selectedAuction)}</div>
-                    <p className="text-secondary small mb-3">
-                      Final bid: {formatCurrency(selectedAuction.currentBid)}
-                    </p>
+                  /* Auction ended */
+                  <div className="gd-surface-card gd-bid-card">
+                    <p className="gd-bid-label">Auction Ended</p>
+                    <div className="gd-bid-price">Winner: {getLeadingBidderName(selectedAuction)}</div>
+                    <p className="gd-bid-sub">Final bid: {formatCurrency(selectedAuction.currentBid)}</p>
                     {selectedAuction.seller && (
                       <button
-                        className="bid-btn w-100"
+                        className="gd-contact-btn"
                         type="button"
                         onClick={() => onOpenSellerContact(selectedAuction.seller, gem.type, selectedAuction.gem._id || gem._id)}
                       >
                         Contact Seller
                       </button>
                     )}
-                  </section>
+                  </div>
                 )}
-              </>
-            ) : (
-              <>
-                <p className="text-secondary">{gem.description}</p>
-                <section className="block-card">
-                  <p className="m-0 text-secondary">Direct sale listing</p>
-                  <div className="d-flex gap-2 mt-2">
-                    <a
-                      className="bid-btn"
-                      href={gem.seller?.email ? `mailto:${gem.seller.email}?subject=Inquiry about ${encodeURIComponent(gem.type)}` : '#'}
-                    >
-                      Contact Seller
-                    </a>
-                  </div>
-                </section>
-              </>
-            )}
 
-            {selectedAuction && (
-              <section className="block-card">
-                <h6>Gem History</h6>
-                <div className="d-flex flex-column gap-2">
-                  <div className="d-flex justify-content-between border-bottom py-2">
-                    <span className="text-secondary">Auction status</span>
-                    <strong>{selectedAuction.status}</strong>
-                  </div>
-                  <div className="d-flex justify-content-between border-bottom py-2">
-                    <span className="text-secondary">Auction started</span>
-                    <strong>{new Date(selectedAuction.startTime).toLocaleString()}</strong>
-                  </div>
-                  <div className="d-flex justify-content-between border-bottom py-2">
-                    <span className="text-secondary">Auction ends</span>
-                    <strong>{new Date(selectedAuction.endTime).toLocaleString()}</strong>
-                  </div>
-                  <div className="d-flex justify-content-between border-bottom py-2">
-                    <span className="text-secondary">Certificate</span>
-                    <strong>{gem.certificate?.certificateNumber || 'N/A'}</strong>
-                  </div>
-                </div>
-
-                <h6 className="mt-3">Bid History</h6>
-                {selectedAuction.bids.length === 0 ? (
-                  <p className="text-secondary mb-0">No bids yet.</p>
-                ) : (
-                  selectedAuction.bids.slice().reverse().slice(0, 5).map((bid, index) => (
-                    <div key={`${bid.timestamp}-${index}`} className="d-flex justify-content-between align-items-start border-bottom py-2 gap-2">
-                      <div>
-                        <strong>{bid.bidder.name}</strong>
-                        <div className="text-secondary small">{formatDateTime(bid.timestamp)}</div>
-                      </div>
-                      <div className="text-end">
-                        <strong>{formatCurrency(bid.amount)}</strong>
-                        <div className="text-secondary small">{index === 0 ? 'Latest bid' : 'Earlier bid'}</div>
-                      </div>
+                {/* Bid history */}
+                <div className="gd-surface-card">
+                  <div className="gd-section-heading">
+                    <div>
+                      <p>History</p>
+                      <h3>Bid Activity</h3>
                     </div>
-                  ))
-                )}
+                  </div>
 
-                <h6 className="mt-3">Your Gem History</h6>
-                {bidHistory.filter((entry) => entry.auctionId === selectedAuction._id).length === 0 ? (
-                  <p className="text-secondary mb-0">No personal bid history for this gem.</p>
-                ) : (
-                  bidHistory
-                    .filter((entry) => entry.auctionId === selectedAuction._id)
-                    .slice(0, 5)
-                    .map((entry, index) => (
-                      <div key={`${entry.timestamp}-${index}`} className="d-flex justify-content-between border-bottom py-2">
-                        <span>{new Date(entry.timestamp).toLocaleString()}</span>
-                        <strong>{formatCurrency(entry.amount)}</strong>
+                  {selectedAuction.bids.length === 0 ? (
+                    <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>No bids yet.</p>
+                  ) : (
+                    selectedAuction.bids.slice().reverse().slice(0, 5).map((bid, i) => (
+                      <div key={`${bid.timestamp}-${i}`} className="gd-history-row">
+                        <div>
+                          <div className="gd-history-name">{bid.bidder.name}</div>
+                          <div className="gd-history-date">{formatDateTime(bid.timestamp)}</div>
+                        </div>
+                        <div>
+                          <div className="gd-history-amount">{formatCurrency(bid.amount)}</div>
+                          <div className="gd-history-label">{i === 0 ? 'Latest bid' : 'Earlier bid'}</div>
+                        </div>
                       </div>
                     ))
-                )}
-              </section>
+                  )}
+
+                  {/* Personal bid history */}
+                  {bidHistory.filter((e) => e.auctionId === selectedAuction._id).length > 0 && (
+                    <>
+                      <div className="gd-section-heading" style={{ marginTop: 16 }}>
+                        <div>
+                          <p>Your Bids</p>
+                          <h3>Personal History</h3>
+                        </div>
+                      </div>
+                      {bidHistory
+                        .filter((e) => e.auctionId === selectedAuction._id)
+                        .slice(0, 5)
+                        .map((entry, i) => (
+                          <div key={`${entry.timestamp}-${i}`} className="gd-history-row">
+                            <div className="gd-history-date">{new Date(entry.timestamp).toLocaleString()}</div>
+                            <div className="gd-history-amount">{formatCurrency(entry.amount)}</div>
+                          </div>
+                        ))}
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* Direct sale (no auction) */
+              <div className="gd-surface-card gd-bid-card">
+                <p className="gd-bid-label">Direct Sale</p>
+                <p className="gd-story-copy">{gem.description || 'Contact the seller for more information.'}</p>
+                <a
+                  className="gd-contact-btn"
+                  href={gem.seller?.email ? `mailto:${gem.seller.email}?subject=Inquiry about ${encodeURIComponent(gem.type)}` : '#'}
+                >
+                  Contact Seller
+                </a>
+              </div>
             )}
-          </div>
+          </aside>
         </div>
       </div>
     </div>

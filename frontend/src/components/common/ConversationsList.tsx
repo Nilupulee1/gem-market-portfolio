@@ -229,5 +229,4 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
     </div>
   );
 };
-
 export default ConversationsList;

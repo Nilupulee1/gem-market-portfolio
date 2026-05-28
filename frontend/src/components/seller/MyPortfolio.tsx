@@ -292,38 +292,48 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
       />
 
       {/* ── Edit Modal ── */}
-      <Modal show={showEditModal} onHide={closeEdit} centered size="lg">
-        <Modal.Header closeButton className="port-modal-header">
-          <Modal.Title className="port-modal-title">
-            <Edit2 size={18} style={{ display: 'inline', marginRight: 10, verticalAlign: 'middle' }} />
+      <Modal show={showEditModal} onHide={closeEdit} centered size="lg" backdrop="static">
+        <Modal.Header closeButton className="border-0 pb-0 pt-4 px-4">
+          <Modal.Title className="fw-bold fs-4 d-flex align-items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+            <div className="d-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style={{ width: '40px', height: '40px', color: 'var(--color-primary)' }}>
+              <Edit2 size={20} />
+            </div>
             Edit Gem Details
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body className="port-modal-body">
+        <Modal.Body className="px-4 py-4">
           {actionError && (
-            <Alert variant="danger" className="port-alert-error">{actionError}</Alert>
+            <Alert variant="danger" className="port-alert-error mb-4 border-0 shadow-sm">{actionError}</Alert>
           )}
-          <Row className="g-3">
+          <Row className="g-4">
             {FORM_FIELDS.map(({ key, label, col, type }) => (
               <Col md={col} key={key}>
                 <Form.Group>
-                  <Form.Label className="port-form-label">{label}</Form.Label>
+                  <Form.Label className="text-uppercase fw-bold text-secondary mb-2" style={{ fontSize: '12px', letterSpacing: '0.05em' }}>
+                    {label}
+                  </Form.Label>
                   {type === 'textarea' ? (
                     <Form.Control
                       as="textarea"
-                      rows={3}
-                      className="port-form-control"
+                      rows={4}
+                      className="form-control bg-light border-0 shadow-none px-3 py-2"
+                      style={{ borderRadius: '12px', fontSize: '14px', transition: 'all 0.2s ease' }}
                       value={editForm[key]}
                       onChange={e => setEditForm(p => ({ ...p, [key]: e.target.value }))}
+                      onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(47, 109, 225, 0.15)'}
+                      onBlur={e => e.target.style.boxShadow = 'none'}
                     />
                   ) : (
                     <Form.Control
                       type={type}
                       step={type === 'number' ? '0.01' : undefined}
                       min={type === 'number' ? '0' : undefined}
-                      className="port-form-control"
+                      className="form-control bg-light border-0 shadow-none px-3 py-2"
+                      style={{ borderRadius: '12px', fontSize: '14px', transition: 'all 0.2s ease', height: '46px' }}
                       value={editForm[key]}
                       onChange={e => setEditForm(p => ({ ...p, [key]: e.target.value }))}
+                      onFocus={e => e.target.style.boxShadow = '0 0 0 3px rgba(47, 109, 225, 0.15)'}
+                      onBlur={e => e.target.style.boxShadow = 'none'}
                     />
                   )}
                 </Form.Group>
@@ -331,11 +341,22 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
             ))}
           </Row>
         </Modal.Body>
-        <Modal.Footer className="port-modal-footer">
-          <button className="port-modal-cancel" onClick={closeEdit}>Cancel</button>
-          <button className="port-modal-save" onClick={handleEditSave} disabled={isSaving}>
+        <Modal.Footer className="border-0 pt-0 pb-4 px-4 d-flex justify-content-end gap-2">
+          <button 
+            className="btn btn-light fw-semibold px-4 py-2" 
+            style={{ borderRadius: '10px', color: 'var(--text-secondary)' }}
+            onClick={closeEdit}
+          >
+            Cancel
+          </button>
+          <button 
+            className="btn btn-primary fw-semibold px-4 py-2 d-flex align-items-center gap-2" 
+            style={{ borderRadius: '10px', background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-bright) 100%)', border: 'none', boxShadow: '0 4px 12px rgba(47, 109, 225, 0.25)' }}
+            onClick={handleEditSave} 
+            disabled={isSaving}
+          >
             {isSaving ? (
-              <><span className="port-spinner" /> Saving…</>
+              <><span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving…</>
             ) : (
               'Save Changes'
             )}
