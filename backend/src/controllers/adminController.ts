@@ -5,6 +5,7 @@ import Gem from '../models/Gem';
 import Auction from '../models/Auction';
 import User from '../models/User';
 import { AuctionStatus, GemStatus } from '../types';
+import { emitActivity } from '../config/websocket';
 
 const extractCloudinaryPublicId = (url: string) => {
   try {
@@ -24,33 +25,7 @@ const extractCloudinaryPublicId = (url: string) => {
 
 const getCertificateAccessUrl = (certificate?: { url?: string; mimeType?: string }) => {
   const certificateUrl = certificate?.url;
-  if (!certificateUrl) return certificateUrl;
-
-  const normalizedUrl = certificateUrl.toLowerCase();
-  const isPdfCertificate =
-    certificate?.mimeType === 'application/pdf' ||
-    normalizedUrl.includes('.pdf') ||
-    normalizedUrl.includes('application/pdf');
-
-  if (!isPdfCertificate) {
-    return certificateUrl;
-  }
-
-  const publicId = extractCloudinaryPublicId(certificateUrl);
-  if (!publicId) {
-    console.warn('⚠️  Failed to extract public ID from certificate URL:', certificateUrl);
-    return certificateUrl;
-  }
-
-  const signedUrl = cloudinary.utils.private_download_url(publicId, 'pdf', {
-    resource_type: 'image',
-    type: 'upload',
-  });
-  
-  console.log('🔐 Generated signed URL for public ID:', publicId);
-  console.log('📄 Signed URL:', signedUrl);
-
-  return signedUrl;
+  return certificateUrl || '';
 };
 
 const withCertificateAccessUrl = <T extends { certificate?: { url?: string; mimeType?: string } }>(gem: T): T => ({
@@ -116,6 +91,11 @@ export const reviewGem = async (req: Request, res: Response) => {
 
     await gem.save();
 
+      try {
+        emitActivity({ type: 'gem_review', title: `Gem ${gem.type} has been ${status}`, time: new Date(), tone: status === 'approved' ? 'success' : 'warning' });
+      } catch (err) {
+        console.warn('emitActivity failed for gem review', err);
+      }
     res.json({
       message: `Gem ${status} successfully`,
       gem: withCertificateAccessUrl(gem.toObject())
@@ -144,6 +124,22 @@ export const getStatistics = async (req: Request, res: Response) => {
     const approvedGems = await Gem.countDocuments({ status: GemStatus.APPROVED });
     const totalAuctions = await Auction.countDocuments();
     const activeAuctions = await Auction.countDocuments({ status: AuctionStatus.ACTIVE });
+    const revenueResult = await Auction.aggregate([
+      {
+        $match: {
+          paymentConfirmed: true,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: {
+            $sum: '$listingPlacementFee',
+          },
+        },
+      },
+    ]);
+    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
 
     res.json({
       statistics: {
@@ -153,6 +149,7 @@ export const getStatistics = async (req: Request, res: Response) => {
         approvedGems,
         totalAuctions,
         activeAuctions,
+        totalRevenue,
       }
     });
   } catch (error) {
@@ -177,6 +174,42 @@ export const getAllAuctions = async (req: Request, res: Response) => {
       })),
     });
   } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const getRecentActivity = async (req: Request, res: Response) => {
+  try {
+    const recentUsers = await User.find({ role: 'seller' }).select('name createdAt').sort({ createdAt: -1 }).limit(10);
+    const recentAuctions = await Auction.find().select('gem status createdAt endTime').populate('gem', 'type').sort({ createdAt: -1 }).limit(20);
+    const recentGems = await Gem.find().select('type status createdAt updatedAt').sort({ createdAt: -1 }).limit(10);
+
+    const items: Array<any> = [];
+    for (const u of recentUsers) {
+      items.push({ type: 'user_registration', title: `${u.name} registered as a new seller`, time: u.createdAt, tone: 'success' });
+    }
+
+    for (const a of recentAuctions) {
+      if (a.status === AuctionStatus.ENDED) {
+        items.push({ type: 'auction_ended', title: `Auction for “${(a.gem as any)?.type || 'item'}” has ended.`, time: a.endTime || a.createdAt, tone: 'info' });
+      } else {
+        items.push({ type: 'auction_listed', title: `A new auction for “${(a.gem as any)?.type || 'item'}” was listed.`, time: a.createdAt, tone: 'warning' });
+      }
+    }
+
+    for (const g of recentGems) {
+      if (g.status === GemStatus.APPROVED) {
+        items.push({ type: 'gem_approved', title: `Gem “${g.type}” has been approved.`, time: g.updatedAt || g.createdAt, tone: 'neutral' });
+      } else {
+        items.push({ type: 'gem_submitted', title: `Gem “${g.type}” submitted for review.`, time: g.createdAt, tone: 'warning' });
+      }
+    }
+
+    // sort by time desc and limit
+    items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    res.json({ activity: items.slice(0, 12) });
+  } catch (error) {
+    console.error('Error building recent activity:', error);
     res.status(500).json({ message: 'Server error', error });
   }
 };

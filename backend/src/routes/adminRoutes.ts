@@ -8,6 +8,7 @@ import {
   getAllUsers,
   getStatistics,
   getAllAuctions
+  , getRecentActivity
 } from '../controllers/adminController';
 
 const router = express.Router();
@@ -19,5 +20,6 @@ router.post('/gems/review', reviewGem);
 router.get('/users', getAllUsers);
 router.get('/statistics', getStatistics);
 router.get('/auctions', getAllAuctions);
+router.get('/activity', getRecentActivity);
 
 export default router;

@@ -7,6 +7,7 @@ import Gem from '../models/Gem';
 import User from '../models/User';
 import { AuctionStatus, GemStatus } from '../types';
 import cloudinary from '../config/cloudinary';
+import { emitActivity } from '../config/websocket';
 
 const extractCloudinaryPublicId = (url: string) => {
   try {
@@ -26,27 +27,7 @@ const extractCloudinaryPublicId = (url: string) => {
 
 const getCertificateAccessUrl = (certificate?: { url?: string; mimeType?: string }) => {
   const certificateUrl = certificate?.url;
-  if (!certificateUrl) return certificateUrl;
-
-  const normalizedUrl = certificateUrl.toLowerCase();
-  const isPdfCertificate =
-    certificate?.mimeType === 'application/pdf' ||
-    normalizedUrl.includes('.pdf') ||
-    normalizedUrl.includes('application/pdf');
-
-  if (!isPdfCertificate) {
-    return certificateUrl;
-  }
-
-  const publicId = extractCloudinaryPublicId(certificateUrl);
-  if (!publicId) {
-    return certificateUrl;
-  }
-
-  return cloudinary.utils.private_download_url(publicId, 'pdf', {
-    resource_type: 'image',
-    type: 'upload',
-  });
+  return certificateUrl || '';
 };
 
 const withCertificateAccessUrl = <T extends { certificate?: { url?: string; mimeType?: string } }>(gem: T): T => ({
@@ -182,6 +163,12 @@ export const createAuction = async (req: Request, res: Response) => {
     // Populate gem data before sending response
     await auction.populate('gem');
     await auction.populate('seller', 'name email');
+
+    try {
+      emitActivity({ type: 'auction_created', title: `A new auction for “${(auction.gem as any)?.type || 'item'}” was listed.`, time: new Date(), tone: 'warning' });
+    } catch (err) {
+      console.warn('emitActivity failed for auction create', err);
+    }
 
     res.status(201).json({
       message: 'Auction created successfully',

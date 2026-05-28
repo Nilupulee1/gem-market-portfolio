@@ -1,36 +1,39 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell,
-  ChevronDown,
   CheckCircle,
-  Clock,
   Gavel,
   LogOut,
   Package,
-  Search,
   ShieldCheck,
-  ShoppingCart,
+  Moon,
+  Sun,
   TrendingUp,
   Users,
+  AlertCircle,
 } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
+import { onActivity } from '../../api/socket';
 import { useAuthStore } from '../../store/authStore';
 import PendingGems from './PendingGems';
 import UserManagement from './UserManagement';
-import AuctionManagement from './AuctionManagement';
+import AuctionManagement from './AuctionManagement.tsx';
 import type { DashboardStats } from '../../types/admin';
+import type { Gem } from '../../types';
+import logo from '../../assets/logo.png';
+
+import '../../styles/admin.css';
 
 type TabType = 'dashboard' | 'pending-gems' | 'users' | 'auctions';
+type ThemeMode = 'light' | 'dark';
 type Tone = 'teal' | 'indigo' | 'amber' | 'rose';
 
-const chartBaseValues = [18, 32, 24, 40, 29, 52, 34, 58, 42, 60, 33, 68];
-
-const sidebarItems: Array<{ id: TabType; label: string; icon: typeof TrendingUp }> = [
+const sidebarItems: Array<{ id: TabType; label: string; icon: any }> = [
   { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-  { id: 'pending-gems', label: 'Products', icon: Package },
-  { id: 'users', label: 'Orders', icon: Users },
-  { id: 'auctions', label: 'Revenue', icon: Gavel },
+  { id: 'pending-gems', label: 'Verifications', icon: ShieldCheck },
+  { id: 'users', label: 'Users', icon: Users },
+  { id: 'auctions', label: 'Auctions', icon: Gavel },
+  
 ];
 
 const formatCompactNumber = (value?: number | null) => {
@@ -42,22 +45,13 @@ const formatCompactNumber = (value?: number | null) => {
   }
 };
 
-const buildSparkline = (values: number[], width = 600, height = 220) => {
-  const maxValue = Math.max(...values, 1);
-  const stepX = width / Math.max(values.length - 1, 1);
-  const points = values.map((value, index) => {
-    const x = index * stepX;
-    const y = height - (value / maxValue) * (height - 26) - 12;
-    return { x, y };
-  });
-
-  return {
-    line: points.map(({ x, y }) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' '),
-    area: `${points.map(({ x, y }) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')} ${width},${height} 0,${height}`,
-  };
-};
-
-const AdminDashboard = () => {
+const AdminDashboard = ({
+  theme,
+  onToggleTheme,
+}: {
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+}) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -68,11 +62,29 @@ const AdminDashboard = () => {
     approvedGems: 0,
     totalAuctions: 0,
     activeAuctions: 0,
+    totalRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [verificationRows, setVerificationRows] = useState<
+    Array<{ id: string; gem: string; seller: string; date: string; action: string }>
+  >([]);
+  const [verificationLoading, setVerificationLoading] = useState(true);
+  const [verificationError, setVerificationError] = useState('');
 
   useEffect(() => {
     fetchStatistics();
+    void fetchVerificationRows();
+    void fetchRecentActivity();
+
+    try {
+      onActivity((payload: any) => {
+        const icon = payload.type === 'user_registered' ? Users : payload.type === 'auction_ended' ? Gavel : payload.type === 'gem_review' ? CheckCircle : Package;
+        const item = { icon, title: payload.title, time: relativeTime(new Date(payload.time || Date.now())), tone: payload.tone || 'info' };
+        setRecentActivity((prev) => [item, ...prev].slice(0, 6));
+      });
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   const fetchStatistics = async () => {
@@ -92,230 +104,245 @@ const AdminDashboard = () => {
     navigate('/login');
   };
 
-  const dashboardInsights = useMemo(() => {
-    const totalGems = stats.totalGems || 0;
-    const approvalRate = totalGems ? Math.round((stats.approvedGems / totalGems) * 100) : 0;
-    const reviewQueueRate = totalGems ? Math.round((stats.pendingGems / totalGems) * 100) : 0;
-    const auctionHealth = stats.totalAuctions ? Math.round((stats.activeAuctions / stats.totalAuctions) * 100) : 0;
+  const formatVerificationDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toISOString().slice(0, 10);
+  };
 
-    return { approvalRate, reviewQueueRate, auctionHealth };
-  }, [stats]);
+  const fetchVerificationRows = async () => {
+    try {
+      setVerificationLoading(true);
+      setVerificationError('');
+      const response = await adminAPI.getPendingGems();
+      const gems: Gem[] = response.data.gems || [];
+      const rows = gems.slice(0, 4).map((gem) => ({
+        id: gem._id,
+        gem: gem.type,
+        seller: gem.seller?.name || 'Unknown seller',
+        date: formatVerificationDate(gem.createdAt),
+        action: 'Review',
+      }));
+      setVerificationRows(rows);
+    } catch (error) {
+      console.error('Error fetching verification queue:', error);
+      setVerificationError('Failed to load pending review queue');
+      setVerificationRows([]);
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
 
   const summaryCards = useMemo(
     () => [
-      { label: 'Daily Visitors', value: stats.totalUsers, change: '+18%', icon: Users, tone: 'teal' as Tone },
-      { label: 'Total Orders', value: stats.totalGems, change: '+30%', icon: ShoppingCart, tone: 'indigo' as Tone },
-      { label: 'Total Sales', value: stats.activeAuctions, change: '+22%', icon: Package, tone: 'amber' as Tone },
-      { label: 'Total Profit', value: stats.approvedGems, change: '+19%', icon: CheckCircle, tone: 'rose' as Tone },
+      { label: 'Pending Verification', value: stats.pendingGems, subtitle: 'awaiting review', icon: AlertCircle, tone: 'amber' as Tone },
+      { label: 'Active Listings', value: stats.activeAuctions, subtitle: 'live on market', icon: Package, tone: 'teal' as Tone },
+      { label: 'New User Registrations', value: Math.max(0, Math.round(stats.totalUsers * 0.018)), subtitle: '24h', icon: Users, tone: 'indigo' as Tone },
+      { label: 'Total Live Listings', value: stats.totalGems, subtitle: 'approved gems', icon: CheckCircle, tone: 'rose' as Tone },
     ],
-    [stats.activeAuctions, stats.approvedGems, stats.totalGems, stats.totalUsers]
+    [stats.activeAuctions, stats.pendingGems, stats.totalGems, stats.totalUsers]
   );
 
-  const sparkline = useMemo(() => {
-    const values = chartBaseValues.map((value, index) => {
-      const source = [stats.totalUsers, stats.totalGems, stats.pendingGems, stats.approvedGems, stats.activeAuctions][index % 5] || 0;
-      return value + Math.max(0, Math.min(18, Math.round(source / 5)));
-    });
+  const [recentActivity, setRecentActivity] = useState<Array<{ icon: any; title: string; time: string; tone: 'success' | 'info' | 'warning' | 'neutral' }>>([]);
 
-    return buildSparkline(values);
-  }, [stats.activeAuctions, stats.approvedGems, stats.pendingGems, stats.totalGems, stats.totalUsers]);
+  const relativeTime = (date: Date) => {
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diff < 60) return `${diff} sec${diff === 1 ? '' : 's'} ago`;
+    const mins = Math.floor(diff / 60);
+    if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  };
 
-  const statusBreakdown = useMemo(() => {
-    const total = Math.max(stats.activeAuctions + stats.approvedGems + stats.pendingGems, 1);
-    const active = Math.round((stats.activeAuctions / total) * 100);
-    const complete = Math.round((stats.approvedGems / total) * 100);
-    const hold = Math.max(0, 100 - active - complete);
+  const fetchRecentActivity = async () => {
+    try {
+      // Prefer server activity endpoint
+      if ((adminAPI as any).getActivity) {
+        const resp = await (adminAPI as any).getActivity();
+        const list = resp.data.activity || [];
+        const mapped = list.map((it: any) => ({
+          icon: it.type === 'user_registration' ? Users : it.type === 'auction_ended' ? Gavel : it.type === 'auction_listed' || it.type === 'auction_created' ? Package : CheckCircle,
+          title: it.title,
+          time: relativeTime(new Date(it.time)),
+          tone: it.tone || 'info'
+        }));
+        setRecentActivity(mapped.slice(0, 6));
+        return;
+      }
 
-    return [
-      { label: 'Active', value: active, color: '#6366f1' },
-      { label: 'Completed', value: complete, color: '#14b8a6' },
-      { label: 'On Hold', value: hold, color: '#f59e0b' },
-    ];
-  }, [stats.activeAuctions, stats.approvedGems, stats.pendingGems]);
+      // Fallback: build from users/auctions
+      const [auctionsResp, usersResp] = await Promise.all([adminAPI.getAllAuctions(), adminAPI.getAllUsers()]);
+      const auctionsList = auctionsResp.data.auctions || [];
+      const usersList = usersResp.data.users || [];
 
-  const recentRows = useMemo(
-    () => [
-      { label: 'Pending reviews', updated: 'Today', value: stats.pendingGems, status: stats.pendingGems > 0 ? 'Attention' : 'Clear', tone: stats.pendingGems > 0 ? 'warning' : 'success' },
-      { label: 'Approved gems', updated: 'Today', value: stats.approvedGems, status: 'Live', tone: 'success' },
-      { label: 'Active auctions', updated: 'Today', value: stats.activeAuctions, status: 'Open', tone: 'info' },
-      { label: 'Registered users', updated: 'Today', value: stats.totalUsers, status: 'Stable', tone: 'neutral' },
-    ],
-    [stats.activeAuctions, stats.approvedGems, stats.pendingGems, stats.totalUsers]
-  );
+      const items: Array<{ icon: any; title: string; time: string; tone: 'success' | 'info' | 'warning' | 'neutral' }> = [];
+
+      const now = new Date();
+
+      for (const u of usersList.slice(0, 6)) {
+        if (!u.createdAt) continue;
+        const created = new Date(u.createdAt);
+        items.push({ icon: Users, title: `${u.name} registered as a new seller`, time: relativeTime(created), tone: 'success' });
+      }
+
+      for (const a of auctionsList.slice(0, 12)) {
+        try {
+          if (a.status === 'ended' && a.endTime) {
+            const end = new Date(a.endTime);
+            if ((now.getTime() - end.getTime()) / (1000 * 60 * 60) < 24) {
+              items.push({ icon: Gavel, title: `Auction for “${a.gem?.type || 'item'}” has ended.`, time: relativeTime(end), tone: 'info' });
+            }
+          }
+
+          if (a.createdAt) {
+            const created = new Date(a.createdAt);
+            if ((now.getTime() - created.getTime()) / (1000 * 60 * 60) < 24 && a.status === 'active') {
+              items.push({ icon: Package, title: `A new high-value gem, “${a.gem?.type || 'item'}”, was listed.`, time: relativeTime(created), tone: 'warning' });
+            }
+          }
+        } catch (e) {
+          // ignore malformed dates
+        }
+      }
+
+      const deduped: Array<{ icon: any; title: string; time: string; tone: any }> = [];
+      const seen = new Set<string>();
+      for (const it of items) {
+        if (!seen.has(it.title)) {
+          seen.add(it.title);
+          deduped.push(it);
+        }
+        if (deduped.length >= 6) break;
+      }
+
+      setRecentActivity(deduped);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+    }
+  };
 
   const renderDashboard = () => (
-    <div className="admin-dashboard-grid">
-      <section className="admin-summary-column">
-        <div className="admin-kpi-grid">
-          {summaryCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <article key={card.label} className={`admin-kpi-card tone-${card.tone}`}>
-                <div className="admin-kpi-icon">
-                  <Icon size={20} />
-                </div>
-                <div className="admin-kpi-copy">
-                  <span>{card.label}</span>
-                  <strong>{formatCompactNumber(card.value)}</strong>
-                  <small>{card.change}</small>
-                </div>
-              </article>
-            );
-          })}
+    <div className="admin-overview">
+      <section className="dashboard-hero hero-premium-mesh admin-dashboard-hero">
+        <div>
+          <p className="dashboard-eyebrow">Admin dashboard</p>
+          <h4>Welcome back, {user?.name?.split(' ')[0] || 'Admin'}!</h4>
+          <p>Track approvals, active listings, and recent updates from one place.</p>
         </div>
 
-        <article className="admin-panel admin-chart-panel">
-          <div className="admin-panel-header">
+        <div className="dashboard-chip-stack">
+          <span className="dashboard-chip dashboard-chip-soft">
+            {stats.totalGems ? Math.round((stats.approvedGems / Math.max(stats.totalGems, 1)) * 100) : 0}% approval rate
+          </span>
+          <span className="dashboard-chip">{formatCompactNumber(stats.totalGems)} total listings</span>
+        </div>
+      </section>
+
+      <section className="admin-stat-grid" aria-label="Admin overview metrics">
+        {summaryCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <article key={card.label} className={`stat-card stat-card-${card.tone} h-100`}>
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-start mb-3">
+                  <div>
+                    <p className="text-muted mb-2 small">{card.label}</p>
+                    <h3 className="mb-0">{formatCompactNumber(card.value)}</h3>
+                    <small className="text-muted">{card.subtitle}</small>
+                  </div>
+                  <div className="stat-icon" style={{ background: 'rgba(47, 109, 225, 0.08)' }}>
+                    <Icon size={24} style={{ color: 'var(--color-bright)' }} />
+                  </div>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+
+      <div className="admin-bottom-grid">
+        <article className="admin-verify-card">
+          <div className="admin-card-header">
             <div>
-              <p className="admin-panel-kicker">Total Sales</p>
-              <h2>Rs. {formatCompactNumber(stats.totalUsers * 1250 + stats.approvedGems * 420)}</h2>
+              <p className="admin-card-kicker">Awaiting Verification</p>
+              <h2>Pending gem review queue</h2>
             </div>
-            <button type="button" className="admin-panel-filter">
-              <Clock size={14} />
-              Last Year
-              <ChevronDown size={14} />
+            <button type="button" className="admin-subtle-link" onClick={() => setActiveTab('pending-gems')}>
+              View all
             </button>
           </div>
 
-          <div className="admin-chart-frame">
-            <svg viewBox="0 0 600 220" className="admin-chart-svg" preserveAspectRatio="none" aria-hidden="true">
-              <defs>
-                <linearGradient id="adminChartFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(102, 111, 255, 0.28)" />
-                  <stop offset="100%" stopColor="rgba(102, 111, 255, 0)" />
-                </linearGradient>
-              </defs>
-              <path d={`M 0 220 L ${sparkline.area} Z`} fill="url(#adminChartFill)" />
-              <polyline points={sparkline.line} fill="none" stroke="#6b73ff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="260" cy="120" r="6" fill="#ff5c6c" />
-            </svg>
-
-            <div className="admin-chart-axis">
-              {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month) => (
-                <span key={month}>{month}</span>
-              ))}
-            </div>
-
-            <div className="admin-chart-tooltip">
-              <strong>Rs. {formatCompactNumber(stats.approvedGems * 1180 + stats.activeAuctions * 940)}</strong>
-              <span>30 June 2026</span>
-            </div>
-          </div>
-
-          <div className="admin-chart-footer">
-            <div>
-              <span className="admin-muted-label">Approval rate</span>
-              <strong>{dashboardInsights.approvalRate}%</strong>
-            </div>
-            <div>
-              <span className="admin-muted-label">Review queue</span>
-              <strong>{dashboardInsights.reviewQueueRate}%</strong>
-            </div>
-            <div>
-              <span className="admin-muted-label">Auction health</span>
-              <strong>{dashboardInsights.auctionHealth}%</strong>
-            </div>
-          </div>
-        </article>
-
-        <article className="admin-panel admin-table-panel">
-          <div className="admin-panel-header">
-            <div>
-              <p className="admin-panel-kicker">Recent Order</p>
-              <h2>Platform snapshot</h2>
-            </div>
-          </div>
-
           <div className="admin-table-wrap">
-            <table className="admin-table">
+            <table className="admin-verify-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Date</th>
-                  <th>Value</th>
-                  <th>Status</th>
+                  <th>Gem Name</th>
+                  <th>Seller</th>
+                  <th>Date Submitted</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
-                {recentRows.map((row, index) => (
-                  <tr key={row.label} className={index % 2 === 1 ? 'alt' : ''}>
-                    <td>#{1900 + index}</td>
-                    <td>
-                      <div className="admin-table-name">
-                        <span className={`admin-table-dot ${row.tone}`} />
-                        {row.label}
-                      </div>
-                    </td>
-                    <td>{row.updated}</td>
-                    <td>{formatCompactNumber(row.value)}</td>
-                    <td>
-                      <span className={`admin-status-pill ${row.tone}`}>{row.status}</span>
-                    </td>
+                {verificationLoading ? (
+                  <tr>
+                    <td colSpan={4}>Loading pending gems...</td>
                   </tr>
-                ))}
+                ) : verificationError ? (
+                  <tr>
+                    <td colSpan={4}>{verificationError}</td>
+                  </tr>
+                ) : verificationRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>No gems awaiting verification</td>
+                  </tr>
+                ) : (
+                  verificationRows.map((row) => (
+                    <tr key={row.id}>
+                      <td className="admin-verify-gem">{row.gem}</td>
+                      <td>{row.seller}</td>
+                      <td>{row.date}</td>
+                      <td className="admin-verify-action-cell">
+                        <button type="button" className="admin-review-button" onClick={() => setActiveTab('pending-gems')}>
+                          {row.action}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </article>
-      </section>
 
-      <aside className="admin-rail-column">
-        <article className="admin-rail-card admin-rail-highlight">
-          <div className="admin-rail-metric-label">Total Profit</div>
-          <div className="admin-rail-metric-value">Rs. {formatCompactNumber(stats.approvedGems * 890 + stats.activeAuctions * 240)}</div>
-          <div className="admin-rail-metric-change">+24%</div>
-        </article>
-
-        <article className="admin-rail-card">
-          <div className="admin-panel-header admin-panel-header-tight">
+        <article className="admin-activity-feed-card">
+          <div className="admin-card-header">
             <div>
-              <p className="admin-panel-kicker">Sale Status</p>
-              <h2>Overview</h2>
+              <p className="admin-card-kicker">Recent Platform Activity</p>
+              <h2>Live updates</h2>
             </div>
           </div>
 
-          <div
-            className="admin-donut"
-            style={{
-              background: `conic-gradient(${statusBreakdown[0].color} 0 ${statusBreakdown[0].value}%, ${statusBreakdown[1].color} ${statusBreakdown[0].value}% ${statusBreakdown[0].value + statusBreakdown[1].value}%, ${statusBreakdown[2].color} ${statusBreakdown[0].value + statusBreakdown[1].value}% 100%)`,
-            }}
-          >
-            <div className="admin-donut-inner">
-              <strong>{dashboardInsights.approvalRate}%</strong>
-              <span>Approved</span>
-            </div>
-          </div>
-
-          <div className="admin-legend-row">
-            {statusBreakdown.map((item) => (
-              <span key={item.label}>
-                <i style={{ background: item.color }} />
-                {item.label}
-              </span>
-            ))}
+          <div className="admin-activity-feed">
+            {recentActivity.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="admin-activity-item">
+                  <div className={`admin-activity-icon tone-${item.tone}`}>
+                    <Icon size={14} />
+                  </div>
+                  <div className="admin-activity-copy">
+                    <p>{item.title}</p>
+                    <span>{item.time}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </article>
-
-        <article className="admin-rail-card admin-illustration-card">
-          <div className="admin-illustration">
-            <div className="admin-badge-circle red">S</div>
-            <div className="admin-badge-circle green">%</div>
-            <div className="admin-figure">
-              <div className="admin-box" />
-              <div className="admin-figure-body" />
-            </div>
-          </div>
-          <div className="admin-rail-copy">
-            <h3>PDF Report</h3>
-            <p>Download monthly reports and platform summaries.</p>
-            <button type="button" className="admin-download-button">
-              <ShieldCheck size={16} />
-              Download
-            </button>
-          </div>
-        </article>
-      </aside>
+      </div>
     </div>
   );
 
@@ -327,30 +354,74 @@ const AdminDashboard = () => {
         return <UserManagement />;
       case 'auctions':
         return <AuctionManagement />;
+      
       default:
         return renderDashboard();
     }
   };
 
   return (
-    <div className="admin-dashboard-page">
-      <div className="admin-dashboard-shell">
-        <aside className="admin-sidebar">
+    <div className="dashboard-shell">
+      <div className="seller-navbar">
+        <div className="seller-navbar-content">
+          <button
+            type="button"
+            className="seller-navbar-brand"
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <img src={logo} alt="GemFolio logo" className="seller-navbar-brand-logo" />
+            <span>GemFolio</span>
+          </button>
+
+          <div className="seller-navbar-actions">
+            <div className="seller-navbar-user">
+              <span>👤</span>
+              <span>{user?.name?.split(' ')[0] || 'Admin'}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="seller-navbar-theme-toggle"
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+            </button>
+
+            <button type="button" onClick={handleLogout} className="seller-navbar-theme-toggle">
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-content-wrapper">
+        <aside className="dashboard-sidebar-wrapper admin-sidebar-shell">
           <div>
-            <div className="admin-brand">
-              <div className="admin-brand-mark">e</div>
-              <div>
-                <div className="admin-brand-name">Commerce</div>
-                <div className="admin-brand-subtitle">Admin workspace</div>
-              </div>
+            <div className="sidebar-profile-section">
+              <button
+                type="button"
+                className="sidebar-profile-card"
+                onClick={() => setActiveTab('dashboard')}
+                style={{ width: '100%', background: 'var(--page-surface-muted)' }}
+              >
+                <div className="sidebar-profile-avatar-container">
+                  <div className="sidebar-profile-avatar">
+                    <div className="sidebar-profile-avatar-inner">
+                      <img src={logo} alt="GemFolio logo" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="sidebar-profile-info">
+                  <div className="sidebar-profile-name">Admin workspace</div>
+                  <div className="sidebar-profile-role-badge">GemFolio control room</div>
+                </div>
+              </button>
             </div>
 
-            <div className="admin-sidebar-note">
-              <ShieldCheck size={16} />
-              {user?.name || 'Administrator'}
-            </div>
-
-            <nav className="admin-sidebar-nav" aria-label="Admin navigation">
+            <nav className="sidebar-nav" aria-label="Admin navigation">
               {sidebarItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -358,8 +429,9 @@ const AdminDashboard = () => {
                   <button
                     key={item.id}
                     type="button"
-                    className={`admin-sidebar-link${isActive ? ' active' : ''}`}
+                    className={`sidebar-nav-link${isActive ? ' active' : ''}`}
                     onClick={() => setActiveTab(item.id)}
+                    style={{ width: '100%', background: 'transparent', textAlign: 'left' }}
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
@@ -372,40 +444,15 @@ const AdminDashboard = () => {
             </nav>
           </div>
 
-          <button type="button" className="admin-logout-button" onClick={handleLogout}>
-            <LogOut size={16} />
-            Logout
-          </button>
+          <div className="sidebar-button-group">
+            <button type="button" className="seller-navbar-theme-toggle" onClick={handleLogout}>
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
+          </div>
         </aside>
 
-        <main className="admin-main">
-          <header className="admin-topbar">
-            <div className="admin-topbar-title-group">
-              <h1>Dashboard</h1>
-              <p>Platform control panel</p>
-            </div>
-
-            <div className="admin-topbar-search">
-              <Search size={16} />
-              <input type="text" placeholder="Search" aria-label="Search dashboard" />
-            </div>
-
-            <div className="admin-topbar-actions">
-              <button type="button" className="admin-icon-button" aria-label="Notifications">
-                <Bell size={18} />
-                <span className="admin-notification-dot" aria-hidden="true" />
-              </button>
-              <div className="admin-profile-chip">
-                <div className="admin-profile-avatar">{user?.name?.charAt(0)?.toUpperCase() || 'A'}</div>
-                <div>
-                  <strong>{user?.name || 'Admin User'}</strong>
-                  <span>Administrator</span>
-                </div>
-                <ChevronDown size={16} />
-              </div>
-            </div>
-          </header>
-
+        <main className="dashboard-main-content admin-main">
           {loading ? (
             <div className="admin-loading-state">
               <div className="spinner-border text-primary" role="status">

@@ -21,9 +21,10 @@ interface MessagePayload {
 
 // Store active users
 const activeUsers = new Map<string, string>(); // userId -> socketId
+let ioInstance: SocketIOServer | null = null;
 
 export const setupWebSocket = (httpServer: HTTPServer) => {
-  const io = new SocketIOServer(httpServer, {
+  const ioServer = new SocketIOServer(httpServer, {
     cors: {
       origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
@@ -38,7 +39,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
   });
 
   // Middleware for authentication
-  io.use((socket: Socket, next: (err?: Error) => void) => {
+  ioServer.use((socket: Socket, next: (err?: Error) => void) => {
     const token = socket.handshake.auth.token;
 
     if (!token) {
@@ -55,21 +56,21 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
     }
   });
 
-  io.on('connection', (socket: AuthenticatedSocket) => {
+  ioServer.on('connection', (socket: AuthenticatedSocket) => {
     console.log(`User connected: ${socket.userId} with socket ${socket.id}`);
     
     // Track active user
     if (socket.userId) {
       activeUsers.set(socket.userId, socket.id);
       socket.join(`user_${socket.userId}`);
-      io.emit('user_online', { userId: socket.userId });
+      ioServer.emit('user_online', { userId: socket.userId });
     }
 
     // Join auction room
     socket.on('join_auction', (auctionId: string) => {
       const room = `auction_${auctionId}`;
       socket.join(room);
-      const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+      const roomSize = ioServer.sockets.adapter.rooms.get(room)?.size || 0;
       console.log(`✅ User ${socket.userId} joined room ${room} (total: ${roomSize} clients)`);
       
       socket.to(room).emit('user_in_chat', { 
@@ -82,7 +83,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
     socket.on('join_gem', (gemId: string) => {
       const room = `gem_${gemId}`;
       socket.join(room);
-      const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+      const roomSize = ioServer.sockets.adapter.rooms.get(room)?.size || 0;
       console.log(`✅ User ${socket.userId} joined room ${room} (total: ${roomSize} clients)`);
       
       socket.to(room).emit('user_in_chat', { 
@@ -95,7 +96,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
     socket.on('leave_auction', (auctionId: string) => {
       const room = `auction_${auctionId}`;
       socket.leave(room);
-      const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+      const roomSize = ioServer.sockets.adapter.rooms.get(room)?.size || 0;
       console.log(`❌ User ${socket.userId} left room ${room} (remaining: ${roomSize} clients)`);
       
       socket.to(room).emit('user_in_chat', {
@@ -108,7 +109,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
     socket.on('leave_gem', (gemId: string) => {
       const room = `gem_${gemId}`;
       socket.leave(room);
-      const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+      const roomSize = ioServer.sockets.adapter.rooms.get(room)?.size || 0;
       console.log(`❌ User ${socket.userId} left room ${room} (remaining: ${roomSize} clients)`);
       
       socket.to(room).emit('user_in_chat', {
@@ -121,7 +122,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
     socket.on('disconnect', () => {
       if (socket.userId) {
         activeUsers.delete(socket.userId);
-        io.emit('user_offline', { userId: socket.userId });
+        ioServer.emit('user_offline', { userId: socket.userId });
         console.log(`User disconnected: ${socket.userId}`);
       }
     });
@@ -162,7 +163,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
         // Notify the recipient if they are online
         const recipientSocketId = activeUsers.get(recipientId);
         if (recipientSocketId) {
-          io.to(recipientSocketId).emit('new_conversation', { conversationId: conversation._id, from: senderId });
+          ioServer.to(recipientSocketId).emit('new_conversation', { conversationId: conversation._id, from: senderId });
         }
       } catch (error) {
         socket.emit('error', { message: 'Failed to start conversation' });
@@ -290,29 +291,29 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
             // Emit to room(s)
             if (auctionId && typeof auctionId === 'string' && auctionId.trim()) {
                 const room = `auction_${auctionId}`;
-                const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+                const roomSize = ioServer.sockets.adapter.rooms.get(room)?.size || 0;
                 console.log(`Emitting to room: ${room} (${roomSize} clients in room)`);
-                io.to(room).emit('receive_message', populatedMessage);
+                ioServer.to(room).emit('receive_message', populatedMessage);
             }
             if (gemId && typeof gemId === 'string' && gemId.trim()) {
                 const room = `gem_${gemId}`;
-                const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+                const roomSize = ioServer.sockets.adapter.rooms.get(room)?.size || 0;
                 console.log(`Emitting to room: ${room} (${roomSize} clients in room)`);
-                io.to(room).emit('receive_message', populatedMessage);
+                ioServer.to(room).emit('receive_message', populatedMessage);
             }
 
             // Always emit to the recipient's personal room so delivery works on any page.
             if (recipientId) {
               const recipientRoom = `user_${recipientId}`;
               console.log(`Emitting directly to recipient room: ${recipientRoom}`);
-              io.to(recipientRoom).emit('new_message_notification', {
+              ioServer.to(recipientRoom).emit('new_message_notification', {
                 auctionId,
                 gemId,
                 senderId: socket.userId,
                 senderName: (populatedMessage as any)?.sender?.name,
                 preview: content.substring(0, 50)
               });
-              io.to(recipientRoom).emit('receive_message', populatedMessage);
+              ioServer.to(recipientRoom).emit('receive_message', populatedMessage);
             }
             
             // Emit back to sender for confirmation
@@ -382,7 +383,7 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
         if (!conversation) return;
 
         const room = `auction_${data.auctionId}`;
-        io.to(room).emit('messages_read', {
+        ioServer.to(room).emit('messages_read', {
           recipientId: socket.userId,
           senderId: data.senderId,
           conversationId: conversation._id
@@ -398,7 +399,18 @@ export const setupWebSocket = (httpServer: HTTPServer) => {
     });
   });
 
-  return io;
+  // Keep a reference for other modules
+  ioInstance = ioServer;
+};
+
+export const emitActivity = (payload: any) => {
+  try {
+    if (ioInstance) {
+      ioInstance.emit('activity', payload);
+    }
+  } catch (err) {
+    console.error('Failed to emit activity:', err);
+  }
 };
 
 export { activeUsers };

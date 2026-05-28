@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, Table, Button, Modal, Form, Row, Col, Alert } from 'react-bootstrap';
-import { Check, X, Eye } from 'lucide-react';
+import { Check, X, ChevronDown, Scale, Download, ScanSearch, ArrowLeft, Droplets, Eye, Gem as GemIcon, FileDown } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
 import type { Gem } from '../../types';
 import { AxiosError } from 'axios';
-import PdfViewer from '../common/PdfViewer';
 
 interface PendingGemsProps {
   onApprove: () => void;
@@ -17,6 +16,7 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewStatus, setReviewStatus] = useState<'approved' | 'rejected'>('approved');
   const [feedback, setFeedback] = useState('');
+  const [reviewChecklistState, setReviewChecklistState] = useState([false, false, false]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -43,6 +43,7 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     setShowReviewModal(true);
     setReviewStatus('approved');
     setFeedback('');
+    setReviewChecklistState([false, false, false]);
     setError('');
     setSuccess('');
   };
@@ -52,6 +53,11 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
 
     if (reviewStatus === 'rejected' && !feedback.trim()) {
       setError('Please provide feedback for rejection');
+      return;
+    }
+
+    if (reviewStatus === 'approved' && reviewChecklistState.some((isChecked) => !isChecked)) {
+      setError('Please confirm all checklist items before approving this gem');
       return;
     }
 
@@ -94,6 +100,33 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     return gem.certificate?.accessUrl || gem.certificate?.url || '';
   };
 
+  const handleDownloadCertificate = async (certificateUrl: string, fileName: string) => {
+    try {
+      const response = await fetch(certificateUrl);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch certificate: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(objectUrl);
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to download certificate:', error);
+      window.open(certificateUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const isPdfCertificate = (gem: Gem) => {
     const normalizedUrl = (gem.certificate?.url || '').toLowerCase();
     return (
@@ -103,11 +136,60 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     );
   };
 
+  const orderedGems = useMemo(
+    () => [...gems].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()),
+    [gems]
+  );
+
+  const selectedGemImages = selectedGem?.images?.filter(Boolean) ?? [];
+  const mainGemImage = selectedGemImages[0] || 'https://via.placeholder.com/900x700';
+  const certificateUrl = selectedGem ? getCertificateAccessUrl(selectedGem) : '';
+  const reviewChecklist = [
+    {
+      title: 'Authenticity Confirmed',
+      description: 'Visual markers align with the submitted certificate and photos.',
+    },
+    {
+      title: 'Quality Grade Matches',
+      description: 'Cut, clarity, and color are consistent with the listing details.',
+    },
+    {
+      title: 'Document Match',
+      description: 'Certificate number and issuer match the listing metadata.',
+    },
+  ];
+
+  const canApprove = reviewChecklistState.every(Boolean);
+  const gemStory = selectedGem
+    ? `This ${selectedGem.type.toLowerCase()} arrived from ${selectedGem.origin} as part of a carefully documented submission from ${selectedGem.seller.name}. The stone weighs ${selectedGem.carat} ct and presents with ${selectedGem.clarity} clarity, ${selectedGem.cut} cut, and ${selectedGem.color} color. The seller describes it as ${selectedGem.description}`
+    : '';
+
   return (
     <div>
       <div className="dashboard-title animate-fade-up">
         <h4 className="fw-bold">Pending Gem Verifications</h4>
         <p>Review and approve gem listings before they go live</p>
+      </div>
+
+      <div className="pending-gems-toolbar animate-fade-up delay-1">
+        <div className="pending-gems-filters">
+          <button type="button" className="pending-gems-filter">
+            Gem Type
+            <ChevronDown size={14} />
+          </button>
+          <button type="button" className="pending-gems-filter">
+            Price Range
+            <ChevronDown size={14} />
+          </button>
+          <button type="button" className="pending-gems-filter">
+            Sort By: Oldest
+            <ChevronDown size={14} />
+          </button>
+        </div>
+
+        <div className="pending-gems-summary">
+          {orderedGems.length} gem{orderedGems.length === 1 ? '' : 's'} waiting for review
+        </div>
       </div>
 
       {error && !showReviewModal && (
@@ -116,7 +198,7 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
         </Alert>
       )}
 
-      <Card className="content-card animate-fade-up delay-1">
+      <Card className="content-card animate-fade-up delay-2">
         <Card.Body className="p-4">
           {loading ? (
             <div className="text-center py-5">
@@ -125,52 +207,45 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
               </div>
             </div>
           ) : gems.length === 0 ? (
-            <div className="text-center py-5">
-              <Check size={48} className="text-success mb-3" />
-              <h5>All Clear!</h5>
-              <p className="text-muted">No pending gems to review</p>
+            <div className="pending-gems-empty-state" role="status" aria-live="polite">
+              <div className="pending-gems-empty-icon" aria-hidden="true">
+                <Check size={24} />
+              </div>
+              <h5 className="pending-gems-empty-title">All clear</h5>
+              <p className="pending-gems-empty-subtitle">No pending gems to review right now.</p>
             </div>
           ) : (
             <div className="table-responsive">
-              <Table hover className="align-middle surface-table">
+              <Table hover className="align-middle surface-table pending-gems-table">
                 <thead>
                   <tr>
-                    <th className="border-0 py-3">Gem Details</th>
+                    <th className="border-0 py-3">Gem Name / ID</th>
                     <th className="border-0 py-3">Seller</th>
-                    <th className="border-0 py-3">Specifications</th>
-                    <th className="border-0 py-3">Certificate</th>
                     <th className="border-0 py-3">Submitted</th>
+                    <th className="border-0 py-3">Status</th>
                     <th className="border-0 py-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {gems.map((gem) => (
+                  {orderedGems.map((gem) => (
                     <tr key={gem._id}>
                       <td>
-                        <div className="d-flex align-items-center">
-                          <div 
-                            className="rounded me-3 surface-muted"
-                            style={{ 
-                              width: '60px', 
-                              height: '60px',
-                              overflow: 'hidden'
-                            }}
-                          >
-                            <img 
+                        <div className="pending-gems-gem-cell">
+                          <div className="pending-gems-gem-thumb">
+                            <img
                               src={gem.images[0] || 'https://via.placeholder.com/60'}
                               alt={gem.type}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = 'https://via.placeholder.com/60';
                               }}
                             />
                           </div>
-                          <div>
+                          <div className="pending-gems-gem-copy">
                             <div className="fw-semibold">{gem.type}</div>
-                            <small className="text-muted">
-                              {gem.description?.substring(0, 40)}
-                              {gem.description && gem.description.length > 40 ? '...' : ''}
+                            <small className="text-muted d-block">#{gem._id.slice(-6).toUpperCase()}</small>
+                            <small className="text-muted d-block">
+                              Certificate #{gem.certificate.certificateNumber}
                             </small>
                           </div>
                         </div>
@@ -180,35 +255,25 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
                         <small className="text-muted">{gem.seller.email}</small>
                       </td>
                       <td>
-                        <small className="d-block"><strong>Carat:</strong> {gem.carat}</small>
-                        <small className="d-block"><strong>Cut:</strong> {gem.cut}</small>
-                        <small className="d-block"><strong>Origin:</strong> {gem.origin}</small>
+                        <small className="d-block text-muted">{formatDate(gem.createdAt)}</small>
+                        <small className="d-block">{gem.certificate.authority}</small>
                       </td>
                       <td>
-                        <div className="fw-semibold text-primary">{gem.certificate.authority}</div>
-                        <small className="text-muted d-block">{gem.certificate.certificateNumber}</small>
-                        <a 
-                          href={getCertificateAccessUrl(gem)} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-primary small"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          View Document
-                        </a>
+                        <span className="pending-gems-status-pill pending-gems-status-pill--warning">
+                          Pending Review
+                        </span>
                       </td>
-                      <td>
-                        <small>{formatDate(gem.createdAt)}</small>
-                      </td>
-                      <td className="text-center">
-                        <Button 
-                          variant="primary" 
-                          size="sm"
-                          onClick={() => handleReview(gem)}
-                        >
-                          <Eye size={14} className="me-1" />
-                          Review
-                        </Button>
+                      <td className="text-center pending-gems-action-cell">
+                        <div className="pending-gems-actions">
+                          {/* View link removed per request */}
+                          <Button
+                            className="pending-gems-action-button"
+                            size="sm"
+                            onClick={() => handleReview(gem)}
+                          >
+                            Review
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -228,227 +293,236 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
           setError('');
           setSuccess('');
         }} 
-        size="lg"
+        size="xl"
         centered
+        dialogClassName="admin-review-modal-dialog"
+        contentClassName="admin-review-modal-content"
       >
-        <Modal.Header closeButton>
-          <Modal.Title>Review Gem - {selectedGem?.type}</Modal.Title>
+        <Modal.Header closeButton className="admin-review-modal-header admin-review-modal-header--compact">
+          <button type="button" className="admin-review-back-link" onClick={() => setShowReviewModal(false)}>
+            <ArrowLeft size={16} />
+            Back to Verification Queue
+          </button>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="admin-review-modal-body">
           {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
           {success && <Alert variant="success">{success}</Alert>}
 
           {selectedGem && (
-            <Row>
-              <Col md={6}>
-                <h6 className="fw-bold mb-3">Gem Images</h6>
-                <div className="mb-3">
-                  <img 
-                    src={selectedGem.images[0]}
+            <div className="admin-review-layout">
+              <section className="admin-review-media-panel">
+                <div className="admin-review-hero">
+                  <span className="admin-review-hero-chip">Primary View</span>
+                  <img
+                    src={mainGemImage}
                     alt={selectedGem.type}
-                    className="w-100 rounded"
-                    style={{ maxHeight: '300px', objectFit: 'cover' }}
+                    className="admin-review-hero-image"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = 'https://via.placeholder.com/400';
+                      target.src = 'https://via.placeholder.com/900x700';
                     }}
                   />
                 </div>
-                {selectedGem.images.length > 1 && (
-                  <Row className="g-2">
-                    {selectedGem.images.slice(1).map((img, index) => (
-                      <Col xs={4} key={index}>
-                        <img 
-                          src={img}
-                          alt={`${selectedGem.type} ${index + 2}`}
-                          className="w-100 rounded"
-                          style={{ height: '80px', objectFit: 'cover' }}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'https://via.placeholder.com/100';
-                          }}
+
+                <div className="admin-review-story-card">
+                  <div className="admin-review-section-heading">
+                    <div>
+                      <p>Gem Story</p>
+                      <h3>How this stone reached the queue</h3>
+                    </div>
+                    <span className="admin-review-story-badge">
+                      <ScanSearch size={14} />
+                      Listing Narrative
+                    </span>
+                  </div>
+
+                  <p className="admin-review-story-copy">
+                    {gemStory}
+                  </p>
+
+                  <div className="admin-review-story-meta">
+                    <div>
+                      <span>Submitted</span>
+                      <strong>{formatDate(selectedGem.createdAt)}</strong>
+                    </div>
+                    <div>
+                      <span>Certificate</span>
+                      <strong>{selectedGem.certificate?.certificateNumber || 'N/A'}</strong>
+                    </div>
+                    <div>
+                      <span>Authority</span>
+                      <strong>{selectedGem.certificate?.authority || 'Unknown'}</strong>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <aside className="admin-review-panel">
+                <div className="admin-review-surface-card admin-review-panel-header-card">
+                  <div className="admin-review-panel-kicker-row">
+                    <span className="admin-review-panel-kicker">Verification Panel</span>
+                    <span className="admin-review-panel-id">#{selectedGem._id.slice(-8).toUpperCase()}</span>
+                  </div>
+                  <h2 className="admin-review-panel-title">Listing Review</h2>
+                  <p className="admin-review-panel-subtitle">
+                    Confirm the image set, certificate, and listing details before you approve or reject the gem.
+                  </p>
+                </div>
+
+                <div className="admin-review-surface-card admin-review-metrics-card">
+                  <div className="admin-review-metrics-list">
+                    <div className="admin-review-metric-item">
+                      <span className="admin-review-metric-label">Gem Type</span>
+                      <strong>{selectedGem.type}</strong>
+                    </div>
+                    <div className="admin-review-metric-item">
+                      <span className="admin-review-metric-label">Weight</span>
+                      <strong>{selectedGem.carat} ct</strong>
+                    </div>
+                    <div className="admin-review-metric-item">
+                      <span className="admin-review-metric-label">Seller</span>
+                      <strong>{selectedGem.seller.name}</strong>
+                    </div>
+                    <div className="admin-review-metric-item">
+                      <span className="admin-review-metric-label">Origin</span>
+                      <strong>{selectedGem.origin}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="admin-review-surface-card admin-review-certificate-card">
+                  <div className="admin-review-certificate-tile">
+                    <div className="admin-review-certificate-icon">
+                      <FileDown size={18} />
+                    </div>
+                    <div className="admin-review-certificate-copy">
+                      <span>GIA Certificate</span>
+                      <strong>Verified Digital Copy</strong>
+                    </div>
+                    <a
+                      href={certificateUrl}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        void handleDownloadCertificate(
+                          certificateUrl,
+                          `${selectedGem.type.replace(/\s+/g, '_').toLowerCase()}-certificate.pdf`
+                        );
+                      }}
+                      className="admin-review-download-link admin-review-download-link--icon-only"
+                      aria-label="Download certificate"
+                    >
+                      <Download size={16} />
+                    </a>
+                  </div>
+
+                  <div className="admin-review-certificate-meta">
+                    <div>
+                      <span>Authority</span>
+                      <strong>{selectedGem.certificate?.authority || 'Unknown'}</strong>
+                    </div>
+                    <div>
+                      <span>Certificate No.</span>
+                      <strong>{selectedGem.certificate?.certificateNumber || 'N/A'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="admin-review-surface-card admin-review-checklist-card">
+                  <div className="admin-review-section-heading">
+                    <div>
+                      <p>Checklist</p>
+                      <h3>Verification Criteria</h3>
+                    </div>
+                  </div>
+
+                  <div className="admin-review-checklist">
+                    {reviewChecklist.map((item, index) => (
+                      <Form.Check key={item.title} className="admin-review-checklist-item-form">
+                        <Form.Check.Input
+                          type="checkbox"
+                          id={`check-${index}`}
+                          checked={reviewChecklistState[index]}
+                          onChange={() => setReviewChecklistState((current) => current.map((c, i) => (i === index ? !c : c)))}
                         />
-                      </Col>
+                        <Form.Check.Label htmlFor={`check-${index}`} className="admin-review-checklist-item-label">
+                          <strong>{item.title}</strong>
+                          <div className="admin-review-checklist-item-desc">{item.description}</div>
+                        </Form.Check.Label>
+                      </Form.Check>
                     ))}
-                  </Row>
-                )}
-
-                <div className="mt-3">
-                  <h6 className="fw-bold mb-2">Seller Information</h6>
-                  <p className="mb-1">
-                    <strong>Name:</strong> {selectedGem.seller.name}
-                  </p>
-                  <p className="mb-1">
-                    <strong>Email:</strong> {selectedGem.seller.email}
-                  </p>
-                </div>
-              </Col>
-
-              <Col md={6}>
-                <h6 className="fw-bold mb-3">Gem Specifications</h6>
-                <div className="mb-3">
-                  <Row>
-                    <Col xs={6}>
-                      <p className="mb-2">
-                        <strong>Type:</strong><br />
-                        <span className="text-muted">{selectedGem.type}</span>
-                      </p>
-                    </Col>
-                    <Col xs={6}>
-                      <p className="mb-2">
-                        <strong>Carat:</strong><br />
-                        <span className="text-muted">{selectedGem.carat}</span>
-                      </p>
-                    </Col>
-                    <Col xs={6}>
-                      <p className="mb-2">
-                        <strong>Cut:</strong><br />
-                        <span className="text-muted">{selectedGem.cut}</span>
-                      </p>
-                    </Col>
-                    <Col xs={6}>
-                      <p className="mb-2">
-                        <strong>Clarity:</strong><br />
-                        <span className="text-muted">{selectedGem.clarity}</span>
-                      </p>
-                    </Col>
-                    <Col xs={6}>
-                      <p className="mb-2">
-                        <strong>Color:</strong><br />
-                        <span className="text-muted">{selectedGem.color}</span>
-                      </p>
-                    </Col>
-                    <Col xs={6}>
-                      <p className="mb-2">
-                        <strong>Origin:</strong><br />
-                        <span className="text-muted">{selectedGem.origin}</span>
-                      </p>
-                    </Col>
-                  </Row>
+                  </div>
                 </div>
 
-                <h6 className="fw-bold mb-2">Description</h6>
-                <p className="text-muted small mb-3">{selectedGem.description}</p>
+                <div className="admin-review-surface-card admin-review-decision-card">
+                  <div className="admin-review-section-heading">
+                    <div>
+                      <p>Decision</p>
+                      <h3>Approve or Reject Listing</h3>
+                    </div>
+                  </div>
 
-                <h6 className="fw-bold mb-2">Certificate Information</h6>
-                <div className="mb-3">
-                  <p className="mb-2">
-                    <strong>Authority:</strong> {selectedGem.certificate.authority}
-                  </p>
-                  <p className="mb-2">
-                    <strong>Certificate Number:</strong> {selectedGem.certificate.certificateNumber}
-                  </p>
-                  <a 
-                    href={getCertificateAccessUrl(selectedGem)} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="btn btn-outline-primary btn-sm"
-                  >
-                    Open Certificate
-                  </a>
-                </div>
+                  <div className="admin-review-decision-actions">
+                    <Button
+                      className="admin-approve-btn"
+                      onClick={handleSubmitReview}
+                      disabled={!canApprove || submitting || reviewStatus === 'rejected'}
+                    >
+                      <Check size={16} className="me-2" />
+                      Approve Gem
+                    </Button>
+                    <Button
+                      className="admin-reject-btn"
+                      onClick={() => {
+                        setReviewStatus('rejected');
+                        setFeedback('');
+                      }}
+                      disabled={submitting}
+                    >
+                      <X size={16} className="me-2" />
+                      Reject Listing
+                    </Button>
+                  </div>
 
-                <div className="border rounded p-2 bg-light mb-3">
-                  {isPdfCertificate(selectedGem) ? (
-                    <PdfViewer url={getCertificateAccessUrl(selectedGem)} />
+                  {!canApprove && reviewStatus === 'approved' && (
+                    <p className="admin-review-gate-note">
+                      Approve is enabled after all checklist items are confirmed.
+                    </p>
+                  )}
+
+                  {reviewStatus === 'rejected' ? (
+                    <Form.Group>
+                      <Form.Label className="fw-semibold">
+                        Rejection Reason <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        placeholder="Explain what needs to be corrected before this gem can be approved."
+                        required
+                      />
+                      <Form.Text className="text-muted">
+                        This feedback will be sent to the seller.
+                      </Form.Text>
+                    </Form.Group>
                   ) : (
-                    <img
-                      src={selectedGem.certificate.url}
-                      alt="Certificate"
-                      className="w-100 rounded"
-                      style={{ maxHeight: '240px', objectFit: 'contain' }}
-                    />
+                    <Form.Group>
+                      <Form.Label className="fw-semibold">Optional Notes</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        placeholder="Add any additional comments for the seller or audit record."
+                      />
+                    </Form.Group>
                   )}
                 </div>
-
-                <hr className="my-3" />
-
-                <h6 className="fw-bold mb-3">Review Decision</h6>
-                <div className="d-flex gap-3 mb-3">
-                  <Button
-                    variant={reviewStatus === 'approved' ? 'success' : 'outline-success'}
-                    onClick={() => setReviewStatus('approved')}
-                    style={{ flexGrow: 1 }}
-                  >
-                    <Check size={16} className="me-1" />
-                    Approve
-                  </Button>
-                  <Button
-                    variant={reviewStatus === 'rejected' ? 'danger' : 'outline-danger'}
-                    onClick={() => setReviewStatus('rejected')}
-                    style={{ flexGrow: 1 }}
-                  >
-                    <X size={16} className="me-1" />
-                    Reject
-                  </Button>
-                </div>
-
-                {reviewStatus === 'rejected' && (
-                  <Form.Group className="mb-3">
-                    <Form.Label className="fw-semibold">
-                      Rejection Reason <span className="text-danger">*</span>
-                    </Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                      placeholder="Provide detailed feedback for the seller about why this gem was rejected..."
-                      required
-                    />
-                    <Form.Text className="text-muted">
-                      This feedback will be sent to the seller.
-                    </Form.Text>
-                  </Form.Group>
-                )}
-
-                {reviewStatus === 'approved' && (
-                  <Form.Group className="mb-3">
-                    <Form.Label className="fw-semibold">Optional Feedback</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={2}
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                      placeholder="Add any additional comments or notes for the seller..."
-                    />
-                  </Form.Group>
-                )}
-              </Col>
-            </Row>
+              </aside>
+            </div>
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button 
-            variant="secondary" 
-            onClick={() => {
-              setShowReviewModal(false);
-              setSelectedGem(null);
-              setError('');
-              setSuccess('');
-            }}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant={reviewStatus === 'approved' ? 'success' : 'danger'}
-            onClick={handleSubmitReview}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Processing...
-              </>
-            ) : (
-              <>
-                {reviewStatus === 'approved' ? <Check size={16} className="me-1" /> : <X size={16} className="me-1" />}
-                Confirm {reviewStatus === 'approved' ? 'Approval' : 'Rejection'}
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
       </Modal>
     </div>
   );

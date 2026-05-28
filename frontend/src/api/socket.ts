@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
+let socketToken: string | null = null;
 
 const getSocketUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -16,6 +17,20 @@ const getSocketUrl = () => {
 
 // Track active listeners to prevent duplicates
 const listeners = new Map<string, Set<Function>>();
+
+const rebindListeners = () => {
+  if (!socket) {
+    return;
+  }
+
+  const currentSocket = socket;
+
+  listeners.forEach((callbackSet, eventName) => {
+    callbackSet.forEach((callback) => {
+      currentSocket.on(eventName, callback as (...args: unknown[]) => void);
+    });
+  });
+};
 
 interface MessageEvent {
   _id: string;
@@ -46,8 +61,14 @@ interface UserStatusEvent {
 }
 
 export const initSocket = (token: string): Socket => {
-  if (socket?.connected) {
+  if (socket && socketToken === token) {
     return socket;
+  }
+
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+    socketToken = null;
   }
 
   const socketUrl = getSocketUrl();
@@ -62,6 +83,9 @@ export const initSocket = (token: string): Socket => {
     reconnectionAttempts: 5,
     transports: ['websocket', 'polling']
   });
+  socketToken = token;
+
+  rebindListeners();
 
   socket.on('connect', () => {
     console.log('Connected to WebSocket server');
@@ -90,6 +114,8 @@ export const disconnectSocket = () => {
   if (socket) {
     socket.disconnect();
     socket = null;
+    socketToken = null;
+    listeners.clear();
   }
 };
 
@@ -242,6 +268,20 @@ export const onUserOffline = (callback: (data: { userId: string }) => void) => {
     if (!callbackSet.has(callback)) {
       callbackSet.add(callback);
       socket.on('user_offline', callback);
+    }
+  }
+};
+
+export const onActivity = (callback: (data: any) => void) => {
+  if (socket) {
+    if (!listeners.has('activity')) {
+      listeners.set('activity', new Set());
+    }
+
+    const callbackSet = listeners.get('activity')!;
+    if (!callbackSet.has(callback)) {
+      callbackSet.add(callback);
+      socket.on('activity', callback);
     }
   }
 };

@@ -6,33 +6,7 @@ import { GemStatus } from '../types';
 
 const getCertificateAccessUrl = (certificate?: { url?: string; mimeType?: string }) => {
   const certificateUrl = certificate?.url;
-  if (!certificateUrl) return certificateUrl;
-
-  const normalizedUrl = certificateUrl.toLowerCase();
-  const isPdfCertificate =
-    certificate?.mimeType === 'application/pdf' ||
-    normalizedUrl.includes('.pdf') ||
-    normalizedUrl.includes('application/pdf');
-
-  if (!isPdfCertificate) {
-    return certificateUrl;
-  }
-
-  const publicId = extractCloudinaryPublicId(certificateUrl);
-  if (!publicId) {
-    console.warn('⚠️  Failed to extract public ID from certificate URL:', certificateUrl);
-    return certificateUrl;
-  }
-
-  const signedUrl = cloudinary.utils.private_download_url(publicId, 'pdf', {
-    resource_type: 'image',
-    type: 'upload',
-  });
-  
-  console.log('🔐 Generated signed URL for public ID:', publicId);
-  console.log('📄 Signed URL:', signedUrl);
-
-  return signedUrl;
+  return certificateUrl || '';
 };
 
 const withNormalizedCertificateUrl = <T extends { certificate?: { url?: string } }>(gem: T): T => {
@@ -69,8 +43,10 @@ const deleteCloudinaryAsset = async (url?: string) => {
   const publicId = extractCloudinaryPublicId(url);
   if (!publicId) return;
 
+  const isPdfAsset = url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('application/pdf');
+
   try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+    await cloudinary.uploader.destroy(publicId, { resource_type: isPdfAsset ? 'raw' : 'image' });
   } catch (error) {
     console.warn('⚠️  Failed to delete old certificate from Cloudinary:', error);
   }

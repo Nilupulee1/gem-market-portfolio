@@ -1,28 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Avatar,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Chip,
-  Input,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Select,
-  SelectItem,
-  Spinner,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
-} from '@nextui-org/react';
-import { Search, UserX, UserCheck, Users } from 'lucide-react';
+import { Avatar, Button, Chip, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Spinner } from '@nextui-org/react';
+import { Search, UserX, UserCheck, Users, CircleDot } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
 import type { AdminUser } from '../../types/admin';
 
@@ -31,6 +9,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
@@ -91,150 +70,182 @@ const UserManagement = () => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === 'all' || user.role === filterRole;
-    return matchesSearch && matchesRole;
+    const matchesStatus = filterStatus === 'all' || (filterStatus === 'verified' ? user.isVerified : !user.isVerified);
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterRole('all');
+    setFilterStatus('all');
+  };
+
+  const statusLabel = (isVerified: boolean) => (isVerified ? 'Verified' : 'Unverified');
+
+  const statusTone = (isVerified: boolean) => (isVerified ? 'success' : 'warning');
+
   return (
-    <div className="space-y-6">
-      <div className="dashboard-title animate-fade-up">
-        <h4 className="fw-bold">User Management</h4>
-        <p>Manage all registered users on the platform</p>
+    <div className="user-management-page">
+      <div className="user-management-header animate-fade-up">
+        <div>
+          <div className="dashboard-title">
+            <h4 className="fw-bold">User Management</h4>
+            <p>Manage all registered users on the platform</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 animate-fade-up delay-1">
-        <Card className="content-card">
-          <CardBody className="flex items-center gap-3 p-4">
-            <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-              <Users size={20} />
-            </div>
-            <div>
-              <p className="mb-1 text-sm text-muted-foreground">Total Users</p>
-              <h5 className="mb-0 fw-bold">{users.length}</h5>
-            </div>
-          </CardBody>
-        </Card>
-        <Card className="content-card">
-          <CardBody className="flex items-center gap-3 p-4">
-            <div className="rounded-2xl bg-success/10 p-3 text-success">
-              <UserCheck size={20} />
-            </div>
-            <div>
-              <p className="mb-1 text-sm text-muted-foreground">Verified</p>
-              <h5 className="mb-0 fw-bold">{users.filter((user) => user.isVerified).length}</h5>
-            </div>
-          </CardBody>
-        </Card>
-        <Card className="content-card">
-          <CardBody className="flex items-center gap-3 p-4">
-            <div className="rounded-2xl bg-warning/10 p-3 text-warning-600">
-              <UserX size={20} />
-            </div>
-            <div>
-              <p className="mb-1 text-sm text-muted-foreground">Pending Verification</p>
-              <h5 className="mb-0 fw-bold">{users.filter((user) => !user.isVerified).length}</h5>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card className="content-card animate-fade-up delay-2">
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between p-4 pb-0">
+      <div className="dashboard-metric-grid user-management-stats animate-fade-up delay-1">
+        <article className="dashboard-metric-card user-management-stat-card">
+          <div className="user-management-stat-icon user-management-stat-icon--blue">
+            <Users size={20} />
+          </div>
           <div>
-            <p className="mb-1 text-sm text-muted-foreground">Directory</p>
-            <h5 className="mb-0 fw-bold">Registered accounts</h5>
+            <span>Total Users</span>
+            <strong>{users.length}</strong>
           </div>
-          <div className="flex flex-col gap-3 md:flex-row md:items-center w-full md:w-auto">
-            <Input
-              aria-label="Search users"
-              placeholder="Search by name or email"
-              value={searchTerm}
-              onValueChange={setSearchTerm}
-              startContent={<Search size={16} className="text-muted-foreground" />}
-              className="md:min-w-[280px]"
-              variant="bordered"
-            />
-            <Select
-              aria-label="Filter users by role"
-              selectedKeys={[filterRole]}
-              onSelectionChange={(keys) => setFilterRole(String(Array.from(keys)[0] ?? 'all'))}
-              className="md:w-48"
-              variant="bordered"
-              defaultSelectedKeys={["all"]}
-            >
-              <SelectItem key="all">All Roles</SelectItem>
-              <SelectItem key="admin">Admin</SelectItem>
-              <SelectItem key="seller">Seller</SelectItem>
-              <SelectItem key="buyer">Buyer</SelectItem>
-            </Select>
+        </article>
+        <article className="dashboard-metric-card user-management-stat-card">
+          <div className="user-management-stat-icon user-management-stat-icon--green">
+            <UserCheck size={20} />
           </div>
-        </CardHeader>
+          <div>
+            <span>Verified</span>
+            <strong>{users.filter((user) => user.isVerified).length}</strong>
+          </div>
+        </article>
+        <article className="dashboard-metric-card user-management-stat-card">
+          <div className="user-management-stat-icon user-management-stat-icon--muted">
+            <UserX size={20} />
+          </div>
+          <div>
+            <span>Pending Verification</span>
+            <strong>{users.filter((user) => !user.isVerified).length}</strong>
+          </div>
+        </article>
+      </div>
 
-        <CardBody className="p-4 pt-2">
+      <div className="content-card user-management-panel animate-fade-up delay-2">
+        <div className="user-management-panel-header">
+          <div>
+            <p className="user-management-kicker">Directory</p>
+            <h5>Registered accounts</h5>
+          </div>
+          <div className="user-management-toolbar">
+            <label className="user-management-search-field" aria-label="Search users">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search by name, email, or user ID..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </label>
+
+            <select
+              aria-label="Filter users by role"
+              className="user-management-filter-select"
+              value={filterRole}
+              onChange={(event) => setFilterRole(event.target.value)}
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="seller">Seller</option>
+              <option value="buyer">Buyer</option>
+            </select>
+
+            <select
+              aria-label="Filter users by status"
+              className="user-management-filter-select"
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              <option value="verified">Verified</option>
+              <option value="unverified">Unverified</option>
+            </select>
+
+            <button type="button" className="user-management-clear-button" onClick={clearFilters}>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <div className="user-management-table-wrap">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
+            <div className="user-management-empty-state">
               <Spinner color="primary" size="lg" label="Loading users" />
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="py-16 text-center text-muted-foreground">
+            <div className="user-management-empty-state">
               No users found
             </div>
           ) : (
-            <Table
-              aria-label="Registered users"
-              removeWrapper
-              classNames={{ th: 'bg-default-100 text-foreground font-semibold' }}
-            >
-              <TableHeader>
-                <TableColumn>USER</TableColumn>
-                <TableColumn>EMAIL</TableColumn>
-                <TableColumn>ROLE</TableColumn>
-                <TableColumn>STATUS</TableColumn>
-                <TableColumn>JOINED</TableColumn>
-                <TableColumn className="text-center">ACTIONS</TableColumn>
-              </TableHeader>
-              <TableBody items={filteredUsers} emptyContent="No users found">
-                {(user) => (
-                  <TableRow key={user._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar name={user.name} size="sm" className="flex-shrink-0" />
+            <table className="user-management-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Date Joined</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user, index) => (
+                  <tr key={user._id} className={index % 2 === 1 ? 'is-alt' : ''}>
+                    <td>
+                      <div className="user-management-user-cell">
+                        <Avatar name={user.name} size="sm" className="user-management-avatar" />
                         <div>
-                          <p className="mb-0 fw-semibold">{user.name}</p>
-                          <p className="mb-0 text-xs text-muted-foreground">{user._id}</p>
+                          <p className="user-management-name">{user.name}</p>
+                          <p className="user-management-id">{user._id}</p>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{getRoleChip(user.role)}</TableCell>
-                    <TableCell>{getStatusChip(user.isVerified)}</TableCell>
-                    <TableCell>{formatDate(user.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex justify-center">
-                        <Button color="primary" variant="flat" size="sm" onPress={() => handleViewUser(user)}>
-                          View details
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    </td>
+                    <td className="user-management-email">{user.email}</td>
+                    <td>
+                      <span className={`user-management-role-pill role-${user.role}`}>
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
+                    </td>
+                    <td className="user-management-date">{formatDate(user.createdAt)}</td>
+                    <td>
+                      <span className={`user-management-status-pill status-${statusTone(user.isVerified)}`}>
+                        <CircleDot size={10} />
+                        {statusLabel(user.isVerified)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
 
-          <div className="mt-4 flex flex-col gap-3 border-t pt-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-            <span>
+          <div className="user-management-footer">
+            <span className="user-management-summary-text">
               Showing {filteredUsers.length} of {users.length} users
             </span>
-            <div className="flex flex-wrap gap-2">
+            <div className="user-management-footer-chips">
               <Chip variant="flat" color="primary">Sellers: {stats.sellers}</Chip>
               <Chip variant="flat" color="success">Buyers: {stats.buyers}</Chip>
               <Chip variant="flat" color="danger">Admins: {stats.admins}</Chip>
             </div>
           </div>
-        </CardBody>
-      </Card>
 
-      <Modal isOpen={showDetailsModal} onOpenChange={setShowDetailsModal} placement="center">
+        </div>
+      </div>
+
+      <Modal
+        isOpen={showDetailsModal}
+        onOpenChange={(open) => {
+          setShowDetailsModal(open);
+          if (!open) {
+            setSelectedUser(null);
+          }
+        }}
+        placement="center"
+      >
         <ModalContent>
           {(onClose) => (
             <>

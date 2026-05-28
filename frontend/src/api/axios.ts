@@ -96,6 +96,7 @@ export const adminAPI = {
   getAllUsers: () => axiosInstance.get('/admin/users'),
   getStatistics: () => axiosInstance.get('/admin/statistics'),
   getAllAuctions: () => axiosInstance.get('/admin/auctions'),
+  getActivity: () => axiosInstance.get('/admin/activity'),
 };
 
 export const buyerAPI = {

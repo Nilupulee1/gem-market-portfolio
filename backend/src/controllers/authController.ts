@@ -4,6 +4,7 @@ import User from '../models/User';
 import { UserRole, JWTPayload } from '../types';
 import { sendPasswordResetEmail } from '../utils/emailService';
 import crypto from 'crypto';
+import { emitActivity } from '../config/websocket';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -32,6 +33,12 @@ export const register = async (req: Request, res: Response) => {
     // Generate token
     const payload: JWTPayload = { userId: user._id.toString(), role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: '7d' });
+
+    try {
+      emitActivity({ type: 'user_registered', title: `${user.name} registered as a new ${user.role}`, time: new Date(), tone: 'success' });
+    } catch (err) {
+      console.warn('emitActivity failed for user register', err);
+    }
 
     res.status(201).json({
       message: 'Registration successful',

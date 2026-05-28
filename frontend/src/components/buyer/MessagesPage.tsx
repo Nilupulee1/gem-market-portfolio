@@ -54,7 +54,16 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
   }, [resetUnreadCount]);
 
   if (!user) {
-    return <div>Please log in to view messages</div>;
+    return (
+      <div className="messages-page d-flex align-items-center justify-content-center" style={{ minHeight: '60vh' }}>
+        <div className="text-center">
+          <div className="empty-chat-icon mx-auto mb-3">
+            <span>🔒</span>
+          </div>
+          <p className="text-muted">Please log in to view your support inbox.</p>
+        </div>
+      </div>
+    );
   }
 
   const otherUser = selectedConversation
@@ -64,17 +73,21 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
     : null;
 
   const chatTitle = selectedConversation
-    ? (user.id === selectedConversation.seller._id ? selectedConversation.buyer.name : selectedConversation.seller.name)
-    : initialContact?.name || 'Messages';
+    ? (user.id === selectedConversation.seller._id
+        ? selectedConversation.buyer.name
+        : selectedConversation.seller.name)
+    : initialContact?.name || 'Support Inbox';
 
   return (
     <Container fluid className="messages-page py-4">
       <div className="messages-shell">
+        {/* Page header */}
         <div className="messages-header">
-          <h4 className="mb-0">Messages</h4>
+          <h4 className="mb-0">Support Inbox</h4>
         </div>
 
-        <Row className="messages-grid g-3">
+        <Row className="g-3 align-items-stretch">
+          {/* Conversations column */}
           <Col lg={4} md={5} className="conversations-column">
             <ConversationsList
               onSelectConversation={setSelectedConversation}
@@ -82,17 +95,22 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
             />
           </Col>
 
+          {/* Chat / detail column */}
           <Col lg={8} md={7} className="chat-column">
             {selectedConversation && (
               <AuctionChat
                 conversationId={selectedConversation._id}
                 auctionId={selectedConversation.auction?._id}
-                gemId={selectedConversation?.auction?.gem?._id || selectedConversation?.gem?._id}
+                gemId={
+                  selectedConversation?.auction?.gem?._id ||
+                  selectedConversation?.gem?._id
+                }
                 recipientId={otherUser?._id || ''}
                 recipientName={otherUser?.name || 'User'}
                 conversationLabel={chatTitle}
               />
             )}
+
             {!selectedConversation && initialContact && initialGem && (
               <AuctionChat
                 gemId={initialGem.id}
@@ -101,14 +119,27 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
                 conversationLabel={chatTitle}
               />
             )}
+
             {!selectedConversation && !(initialContact && initialGem) && (
               <div className="empty-chat-state">
                 <div className="empty-chat-card">
                   <div className="empty-chat-icon">
-                    <span>✦</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="26"
+                      height="26"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
                   </div>
-                  <h5>Select a conversation</h5>
-                  <p>Click a name on the left to open the chat here.</p>
+                  <h5>No ticket selected</h5>
+                  <p>Choose a ticket from the inbox to view the conversation.</p>
                 </div>
               </div>
             )}

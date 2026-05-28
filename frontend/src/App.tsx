@@ -545,7 +545,7 @@ const AppLayout = ({
           path="/admin/*"
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-              <AdminDashboard />
+              <AdminDashboard theme={theme} onToggleTheme={onToggleTheme} />
             </ProtectedRoute>
           }
         />
