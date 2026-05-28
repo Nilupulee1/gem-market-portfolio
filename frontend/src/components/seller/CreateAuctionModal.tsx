@@ -285,17 +285,17 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
                 {/* Buttons */}
                 <div className="d-flex gap-3 pt-2">
                   <Button 
-                    className="btn-secondary px-4"
+                    className="bdr-btn-ghost"
                     onClick={handleClose}
                   >
                     Cancel
                   </Button>
                   <Button 
-                    className="btn-primary px-4 fw-semibold"
-                      disabled={loading}
-                      type="submit"
-                    >
-                      {loading ? 'Redirecting to PayHere...' : `Pay Rs.${listingFee.toLocaleString()} & Launch Auction`}
+                    className="bdr-btn-primary"
+                    disabled={loading}
+                    type="submit"
+                  >
+                    {loading ? 'Redirecting to PayHere...' : `Pay Rs.${listingFee.toLocaleString()} & Launch Auction`}
                   </Button>
                 </div>
               </Form>

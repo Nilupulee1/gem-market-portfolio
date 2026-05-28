@@ -2,6 +2,7 @@
 /* Import Bootstrap */
 @import 'bootstrap/dist/css/bootstrap.min.css'; 
 @import './styles/seller.css';
+@import './styles/buyer.css';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
 
 html, body, #root {
@@ -69,6 +70,13 @@ html {
   --surface-gradient: linear-gradient(180deg, #ffffff, #fbfdff);
   --surface-strong-gradient: linear-gradient(180deg, #ffffff, #fcfdff);
 
+  /* Semantic colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --surface-text-on-accent: #ffffff;
+  --badge-bg: rgba(0,0,0,0.6);
+
   /* Brand palette (applied across the app) */
   --color-navy: #0f2340;    /* deep navy */
   --color-primary: #1f4f82; /* medium brand blue - UI headers, cards */
@@ -122,6 +130,20 @@ html {
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Dark theme variable overrides (used when html[data-theme='dark']) */
+html[data-theme='dark'] {
+  --page-bg: #07101a;
+  --page-surface: #0b1220;
+  --page-surface-elevated: #08101a;
+  --page-surface-muted: rgba(255,255,255,0.02);
+  --text-primary: #e6eef8;
+  --text-secondary: #9aa7b6;
+  --border: rgba(255,255,255,0.04);
+  --border-strong: rgba(255,255,255,0.06);
+  --chip-bg: rgba(47,109,225,0.08);
+  --chip-text: #93c5fd;
+}
+
 /* Bootstrap primary override to match brand tokens */
 .btn-primary {
   color: var(--text-inverse) !important;
@@ -172,6 +194,12 @@ html[data-theme='dark'] {
   --surface-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
   --surface-gradient: linear-gradient(180deg, rgba(15, 26, 43, 0.98), rgba(10, 17, 29, 0.94));
   --surface-strong-gradient: linear-gradient(180deg, rgba(10, 17, 29, 0.98), rgba(7, 11, 20, 0.98));
+  /* Semantic colors (dark overrides) */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --surface-text-on-accent: #ffffff;
+  --badge-bg: rgba(255,255,255,0.06);
 }
 
 body {

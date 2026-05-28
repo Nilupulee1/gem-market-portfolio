@@ -28,7 +28,7 @@ export default function ActiveBidsCard({
     <article className="market-card">
       {/* Image Container */}
       <div style={{ position: 'relative' }}>
-        <img
+          <img
           className="market-image"
           src={gemImage}
           alt={gem.type}
@@ -36,7 +36,7 @@ export default function ActiveBidsCard({
             width: '100%',
             height: '180px',
             objectFit: 'cover',
-            backgroundColor: '#f0f4f8',
+              backgroundColor: 'var(--page-surface-muted)',
           }}
         />
         {/* Lot Number Badge */}
@@ -45,8 +45,8 @@ export default function ActiveBidsCard({
             position: 'absolute',
             top: '10px',
             left: '10px',
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            color: '#fff',
+            backgroundColor: 'var(--badge-bg)',
+            color: 'var(--surface-text-on-accent)',
             padding: '4px 10px',
             borderRadius: '6px',
             fontSize: '12px',
@@ -57,21 +57,21 @@ export default function ActiveBidsCard({
         </div>
 
         {/* Status Badge */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            padding: '4px 10px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            backgroundColor: isWinning ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
-            color: '#fff',
-          }}
+          <div
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              backgroundColor: isWinning ? 'var(--success)' : 'var(--danger)',
+              color: 'var(--surface-text-on-accent)',
+            }}
         >
           {isWinning ? <TrendingUp size={12} /> : null}
           {isWinning ? 'Winning' : 'Outbid'}
@@ -160,11 +160,11 @@ export default function ActiveBidsCard({
             gap: '6px',
             marginBottom: '12px',
             padding: '8px',
-            backgroundColor: hasEnded ? '#fee2e2' : '#f0fdf4',
+            backgroundColor: hasEnded ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.06)',
             borderRadius: '8px',
             fontSize: '12px',
             fontWeight: '600',
-            color: hasEnded ? '#991b1b' : '#166534',
+            color: hasEnded ? 'var(--danger)' : 'var(--success)',
           }}
         >
           <Timer size={14} />

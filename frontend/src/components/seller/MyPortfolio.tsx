@@ -13,23 +13,6 @@ interface MyPortfolioProps {
 
 const FILTER_OPTIONS = ['All Gems', 'Approved', 'Pending', 'Rejected'] as const;
 
-const STATUS_CONFIG = {
-  approved: { label: 'Approved', color: '#10b981', bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.25)', dot: '#10b981' },
-  pending:  { label: 'Pending',  color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b' },
-  rejected: { label: 'Rejected', color: '#ef4444', bg: 'rgba(239,68,68,0.10)',  border: 'rgba(239,68,68,0.25)',  dot: '#ef4444' },
-} as const;
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG];
-  if (!cfg) return <span className="port-status-badge port-status-default">{status}</span>;
-  return (
-    <span className="port-status-badge" style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-      <span className="port-status-dot" style={{ background: cfg.dot }} />
-      {cfg.label}
-    </span>
-  );
-};
-
 const StatsBar = ({ gems }: { gems: GemType[] }) => {
   const approved = gems.filter(g => g.status === 'approved').length;
   const pending  = gems.filter(g => g.status === 'pending').length;
@@ -45,17 +28,17 @@ const StatsBar = ({ gems }: { gems: GemType[] }) => {
       </div>
       <div className="port-stat-divider" />
       <div className="port-stat">
-        <span className="port-stat-value" style={{ color: '#10b981' }}>{approved}</span>
+        <span className="port-stat-value" style={{ color: 'var(--success)' }}>{approved}</span>
         <span className="port-stat-label">Approved</span>
       </div>
       <div className="port-stat-divider" />
       <div className="port-stat">
-        <span className="port-stat-value" style={{ color: '#f59e0b' }}>{pending}</span>
+        <span className="port-stat-value" style={{ color: 'var(--warning)' }}>{pending}</span>
         <span className="port-stat-label">Pending</span>
       </div>
       <div className="port-stat-divider" />
       <div className="port-stat">
-        <span className="port-stat-value" style={{ color: '#ef4444' }}>{rejected}</span>
+        <span className="port-stat-value" style={{ color: 'var(--danger)' }}>{rejected}</span>
         <span className="port-stat-label">Rejected</span>
       </div>
       <div className="port-stat-divider" />
@@ -81,56 +64,61 @@ const GemCard = ({
   onDelete: (g: GemType) => void;
 }) => (
   <Col md={6} lg={4} key={gem._id} className={`animate-fade-up delay-${Math.min(5, index + 1)}`}>
-    <Card className="gem-card h-100">
-      {/* Image — matches dashboard gem-image-container */}
-      <div className="gem-image-container">
+    <article className="bdr-market-card h-100">
+      <div className="bdr-market-img-wrap">
         <img
           src={gem.images[0] || 'https://via.placeholder.com/400x280?text=No+Image'}
           alt={gem.type}
-          className="gem-image"
+          className="bdr-market-img"
           onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
         />
-        <div className={`gem-status-badge gem-status-${gem.status}`}>
+        <span className={`bdr-market-badge ${gem.status === 'approved' ? 'bdr-badge-sale' : gem.status === 'pending' ? 'bdr-badge-live' : 'bdr-badge-live'}`}>
           {gem.status}
-        </div>
+        </span>
       </div>
 
-      {/* Body — matches dashboard gem-card-body */}
-      <div className="gem-card-body">
-        <div className="gem-type">{gem.type}</div>
-        <div className="gem-details">
-          <div><strong>Carat:</strong> {gem.carat}</div>
-          <div><strong>Origin:</strong> {gem.origin}</div>
-          <div><strong>Color:</strong> {gem.color}</div>
-          {gem.cut && <div><strong>Cut:</strong> {gem.cut}</div>}
-          {gem.clarity && <div><strong>Clarity:</strong> {gem.clarity}</div>}
+      <div className="bdr-market-body">
+        <strong className="bdr-market-name">{gem.type}</strong>
+        <p className="bdr-market-meta">{gem.origin} · {gem.carat} ct</p>
+        <div style={{ marginTop: 6 }}>
+          <div className="bdr-market-meta" style={{ marginBottom: 6 }}>
+            <strong>Color:</strong> {gem.color}
+          </div>
+          {gem.cut && <div className="bdr-market-meta" style={{ marginBottom: 6 }}><strong>Cut:</strong> {gem.cut}</div>}
+          {gem.clarity && <div className="bdr-market-meta" style={{ marginBottom: 6 }}><strong>Clarity:</strong> {gem.clarity}</div>}
         </div>
-        <div className="gem-actions">
+
+        <div className="bdr-market-actions">
           <button
-            className={`gem-actions button btn-primary btn-view-details btn-status-${gem.status}`}
+            className={`bdr-btn-ghost`}
             onClick={() => onView(gem)}
+            title="View gem details"
+            aria-label="View gem details"
           >
-            <Eye size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
-            View Details
+            <Eye size={13} />
+            View
           </button>
           <button
-            className={`gem-actions button btn-manage btn-status-${gem.status}`}
+            className={`bdr-btn-primary`}
             onClick={() => onEdit(gem)}
             title="Edit gem"
+            aria-label="Edit gem"
           >
-            <Edit2 size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-            Edit
+            <Edit2 size={13} />
+            Manage
           </button>
           <button
-            className="gem-actions button btn-manage btn-delete-outline"
+            className="bdr-btn-danger"
             onClick={() => onDelete(gem)}
             title="Delete gem"
+            aria-label="Delete gem"
           >
-            <Trash2 size={13} style={{ display: 'inline', verticalAlign: 'middle' }} />
+            <Trash2 size={13} />
+            Delete
           </button>
         </div>
       </div>
-    </Card>
+    </article>
   </Col>
 );
 

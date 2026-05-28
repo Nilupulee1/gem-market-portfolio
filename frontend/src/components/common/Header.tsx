@@ -93,24 +93,24 @@ const Header = ({
                 <Home size={16} />
                 Dashboard
                 {unreadCount > 0 && (
-                  <span
-                    style={{
-                      marginLeft: 8,
-                      minWidth: 20,
-                      height: 20,
-                      borderRadius: 999,
-                      padding: '0 6px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: '#ef4444',
-                      color: '#fff',
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {unreadCount}
-                  </span>
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        minWidth: 20,
+                        height: 20,
+                        borderRadius: 999,
+                        padding: '0 6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'var(--danger)',
+                        color: 'var(--surface-text-on-accent)',
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {unreadCount}
+                    </span>
                 )}
                 <span className="lux-link-underline" />
               </a>

@@ -428,7 +428,7 @@ export const placeBid = async (req: Request, res: Response) => {
     }
 
     auction.bids.push({
-      bidder: authReq.user!.userId as any,
+      bidder: new Types.ObjectId(authReq.user!.userId),
       amount: parseFloat(amount),
       timestamp: new Date()
     });

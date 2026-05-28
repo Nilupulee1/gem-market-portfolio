@@ -94,6 +94,18 @@ export const createGem = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Certificate is required' });
     }
 
+    const requiredTextFields = ['type', 'carat', 'cut', 'clarity', 'color', 'origin', 'description', 'certificateAuthority', 'certificateNumber'];
+    const missingField = requiredTextFields.find((field) => {
+      const value = String(authReq.body[field] ?? '').trim();
+      return value.length === 0;
+    });
+
+    if (missingField) {
+      return res.status(400).json({
+        message: `Missing required field: ${missingField}`,
+      });
+    }
+
     const gemImages = files.images;
     const certificateFile = files.certificate[0];
 

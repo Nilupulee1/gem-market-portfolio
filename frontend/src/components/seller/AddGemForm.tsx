@@ -109,23 +109,43 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
     setImagePreviews(imagePreviews.filter((_, i) => i !== index));
   };
 
+  const validateCoreAttributes = () => {
+    if (!formData.gemName.trim() || !formData.type.trim() || !formData.caratWeight.trim() || !formData.cut.trim() || !formData.color.trim() || !formData.origin.trim() || !formData.story.trim()) {
+      setError('Please complete gem name, story, and all core attributes');
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateMediaAssets = () => {
+    if (images.length === 0) {
+      setError('Please upload at least one image');
+      return false;
+    }
+
+    if (!certificate) {
+      setError('Please upload the gem certificate');
+      return false;
+    }
+
+    if (!certificateAuthority.trim()) {
+      setError('Please enter the certificate authority');
+      return false;
+    }
+
+    return true;
+  };
+
   const nextStep = () => {
     if (currentStep === 1) {
-      // Validate Step 1
-      if (!formData.type || !formData.caratWeight || !formData.cut || !formData.color || !formData.origin) {
-        setError('Please fill all required fields');
+      if (!validateCoreAttributes()) {
         return;
       }
     }
     
     if (currentStep === 2) {
-      // Validate Step 2
-      if (images.length === 0) {
-        setError('Please upload at least one image');
-        return;
-      }
-      if (!certificate) {
-        setError('Please upload the gem certificate');
+      if (!validateMediaAssets()) {
         return;
       }
     }
@@ -167,6 +187,10 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
 
     if (listingType === 'fixed' && !fixedPrice) {
       setError('Please enter fixed price');
+      return;
+    }
+
+    if (!validateCoreAttributes() || !validateMediaAssets()) {
       return;
     }
 
@@ -235,6 +259,15 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
     const stepLabel = currentStep === 1 ? 'Core Attributes' : currentStep === 2 ? 'Media and Verification Assets' : 'Listing and Publication Settings';
     return (
       <div className="mb-4">
+        <div className="port-progress-shell mb-3">
+          <div className="d-flex justify-content-between align-items-center gap-3 mb-2">
+            <div>
+              <div className="port-panel-kicker">Listing wizard</div>
+              <div className="port-panel-title" style={{ fontSize: '16px' }}>Step {currentStep} of {totalSteps}</div>
+            </div>
+            <div className="port-step-pill">{stepLabel}</div>
+          </div>
+        </div>
         <div className="enhanced-step-bar my-3">
           <div className="enhanced-step-progress" style={{ width: progressWidth }} />
           <div className={`enhanced-step-node ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
@@ -248,7 +281,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
           </div>
         </div>
         <div className="d-flex justify-content-between align-items-center px-1">
-          <span className="text-muted small">Step {currentStep} of 3: {stepLabel}</span>
+          <span className="text-muted small">Follow the steps to publish your gem with consistent formatting and verification fields.</span>
         </div>
       </div>
     );
@@ -277,35 +310,35 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                   <Row>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Gem Name: *</Form.Label>
+                        <Form.Label className="port-form-label">Gem Name: *</Form.Label>
                         <Form.Control
                           type="text"
                           name="gemName"
                           value={formData.gemName}
                           onChange={handleChange}
                           placeholder="e.g The Azure Ocean Diamond"
-                          className="surface-muted"
+                          className="port-form-control"
                           required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Gem Type: *</Form.Label>
+                        <Form.Label className="port-form-label">Gem Type: *</Form.Label>
                         <Form.Control
                           type="text"
                           name="type"
                           value={formData.type}
                           onChange={handleChange}
                           placeholder="Ruby"
-                          className="surface-muted"
+                          className="port-form-control"
                           required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Carat/Weight: *</Form.Label>
+                        <Form.Label className="port-form-label">Carat/Weight: *</Form.Label>
                         <Form.Control
                           type="number"
                           step="0.01"
@@ -313,49 +346,49 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                           value={formData.caratWeight}
                           onChange={handleChange}
                           placeholder="e.g 2.5"
-                          className="surface-muted"
+                          className="port-form-control"
                           required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Cut: *</Form.Label>
+                        <Form.Label className="port-form-label">Cut: *</Form.Label>
                         <Form.Control
                           type="text"
                           name="cut"
                           value={formData.cut}
                           onChange={handleChange}
                           placeholder="Oval"
-                          className="surface-muted"
+                          className="port-form-control"
                           required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Color: *</Form.Label>
+                        <Form.Label className="port-form-label">Color: *</Form.Label>
                         <Form.Control
                           type="text"
                           name="color"
                           value={formData.color}
                           onChange={handleChange}
                           placeholder="Red"
-                          className="surface-muted"
+                          className="port-form-control"
                           required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label>Origin: *</Form.Label>
+                        <Form.Label className="port-form-label">Origin: *</Form.Label>
                         <Form.Control
                           type="text"
                           name="origin"
                           value={formData.origin}
                           onChange={handleChange}
                           placeholder="Madagascar"
-                          className="surface-muted"
+                          className="port-form-control"
                           required
                         />
                       </Form.Group>
@@ -375,18 +408,17 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                     value={formData.story}
                     onChange={handleChange}
                     placeholder="Describe the history, provenance or unique qualities of your gem..."
-                    className="surface-muted"
+                    className="port-form-control"
                   />
                 </div>
 
                 <div className="d-flex justify-content-between">
-                  <Button variant="outline-secondary" disabled>
+                  <Button className="bdr-btn-ghost" disabled>
                     Save Draft
                   </Button>
                   <Button 
-                    variant="primary" 
+                    className="bdr-btn-primary" 
                     onClick={nextStep}
-                    className="px-4"
                   >
                     Next Step: Media →
                   </Button>
@@ -425,7 +457,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                       className="d-none"
                       id="imageUpload"
                     />
-                    <label htmlFor="imageUpload" className="btn btn-outline-primary px-4 fw-semibold">
+                    <label htmlFor="imageUpload" className="bdr-btn-ghost" style={{ display: 'inline-flex', cursor: 'pointer' }}>
                       Choose Files
                     </label>
                   </div>
@@ -442,11 +474,10 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                               style={{ height: '90px', objectFit: 'cover' }}
                             />
                             <Button
-                              variant="danger"
+                              className="bdr-btn-danger position-absolute top-0 end-0 m-1"
                               size="sm"
-                              className="position-absolute top-0 end-0 m-1"
                               onClick={() => removeImage(index)}
-                              style={{ padding: '2px 6px', fontSize: '12px', opacity: 0.9 }}
+                              style={{ padding: '2px 8px', fontSize: '12px', opacity: 0.95 }}
                             >
                               ×
                             </Button>
@@ -473,7 +504,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                       className="d-none"
                       id="certificateUpload"
                     />
-                    <label htmlFor="certificateUpload" className="btn btn-outline-primary px-4 fw-semibold">
+                    <label htmlFor="certificateUpload" className="bdr-btn-ghost" style={{ display: 'inline-flex', cursor: 'pointer' }}>
                       Choose Certificate
                     </label>
                   </div>
@@ -486,29 +517,31 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                 </div>
 
                 <div className="mb-4">
-                  <h5 className="fw-bold mb-3">Certificate Authority</h5>
+                  <h5 className="fw-bold mb-3">Certificate Authority / Lab Name</h5>
                   <p className="text-muted small">
-                    Enter the certifying laboratory or authority that issued the report.
+                    Enter the certifying laboratory or authority name exactly as shown on the report.
                   </p>
                   <Form.Group>
                     <Form.Control
                       type="text"
+                      name="certificateAuthority"
                       value={certificateAuthority}
                       onChange={(e) => setCertificateAuthority(e.target.value)}
                       placeholder="e.g. GIA (Gemological Institute of America)"
-                      className="surface-muted"
+                      className="port-form-control"
+                      autoComplete="organization"
+                      required
                     />
                   </Form.Group>
                 </div>
 
                 <div className="d-flex justify-content-between pt-3">
-                  <Button variant="outline-secondary" onClick={prevStep}>
+                  <Button className="bdr-btn-ghost" onClick={prevStep}>
                     ← Back to Details
                   </Button>
                   <Button 
-                    variant="primary" 
+                    className="bdr-btn-primary" 
                     onClick={nextStep}
-                    className="px-4"
                   >
                     Next Step: Publication Settings →
                   </Button>
@@ -757,14 +790,13 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                   />
 
                   <div className="d-flex justify-content-between pt-3">
-                    <Button variant="outline-secondary" onClick={prevStep}>
+                    <Button className="bdr-btn-ghost" onClick={prevStep}>
                       ← Back to Media
                     </Button>
                     <Button 
-                      variant="primary" 
+                      className="bdr-btn-primary" 
                       onClick={handleSubmit}
                       disabled={loading || !agreeToTerms}
-                      className="px-5"
                     >
                       {loading ? 'Submitting...' : listingType === 'auction' ? 'Pay via PayHere Sandbox' : 'List Gemstone ✓'}
                     </Button>

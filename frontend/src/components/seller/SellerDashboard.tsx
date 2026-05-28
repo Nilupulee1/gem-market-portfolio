@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Nav, Button } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { gemAPI } from '../../api/axios';
-import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, LogOut, Moon, Sun } from 'lucide-react';
+import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, LogOut, Moon, Sun, Eye, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MyPortfolio from './MyPortfolio';
 import AddGemForm from './AddGemForm';
@@ -164,9 +164,9 @@ const SellerDashboard = ({
       rejectionRate,
       averageCarat,
       statusBreakdown: [
-        { label: 'Approved', value: stats.activeListings, color: '#10b981' },
-        { label: 'Pending', value: stats.pendingVerification, color: '#f59e0b' },
-        { label: 'Rejected', value: stats.rejectedListings, color: '#ef4444' },
+        { label: 'Approved', value: stats.activeListings, color: 'var(--success)' },
+        { label: 'Pending', value: stats.pendingVerification, color: 'var(--warning)' },
+        { label: 'Rejected', value: stats.rejectedListings, color: 'var(--danger)' },
       ],
     };
   }, [myGems.length, stats]);
@@ -239,8 +239,8 @@ const SellerDashboard = ({
                         <h3 className="mb-0">{stats.activeListings}</h3>
                         <small className="text-muted">live on market</small>
                       </div>
-                      <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                        <Package size={24} style={{ color: '#10b981' }} />
+                      <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.08)' }}>
+                        <Package size={24} style={{ color: 'var(--success)' }} />
                       </div>
                     </div>
                   </Card.Body>
@@ -256,8 +256,8 @@ const SellerDashboard = ({
                         <h3 className="mb-0">{stats.pendingVerification}</h3>
                         <small className="text-muted">awaiting review</small>
                       </div>
-                      <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-                        <AlertCircle size={24} style={{ color: '#f59e0b' }} />
+                      <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.08)' }}>
+                        <AlertCircle size={24} style={{ color: 'var(--warning)' }} />
                       </div>
                     </div>
                   </Card.Body>
@@ -273,8 +273,8 @@ const SellerDashboard = ({
                         <h3 className="mb-0">{stats.rejectedListings}</h3>
                         <small className="text-muted">needs attention</small>
                       </div>
-                      <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
-                        <AlertCircle size={24} style={{ color: '#ef4444' }} />
+                      <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.08)' }}>
+                        <AlertCircle size={24} style={{ color: 'var(--danger)' }} />
                       </div>
                     </div>
                   </Card.Body>
@@ -423,7 +423,7 @@ const SellerDashboard = ({
                         <div className="empty-state-title">No Gems Yet</div>
                         <div className="empty-state-text">Start building your portfolio by adding your first gem</div>
                         <Button 
-                          className="btn-primary"
+                          className="bdr-btn-primary"
                           onClick={() => setActiveTab('addGem')}
                         >
                           <Plus size={16} className="me-2" style={{ display: 'inline' }} />
@@ -460,15 +460,17 @@ const SellerDashboard = ({
                                 </div>
                                 <div className="gem-actions">
                                   <button 
-                                    className={`gem-actions button btn-primary btn-view-details btn-status-${gem.status}`}
+                                    className={`gem-actions button btn-view-details btn-status-${gem.status}`}
                                     onClick={() => setActiveTab('portfolio')}
                                   >
+                                    <Eye size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
                                     View Details
                                   </button>
                                   <button 
                                     className={`gem-actions button btn-manage btn-status-${gem.status}`}
                                     onClick={() => setActiveTab('portfolio')}
                                   >
+                                    <Edit2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
                                     Manage
                                   </button>
                                 </div>
@@ -595,8 +597,8 @@ const SellerDashboard = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: '#ef4444',
-                    color: '#fff',
+                    background: 'var(--danger)',
+                    color: 'var(--surface-text-on-accent)',
                     fontSize: 12,
                     fontWeight: 700,
                   }}
@@ -609,7 +611,7 @@ const SellerDashboard = ({
           </Nav>
 
           <div className="sidebar-button-group">
-            <Button variant="outline-danger" size="sm" className="w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
+            <Button className="bdr-btn-ghost w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
               <LogOut size={16} />
               Sign Out
             </Button>
