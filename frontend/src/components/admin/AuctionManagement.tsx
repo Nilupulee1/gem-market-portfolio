@@ -72,9 +72,16 @@ const AuctionManagement = () => {
     }
   };
 
-  const handleViewAuction = (auction: Auction) => {
-    setSelectedAuction(auction);
+  const handleViewAuction = async (auction: Auction) => {
     setShowDetailsModal(true);
+
+    try {
+      const response = await auctionAPI.getAuctionById(auction._id);
+      setSelectedAuction(response.data.auction);
+    } catch (error) {
+      console.error('Error fetching auction details:', error);
+      setSelectedAuction(auction);
+    }
   };
 
   const handleApproveAuction = async (auction: Auction) => {
@@ -271,7 +278,7 @@ const AuctionManagement = () => {
                             size="sm"
                             type="button"
                             className="auction-action-button ghost"
-                            onClick={() => handleViewAuction(auction)}
+                            onClick={() => void handleViewAuction(auction)}
                           >
                             Verification Review
                           </Button>

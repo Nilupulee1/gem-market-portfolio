@@ -619,7 +619,7 @@ const SellerDashboard = ({
         </div>
 
         {/* Main Content */}
-        <div className="dashboard-main-content">
+        <div className={`dashboard-main-content ${activeTab === 'messages' ? 'dashboard-main-content--messages' : ''}`}>
           <Container fluid className="p-0">
             {renderContent()}
           </Container>

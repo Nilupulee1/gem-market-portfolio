@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Modal } from 'react-bootstrap';
 import { ArrowLeft, Download, FileDown, ScanSearch } from 'lucide-react';
 import type { Gem } from '../../types';
-import PdfViewer from '../common/PdfViewer';
 import '../../styles/gemdetails.css';
 
 interface GemDetailsModalProps {
@@ -15,17 +14,16 @@ const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [downloading, setDownloading] = useState(false);
 
-  useEffect(() => { setActiveImageIndex(0); }, [gem]);
+  useEffect(() => {
+    if (show) setActiveImageIndex(0);
+  }, [show, gem?._id]);
 
   if (!gem) return null;
 
+  const images = Array.isArray(gem.images) ? gem.images.filter(Boolean) : [];
   const certificateUrl = gem.certificate?.accessUrl || gem.certificate?.url || '';
-  const normalizedUrl = (gem.certificate?.url || '').toLowerCase();
-  const isPdf =
-    gem.certificate?.mimeType === 'application/pdf' ||
-    normalizedUrl.includes('.pdf') ||
-    normalizedUrl.includes('application/pdf');
-  const mainImage = gem.images[activeImageIndex] || gem.images[0] || 'https://via.placeholder.com/900x700';
+  const mainImage = images[activeImageIndex] || images[0] || 'https://via.placeholder.com/900x700';
+  const hasMultipleImages = images.length > 1;
 
   // ── Same download logic as admin PendingGems.handleDownloadCertificate ──
   const handleDownloadCertificate = async () => {
@@ -100,18 +98,25 @@ const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
               />
             </div>
 
-            {gem.images.length > 1 && (
+            {hasMultipleImages && (
               <div className="gd-thumb-row">
-                {gem.images.slice(0, 4).map((img, i) => (
+                {images.map((img, i) => (
                   <button
                     key={i}
                     type="button"
                     className={`gd-thumb ${activeImageIndex === i ? 'active' : ''}`}
                     onClick={() => setActiveImageIndex(i)}
+                    aria-label={`View image ${i + 1} of ${images.length}`}
                   >
                     <img src={img} alt={`${gem.type} ${i + 1}`} />
                   </button>
                 ))}
+              </div>
+            )}
+
+            {hasMultipleImages && (
+              <div className="gd-thumb-count" aria-hidden="true">
+                {activeImageIndex + 1} / {images.length}
               </div>
             )}
 
@@ -202,23 +207,6 @@ const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
                 <div><span>Authority</span><strong>{gem.certificate?.authority || 'Unknown'}</strong></div>
                 <div><span>Certificate No.</span><strong>{gem.certificate?.certificateNumber || 'N/A'}</strong></div>
               </div>
-
-              {/* Inline preview */}
-              {certificateUrl && isPdf && (
-                <PdfViewer
-                  url={certificateUrl}
-                  fileName={`${gem.type.replace(/\s+/g, '_').toLowerCase()}-certificate.pdf`}
-                />
-              )}
-              {certificateUrl && !isPdf && (
-                <div style={{ marginTop: 14 }}>
-                  <img
-                    src={certificateUrl}
-                    alt="Certificate"
-                    style={{ width: '100%', borderRadius: 12, border: '1px solid #e2e8f0' }}
-                  />
-                </div>
-              )}
             </div>
 
             {/* Admin feedback */}

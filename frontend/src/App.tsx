@@ -24,9 +24,7 @@ import {
   Gavel,
   Search,
   ShieldCheck,
-  Moon,
   Sparkles,
-  Sun,
 } from 'lucide-react';
 const heroImage = '/images/hero-gems.jpg';
 const featuredGemImage = '/images/diamond-1.jpg';
@@ -476,7 +474,6 @@ const AppLayout = ({
     location.pathname.startsWith('/buyer') ||
     location.pathname.startsWith('/seller') ||
     location.pathname.startsWith('/admin');
-  const isSellerRoute = location.pathname.startsWith('/seller');
   const isMessagesRoute = location.pathname.includes('/messages');
 
   useEffect(() => {
@@ -500,19 +497,6 @@ const AppLayout = ({
 
   return (
     <div className="min-h-screen market-shell">
-      {isPortalRoute && !isSellerRoute && (
-        <button
-          type="button"
-          onClick={onToggleTheme}
-          className="theme-toggle"
-          style={{ top: 16 }}
-          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        >
-          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-          <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-        </button>
-      )}
-
       {!isPortalRoute && (
         <Header theme={theme} onToggleTheme={onToggleTheme} />
       )}
@@ -536,7 +520,7 @@ const AppLayout = ({
           path="/buyer/*"
           element={
             <ProtectedRoute allowedRoles={[UserRole.BUYER]}>
-              <BuyerDashboard />
+              <BuyerDashboard theme={theme} onToggleTheme={onToggleTheme} />
             </ProtectedRoute>
           }
         />

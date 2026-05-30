@@ -93,6 +93,57 @@ const normalizeAuctionAfterPayment = (auction: any) => {
     };
   };
 
+  const buildPayHereCheckout = ({
+    merchantId,
+    merchantSecret,
+    checkoutUrl,
+    orderId,
+    amount,
+    currency,
+    sellerName,
+    sellerEmail,
+    itemName,
+    appUrl,
+    apiBaseUrl,
+  }: {
+    merchantId: string;
+    merchantSecret: string;
+    checkoutUrl: string;
+    orderId: string;
+    amount: string;
+    currency: string;
+    sellerName: string;
+    sellerEmail: string;
+    itemName: string;
+    appUrl: string;
+    apiBaseUrl: string;
+  }) => {
+    const { firstName, lastName } = splitSellerName(sellerName);
+    const hash = buildPayHereHash(merchantId, orderId, amount, currency, merchantSecret);
+
+    return {
+      checkoutUrl,
+      fields: {
+        merchant_id: merchantId,
+        return_url: `${appUrl}/seller/auctions?payment=success&auctionId=${orderId}`,
+        cancel_url: `${appUrl}/seller/auctions?payment=cancelled&auctionId=${orderId}`,
+        notify_url: `${apiBaseUrl}/api/auctions/payhere/notify`,
+        order_id: orderId,
+        items: itemName,
+        amount,
+        currency,
+        first_name: firstName,
+        last_name: lastName,
+        email: sellerEmail,
+        phone: '',
+        address: '',
+        city: 'Colombo',
+        country: 'Sri Lanka',
+        hash,
+      }
+    };
+  };
+
 export const createAuction = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
@@ -288,36 +339,102 @@ export const createPayHereCheckout = async (req: Request, res: Response) => {
 
     await auction.save();
 
-    const hash = buildPayHereHash(merchantId, orderId, amount, currency, merchantSecret);
+    const payhere = buildPayHereCheckout({
+      merchantId,
+      merchantSecret,
+      checkoutUrl,
+      orderId,
+      amount,
+      currency,
+      sellerName: seller.name,
+      sellerEmail: seller.email,
+      itemName: `Auction listing fee for ${gem.type}`,
+      appUrl,
+      apiBaseUrl,
+    });
 
     res.status(201).json({
       message: 'PayHere checkout created successfully',
       auction: auction.toObject(),
-      payhere: {
-        checkoutUrl,
-        fields: {
-          merchant_id: merchantId,
-          return_url: `${appUrl}/seller/auctions?payment=success&auctionId=${orderId}`,
-          cancel_url: `${appUrl}/seller/auctions?payment=cancelled&auctionId=${orderId}`,
-          notify_url: `${apiBaseUrl}/api/auctions/payhere/notify`,
-          order_id: orderId,
-          items: `Auction listing fee for ${gem.type}`,
-          amount,
-          currency,
-          first_name: firstName,
-          last_name: lastName,
-          email: seller.email,
-          phone: '',
-          address: '',
-          city: 'Colombo',
-          country: 'Sri Lanka',
-          hash,
-        }
-      }
+      payhere,
     });
   } catch (error: any) {
     console.error('❌ Error creating PayHere checkout:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const retryPayHereCheckout = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  try {
+    const auction = await Auction.findById(authReq.params.id).populate('gem');
+
+    if (!auction) {
+      return res.status(404).json({ message: 'Auction not found' });
+    }
+
+    if (auction.seller.toString() !== authReq.user!.userId) {
+      return res.status(403).json({ message: 'You can only pay for your own auction' });
+    }
+
+    if (auction.status !== AuctionStatus.PENDING_PAYMENT) {
+      return res.status(400).json({ message: 'This auction is not waiting for payment' });
+    }
+
+    if (auction.paymentConfirmed === true || auction.paymentStatus === 'completed') {
+      return res.status(400).json({ message: 'Payment has already been completed for this auction' });
+    }
+
+    const seller = await User.findById(auction.seller).select('name email');
+    if (!seller) {
+      return res.status(404).json({ message: 'Seller account not found' });
+    }
+
+    const merchantId = process.env.PAYHERE_MERCHANT_ID?.trim();
+    const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET?.trim();
+    const checkoutUrl = process.env.PAYHERE_CHECKOUT_URL?.trim() || 'https://sandbox.payhere.lk/pay/checkout';
+
+    if (!merchantId || !merchantSecret) {
+      return res.status(500).json({ message: 'PayHere sandbox credentials are not configured' });
+    }
+
+    const sellerDoc = seller as any;
+    const gem = auction.gem as any;
+    const orderId = auction.paymentOrderId || auction._id.toString();
+    const currency = auction.paymentCurrency || process.env.PAYHERE_CURRENCY?.trim() || 'LKR';
+    const amount = Number(auction.paymentAmount ?? calculateListingPlacementFee(auction.startPrice)).toFixed(2);
+
+    auction.paymentOrderId = orderId;
+    auction.paymentAmount = Number(auction.paymentAmount ?? calculateListingPlacementFee(auction.startPrice));
+    auction.paymentCurrency = currency;
+    auction.paymentMethod = 'payhere-sandbox';
+    auction.paymentStatus = 'pending';
+    await auction.save();
+
+    const appUrl = getAppUrl(authReq);
+    const apiBaseUrl = getApiBaseUrl(authReq);
+    const payhere = buildPayHereCheckout({
+      merchantId,
+      merchantSecret,
+      checkoutUrl,
+      orderId,
+      amount,
+      currency,
+      sellerName: sellerDoc.name,
+      sellerEmail: sellerDoc.email,
+      itemName: `Auction listing fee for ${gem?.type || 'auction item'}`,
+      appUrl,
+      apiBaseUrl,
+    });
+
+    return res.status(200).json({
+      message: 'PayHere checkout created successfully',
+      auction: auction.toObject(),
+      payhere,
+    });
+  } catch (error: any) {
+    console.error('❌ Error creating PayHere retry checkout:', error);
+    return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -576,6 +693,11 @@ export const updateAuctionStatus = async (req: Request, res: Response) => {
     }
 
     auction.status = status;
+
+    if (status === AuctionStatus.ACTIVE) {
+      auction.paymentConfirmed = true;
+      auction.paymentStatus = 'completed';
+    }
 
     // If ending auction, set winner
     if (status === AuctionStatus.ENDED && auction.bids.length > 0) {

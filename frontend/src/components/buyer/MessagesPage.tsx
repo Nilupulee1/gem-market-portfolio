@@ -48,6 +48,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
   const { user } = useAuthStore();
   const resetUnreadCount = useChatStore((state) => state.resetUnreadCount);
   const [selectedConversation, setSelectedConversation] = useState<SelectedConversation | null>(null);
+  const [showDirectChat, setShowDirectChat] = useState<boolean>(!!(initialContact && initialGem));
 
   useEffect(() => {
     resetUnreadCount();
@@ -78,25 +79,39 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
         : selectedConversation.seller.name)
     : initialContact?.name || 'Support Inbox';
 
-  return (
-    <Container fluid className="messages-page py-4">
-      <div className="messages-shell">
-        {/* Page header */}
-        <div className="messages-header">
-          <h4 className="mb-0">Support Inbox</h4>
-        </div>
+  const isDirectOpen = showDirectChat && !selectedConversation && !!(initialContact && initialGem);
+  const [forceFullWidth, setForceFullWidth] = useState<boolean>(!!(initialContact && initialGem));
 
-        <Row className="g-3 align-items-stretch">
-          {/* Conversations column */}
-          <Col lg={4} md={5} className="conversations-column">
-            <ConversationsList
-              onSelectConversation={setSelectedConversation}
-              selectedConversationId={selectedConversation?._id}
-            />
-          </Col>
+  useEffect(() => {
+    if (initialContact && initialGem) setForceFullWidth(true);
+  }, [initialContact, initialGem]);
+
+  useEffect(() => {
+    if (selectedConversation) setForceFullWidth(false);
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      setShowDirectChat(false);
+    }
+  }, [selectedConversation]);
+
+  return (
+    <Container fluid className="messages-page py-0">
+      <div className="messages-shell">
+        <Row className="g-0 align-items-stretch">
+          {/* Conversations column (hidden when opening a direct chat) */}
+          {!isDirectOpen && !forceFullWidth && (
+            <Col lg={3} md={4} className="conversations-column">
+              <ConversationsList
+                onSelectConversation={setSelectedConversation}
+                selectedConversationId={selectedConversation?._id}
+              />
+            </Col>
+          )}
 
           {/* Chat / detail column */}
-          <Col lg={8} md={7} className="chat-column">
+          <Col lg={(isDirectOpen && forceFullWidth) ? 12 : 9} md={(isDirectOpen && forceFullWidth) ? 12 : 8} className="chat-column">
             {selectedConversation && (
               <AuctionChat
                 conversationId={selectedConversation._id}
@@ -117,6 +132,11 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
                 recipientId={initialContact._id || ''}
                 recipientName={initialContact.name}
                 conversationLabel={chatTitle}
+                onClose={() => {
+                  setShowDirectChat(false);
+                  setForceFullWidth(false);
+                }}
+                scrollOnLoad={!!isDirectOpen}
               />
             )}
 

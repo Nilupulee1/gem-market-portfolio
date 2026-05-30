@@ -1,17 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Card, Button, Form, Modal, InputGroup, Alert } from 'react-bootstrap';
-import { Search, Clock, Target, Trophy, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
+import { Search, Clock, Target, Trophy, ChevronLeft, ChevronRight, TrendingUp, LogOut, Moon, Sun } from 'lucide-react';
 import type { Auction } from '../../types';
 import { buyerAPI, auctionAPI } from '../../api/axios';
 import LiveAuctions from './LiveAuctions';
+import logo from '../../assets/logo.png';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
+import { useChatStore } from '../../store/chatStore';
 
 interface BuyerAuctionsPageProps {
   onContactSeller?: (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 const ITEMS_PER_PAGE = 6;
+type SidebarSection = 'overview' | 'live' | 'myAuctions' | 'won';
 
-const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }) => {
+const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, theme, onToggleTheme }) => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+  const unreadCount = useChatStore((state) => state.unreadCount);
   const [liveAuctions, setLiveAuctions] = useState<Auction[]>([]);
   const [activeBids, setActiveBids] = useState<Auction[]>([]);
   const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
@@ -25,6 +35,7 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
   const [currentPage, setCurrentPage] = useState(1);
   const [watchlistIds, setWatchlistIds] = useState<string[]>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [activeSection, setActiveSection] = useState<SidebarSection>('overview');
 
   useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 1000);
@@ -133,6 +144,32 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
 
   useEffect(() => setCurrentPage(1), [activeTab, sortBy, searchTerm]);
 
+  const handleSignOut = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const scrollToSection = (section: SidebarSection) => {
+    setActiveSection(section);
+
+    if (section === 'myAuctions') {
+      setActiveTab('myAuctions');
+    }
+
+    if (section === 'won') {
+      setActiveTab('won');
+    }
+
+    const targetId =
+      section === 'overview'
+        ? 'buyer-auctions-overview'
+        : section === 'live'
+          ? 'buyer-live-auctions'
+          : 'buyer-auctions-summary';
+
+    document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const handleViewDetails = (auction: Auction) => {
     setSelectedAuction(auction);
     setShowViewModal(true);
@@ -142,23 +179,102 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
     if (selectedAuction && onContactSeller) onContactSeller(selectedAuction.seller, selectedAuction.gem.type, selectedAuction.gem._id);
   };
 
-  return (
-    <div>
-      <LiveAuctions
-        auctions={liveAuctions}
-        watchlistIds={watchlistIds}
-        nowMs={nowMs}
-        onToggleWatchlist={toggleWatchlist}
-        onOpenDetails={(id) => {
-          const a = liveAuctions.find((x) => x._id === id);
-          if (a) handleViewDetails(a);
-        }}
-        formatCurrency={formatCurrency}
-        formatRemaining={formatRemaining}
-        getLeadingBidderName={getLeadingBidderName}
-      />
+  const initials = user?.name ? user.name.split(' ').map((namePart) => namePart[0]).join('').toUpperCase() : 'B';
+  const latestWin = wonAuctions[0] || null;
 
-      <div style={{ marginTop: 40 }}>
+  return (
+    <div className="bdr-shell">
+      <header className="bdr-navbar">
+        <div className="bdr-navbar-inner">
+          <button type="button" className="bdr-navbar-brand" onClick={() => scrollToSection('overview')}>
+            <img src={logo} alt="GemFolio" className="bdr-navbar-logo" />
+            <span>GemFolio</span>
+          </button>
+          <div className="bdr-navbar-actions">
+            <div className="bdr-navbar-user">
+              <span className="bdr-navbar-avatar">{initials}</span>
+              <span>{user?.name?.split(' ')[0] || 'Buyer'}</span>
+            </div>
+            {onToggleTheme && (
+              <button
+                type="button"
+                className="seller-navbar-theme-toggle"
+                onClick={onToggleTheme}
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+                <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="bdr-content-wrapper">
+        <aside className="bdr-sidebar">
+          <div className="sidebar-profile-section">
+            <div className="sidebar-profile-card">
+              <div className="sidebar-profile-avatar-container">
+                <div className="sidebar-profile-avatar">
+                  <div className="sidebar-profile-avatar-inner">{initials}</div>
+                </div>
+              </div>
+              <div className="sidebar-profile-info">
+                <div className="sidebar-profile-name" title={user?.name || ''}>{user?.name || 'Buyer account'}</div>
+                <div className="sidebar-profile-role-badge">Verified Buyer</div>
+              </div>
+            </div>
+          </div>
+
+          <nav className="sidebar-nav" aria-label="Buyer navigation">
+            <button type="button" className={`sidebar-nav-link ${activeSection === 'overview' ? 'active' : ''}`} onClick={() => scrollToSection('overview')}>
+              <TrendingUp size={16} />
+              <span>Overview</span>
+            </button>
+            <button type="button" className={`sidebar-nav-link ${activeSection === 'live' ? 'active' : ''}`} onClick={() => scrollToSection('live')}>
+              <Clock size={16} />
+              <span>Live Auctions</span>
+            </button>
+            <button type="button" className={`sidebar-nav-link ${activeSection === 'myAuctions' ? 'active' : ''}`} onClick={() => scrollToSection('myAuctions')}>
+              <Target size={16} />
+              <span>My Auctions</span>
+            </button>
+            <button type="button" className={`sidebar-nav-link ${activeSection === 'won' ? 'active' : ''}`} onClick={() => scrollToSection('won')}>
+              <Trophy size={16} />
+              <span>Won Auctions</span>
+            </button>
+          </nav>
+
+          <div className="sidebar-button-group">
+            <button type="button" className="bdr-signout-btn" onClick={handleSignOut}>
+              <LogOut size={15} /> Sign Out
+            </button>
+            {unreadCount > 0 && (
+              <div className="bdr-unread-badge" style={{ alignSelf: 'flex-start' }}>
+                {unreadCount > 99 ? '99+' : unreadCount} unread messages
+              </div>
+            )}
+          </div>
+        </aside>
+
+        <main className="bdr-main">
+          <div id="buyer-live-auctions">
+            <LiveAuctions
+              auctions={liveAuctions}
+              watchlistIds={watchlistIds}
+              nowMs={nowMs}
+              onToggleWatchlist={toggleWatchlist}
+              onOpenDetails={(id) => {
+                const a = liveAuctions.find((x) => x._id === id);
+                if (a) handleViewDetails(a);
+              }}
+              formatCurrency={formatCurrency}
+              formatRemaining={formatRemaining}
+              getLeadingBidderName={getLeadingBidderName}
+            />
+          </div>
+
+      <div id="buyer-auctions-overview" style={{ marginTop: 40 }}>
         <div className="d-flex justify-content-between align-items-start mb-4 animate-fade-up">
           <div>
             <p className="dashboard-eyebrow mb-2">Buyer Dashboard</p>
@@ -166,6 +282,51 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
             <p className="mb-0">Track your active bids and won auctions.</p>
           </div>
         </div>
+
+        {activeTab === 'won' && latestWin && (
+          <div className="content-card winning-panel mb-4 animate-fade-up delay-1">
+            <div className="card-body p-0" style={{ display: 'flex', gap: 24 }}>
+              <div style={{ flex: '0 0 44%', maxWidth: '44%' }}>
+                <img src={latestWin.gem?.images?.[0] || 'https://via.placeholder.com/600x600'} alt={latestWin.gem?.type} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }} />
+              </div>
+              <div style={{ flex: 1, padding: 24 }}>
+                <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 28, fontWeight: 800 }}>Congratulations, {user?.name?.split(' ')[0]}!</h2>
+                <p style={{ marginTop: 0, marginBottom: 18, color: 'var(--text-secondary)' }}>You are the provisional winner of the auction for the "<strong>{latestWin.gem?.type}</strong>".</p>
+
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-secondary)', marginBottom: 6 }}>WINNING BID</div>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--color-primary)', marginBottom: 12 }}>{formatCurrency(latestWin.currentBid || 0)}</div>
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '12px 0 18px' }} />
+
+                  <div className="winning-cta" style={{ marginBottom: 18 }}>
+                    <Button variant="outline-primary" className="w-100" onClick={() => onContactSeller?.(latestWin.seller, latestWin.gem.type, latestWin.gem._id)}>
+                      Reveal Seller's Contact Info
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="winning-specs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>CARAT WEIGHT</div>
+                    <div style={{ fontWeight: 700 }}>{latestWin.gem?.carat ?? '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>CUT</div>
+                    <div style={{ fontWeight: 700 }}>{latestWin.gem?.cut || '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>COLOR</div>
+                    <div style={{ fontWeight: 700 }}>{latestWin.gem?.color || '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>CLARITY</div>
+                    <div style={{ fontWeight: 700 }}>{latestWin.gem?.clarity || '—'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Row className="g-4 mb-4 animate-fade-up delay-1">
           <Col md={6} lg={3}>
@@ -237,7 +398,7 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
           </Col>
         </Row>
 
-        <div className="content-card mb-4 animate-fade-up delay-2">
+        <div className="content-card mb-4 animate-fade-up delay-2" id="buyer-auctions-summary">
           <div className="card-body p-4">
             <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
               <button onClick={() => setActiveTab('myAuctions')} className={`auctions-tab-btn ${activeTab === 'myAuctions' ? 'active' : ''}`}>
@@ -377,6 +538,8 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
             {activeTab === 'won' && <Button className="btn-primary" onClick={handleContactSeller}>Contact Seller</Button>}
           </Modal.Footer>
         </Modal>
+        </div>
+        </main>
       </div>
     </div>
   );

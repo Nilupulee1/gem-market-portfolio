@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../../styles/chat.css';
 import { Form, Button, Spinner, Card } from 'react-bootstrap';
-import { Send, Loader } from 'lucide-react';
+import { Send, Loader, ArrowLeft } from 'lucide-react';
 import axiosInstance from '../../api/axios';
 import {
   initSocket,
@@ -58,6 +58,8 @@ interface AuctionChatProps {
   recipientId: string;
   recipientName: string;
   conversationLabel?: string;
+  onClose?: () => void;
+  scrollOnLoad?: boolean;
 }
 
 const AuctionChat: React.FC<AuctionChatProps> = ({
@@ -66,7 +68,9 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
   conversationId,
   recipientId,
   recipientName,
-  conversationLabel
+  conversationLabel,
+  onClose,
+  scrollOnLoad
 }) => {
   const { user, token } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -128,6 +132,12 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (!loading && scrollOnLoad) {
+      scrollToBottom();
+    }
+  }, [loading, scrollOnLoad]);
 
   // Initialize socket and fetch messages
   useEffect(() => {
@@ -283,6 +293,11 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
     <Card className="auction-chat">
       <Card.Header className="chat-header">
         <div className="chat-header-main">
+          {typeof onClose === 'function' && (
+            <button type="button" className="chat-back-btn" onClick={onClose} aria-label="Back to conversations">
+              <ArrowLeft size={18} />
+            </button>
+          )}
           <div className="chat-avatar">{recipientName[0]?.toUpperCase()}</div>
           <div>
             <h5 className="mb-0">{conversationLabel || recipientName}</h5>
@@ -290,6 +305,29 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
           </div>
         </div>
       </Card.Header>
+      {(conversationLabel || uniqueGems.length > 0) && (
+        <div className="chat-topics-bar">
+          <div className="chat-topics-label">Chat topics</div>
+          <div className="chat-topics-list">
+            {conversationLabel && (
+              <button type="button" className="chat-topic-pill chat-topic-pill-active">
+                {conversationLabel}
+              </button>
+            )}
+            {uniqueGems.map((gem) => (
+              <button
+                key={gem._id}
+                type="button"
+                className={`chat-topic-pill ${selectedGemIdForReply === gem._id ? 'chat-topic-pill-active' : ''}`}
+                onClick={() => setSelectedGemIdForReply(gem._id)}
+                title={`Reply about ${gem.type || gem.name || 'Gem'}`}
+              >
+                {gem.type || gem.name || 'Gem'}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <Card.Body className="chat-messages">
         {loading ? (
           <div className="chat-loading">
@@ -308,50 +346,26 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
                     <div className="message-bubble">
                       <div className="message-content">{msg.content}</div>
                       {messageGem && (
-                        <div
-                          className="message-gem-card"
-                          style={{
-                            marginTop: '10px',
-                            borderRadius: '14px',
-                            overflow: 'hidden',
-                            border: '1px solid rgba(148, 163, 184, 0.28)',
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            display: 'flex',
-                            gap: '10px',
-                            padding: '10px',
-                            alignItems: 'center'
-                          }}
-                        >
+                        <div className="message-gem-card">
                           {messageGem.images?.[0] ? (
                             <img
                               src={messageGem.images[0]}
                               alt={messageGem.type || messageGem.name || 'Gem'}
-                              style={{ width: '54px', height: '54px', objectFit: 'cover', borderRadius: '10px', flexShrink: 0 }}
+                              className="message-gem-thumb"
                             />
                           ) : (
-                            <div
-                              style={{
-                                width: '54px',
-                                height: '54px',
-                                borderRadius: '10px',
-                                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(16, 185, 129, 0.3))',
-                                display: 'grid',
-                                placeItems: 'center',
-                                flexShrink: 0,
-                                fontSize: '20px'
-                              }}
-                            >
+                            <div className="message-gem-fallback">
                               ✦
                             </div>
                           )}
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.75 }}>
+                          <div className="message-gem-copy">
+                            <div className="message-gem-kicker">
                               Gem reply
                             </div>
-                            <div style={{ fontWeight: 700, lineHeight: 1.2 }}>
+                            <div className="message-gem-name">
                               {messageGem.type || messageGem.name || 'Gem'}
                             </div>
-                            <div style={{ fontSize: '12px', opacity: 0.82, lineHeight: 1.3 }}>
+                            <div className="message-gem-description">
                               {messageGem.name || 'Attached gem context'}
                             </div>
                           </div>
@@ -377,16 +391,7 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
               <Form.Select
                 value={selectedGemIdForReply || ''}
                 onChange={(e) => setSelectedGemIdForReply(e.target.value || undefined)}
-                className="gem-selector"
-                style={{
-                  fontSize: '13px',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  backgroundColor: 'rgba(15, 23, 42, 0.4)',
-                  color: 'inherit',
-                  cursor: 'pointer'
-                }}
+                className="gem-selector chat-gem-selector"
               >
                 <option value="">Select a gem...</option>
                 {uniqueGems.map((gem) => (
@@ -409,20 +414,18 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
             className="chat-composer-input"
           />
           <Button type="submit" className="chat-send-btn" disabled={sending || !messageContent.trim()}>
-            {sending ? <Loader size={18} className="spinner" /> : <Send size={18} />}
+            {sending ? <Loader size={18} className="spinner chat-send-icon" /> : <Send size={18} className="chat-send-icon" />}
           </Button>
         </Form>
-        <div className="typing-indicator">
-          {typingUsers.some((u) => u.isTyping && u.userId !== user?.id) && (
-            <>
-              <span />
-              <span />
-              <span />
-              <strong>{typingUsers.filter(u => u.isTyping && u.userId !== user?.id).length > 0 ? recipientName : ''}</strong>
-              <span>is typing...</span>
-            </>
-          )}
-        </div>
+        {typingUsers.some((u) => u.isTyping && u.userId !== user?.id) && (
+          <div className="typing-indicator">
+            <span />
+            <span />
+            <span />
+            <strong>{recipientName}</strong>
+            <span>is typing...</span>
+          </div>
+        )}
       </Card.Footer>
     </Card>
   );

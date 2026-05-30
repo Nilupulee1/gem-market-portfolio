@@ -383,7 +383,149 @@ html[data-theme='dark'] .sidebar-nav-link.active { background: var(--chip-bg); c
   background: var(--page-bg);
 }
 
+.dashboard-main-content--messages {
+  overflow: hidden;
+  padding-bottom: 0;
+  padding-top: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
 html[data-theme='dark'] .dashboard-main-content { background: var(--page-bg); }
+
+/* ─────────────────────────────────────────────────────
+   Gem edit modal styles
+   ───────────────────────────────────────────────────── */
+.gem-edit-modal .modal-content { border-radius: 12px; overflow: hidden; }
+.gem-edit-tabs { border-bottom: 0 !important; box-shadow: none; margin: 24px 0 0; column-gap: 14px; }
+.gem-edit-tabs .nav-item { margin-right: 0; }
+.gem-edit-tabs .nav-link { color: var(--color-bright); padding: 7px 12px; border-radius: 10px; border: 1px solid rgba(47, 109, 225, 0.2); background: rgba(47, 109, 225, 0.08); }
+.gem-edit-tab-btn { font-size: 13px; font-weight: 700; }
+.gem-edit-tabs .nav-link:hover:not(.active) { background: rgba(47, 109, 225, 0.14); border-color: rgba(47, 109, 225, 0.3); color: var(--color-bright); }
+.gem-edit-tabs .nav-link.active { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-bright) 100%); color: white; box-shadow: 0 6px 18px rgba(47,109,225,0.18); font-weight: 700; border-color: transparent; }
+.gem-edit-save-btn { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-bright) 100%); border: none; color: #fff; padding: 9px 16px; border-radius: 10px; box-shadow: 0 6px 16px rgba(47,109,225,0.18); font-size: 14px; font-weight: 700; }
+.gem-edit-save-btn:hover:not(:disabled) { color: #fff; opacity: 0.95; }
+.gem-edit-save-btn:disabled { opacity: 0.7; }
+.gem-edit-card { background: transparent; }
+.gem-edit-card .bg-white { background: var(--page-surface); }
+.gem-edit-modal .modal-content {
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--page-surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+.gem-edit-header,
+.gem-edit-body {
+  background: var(--page-surface);
+  color: var(--text-primary);
+}
+.gem-edit-header {
+  border-bottom: 1px solid var(--border);
+}
+.gem-edit-header-actions {
+  margin-left: auto;
+  padding-left: 72px;
+  gap: 18px !important;
+}
+.gem-edit-back-btn {
+  border: 1px solid rgba(47, 109, 225, 0.2);
+  background: rgba(47, 109, 225, 0.08);
+  color: var(--color-bright);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+.gem-edit-back-btn:hover {
+  background: rgba(47, 109, 225, 0.14);
+  color: var(--color-bright);
+  border-color: rgba(47, 109, 225, 0.3);
+}
+.gem-edit-muted {
+  color: var(--text-secondary) !important;
+}
+.gem-edit-action-btn {
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 7px 12px;
+}
+.gem-edit-discard-btn {
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+.gem-edit-discard-btn:hover {
+  background: rgba(239, 68, 68, 0.16);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.34);
+}
+.gem-edit-save-btn {
+  border: 1px solid rgba(47, 109, 225, 0.2);
+  background: rgba(47, 109, 225, 0.08);
+  color: var(--color-bright);
+}
+.gem-edit-save-btn:hover:not(:disabled) {
+  background: rgba(47, 109, 225, 0.14);
+  color: var(--color-bright);
+  border-color: rgba(47, 109, 225, 0.3);
+}
+.gem-edit-section-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--page-surface-muted);
+  box-shadow: var(--se-sh-card);
+}
+.gem-edit-input,
+.gem-edit-modal .form-control,
+.gem-edit-modal .form-select {
+  background: var(--page-surface-elevated) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+}
+.gem-edit-input::placeholder,
+.gem-edit-modal .form-control::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.7;
+}
+.gem-edit-input:focus,
+.gem-edit-modal .form-control:focus,
+.gem-edit-modal .form-select:focus {
+  background: var(--page-surface) !important;
+  border-color: var(--color-bright) !important;
+  box-shadow: 0 0 0 3px rgba(47, 109, 225, 0.14) !important;
+  color: var(--text-primary) !important;
+}
+.gem-edit-modal .btn-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.gem-edit-modal .btn-link:hover {
+  color: var(--text-primary);
+}
+.gem-edit-modal .btn-link {
+  font-size: 14px;
+  font-weight: 600;
+}
+.gem-edit-modal .nav-tabs {
+  border-bottom: 1px solid var(--border);
+}
+.gem-edit-modal .nav-tabs .nav-link {
+  border: 1px solid transparent;
+}
+.gem-edit-modal .nav-tabs .nav-link.active {
+  border-color: var(--border);
+}
+
+@media (max-width: 767px) {
+  .gem-edit-tabs .nav-link { padding: 8px 10px; font-size: 13px; }
+}
 
 
 /* ─────────────────────────────────────────────────────
@@ -995,18 +1137,18 @@ html[data-theme='dark'] .gem-card-body { background: var(--page-surface-elevated
 html[data-theme='dark'] .gem-image-container { background: var(--page-surface-muted); }
 html[data-theme='dark'] .gem-type,
 html[data-theme='dark'] .gem-details { color: var(--text-primary); }
-html[data-theme='dark'] .btn-manage { background: rgba(15, 23, 42, 0.72); color: var(--text-primary); border-color: var(--border) !important; }
-html[data-theme='dark'] .btn-manage:hover { background: rgba(30, 41, 59, 0.92); }
+html[data-theme='dark'] .btn-manage { background: rgba(15, 23, 42, 0.72); color: #e2e8f0; border-color: var(--border) !important; }
+html[data-theme='dark'] .btn-manage:hover { background: rgba(37, 99, 235, 0.18); border-color: rgba(96, 165, 250, 0.5) !important; color: #dbeafe; }
 html[data-theme='dark'] .btn-view-details { background: rgba(15, 23, 42, 0.72); color: var(--text-primary); border-color: var(--border) !important; }
 html[data-theme='dark'] .btn-view-details:hover { background: rgba(30, 41, 59, 0.92); }
 html[data-theme='dark'] .btn-status-approved.btn-manage { border-color: rgba(16, 185, 129, 0.3) !important; }
-html[data-theme='dark'] .btn-status-approved.btn-manage:hover { background: rgba(16, 185, 129, 0.1); }
+html[data-theme='dark'] .btn-status-approved.btn-manage:hover { background: rgba(16, 185, 129, 0.18); border-color: rgba(110, 231, 183, 0.5) !important; color: #d1fae5; }
 html[data-theme='dark'] .btn-status-pending.btn-manage { border-color: rgba(245, 158, 11, 0.3) !important; }
-html[data-theme='dark'] .btn-status-pending.btn-manage:hover { background: rgba(245, 158, 11, 0.1); }
+html[data-theme='dark'] .btn-status-pending.btn-manage:hover { background: rgba(245, 158, 11, 0.18); border-color: rgba(251, 191, 36, 0.5) !important; color: #fef3c7; }
 html[data-theme='dark'] .btn-status-rejected.btn-manage { border-color: rgba(239, 68, 68, 0.3) !important; }
-html[data-theme='dark'] .btn-status-rejected.btn-manage:hover { background: rgba(239, 68, 68, 0.1); }
-html[data-theme='dark'] .btn-delete-outline { background: rgba(239, 68, 68, 0.08) !important; border-color: rgba(239, 68, 68, 0.24) !important; color: var(--danger) !important; }
-html[data-theme='dark'] .btn-delete-outline:hover { background: rgba(239, 68, 68, 0.14) !important; border-color: rgba(239, 68, 68, 0.36) !important; }
+html[data-theme='dark'] .btn-status-rejected.btn-manage:hover { background: rgba(239, 68, 68, 0.18); border-color: rgba(252, 165, 165, 0.5) !important; color: #fee2e2; }
+html[data-theme='dark'] .btn-delete-outline { background: rgba(239, 68, 68, 0.08) !important; border-color: rgba(239, 68, 68, 0.24) !important; color: #fecaca !important; }
+html[data-theme='dark'] .btn-delete-outline:hover { background: rgba(239, 68, 68, 0.22) !important; border-color: rgba(248, 113, 113, 0.56) !important; color: #fee2e2 !important; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.16); }
 
 /* Auction cards */
 .auction-lot-badge {
@@ -1165,6 +1307,92 @@ html[data-theme='dark'] .auction-time-value.pending {
 
 html[data-theme='dark'] .auction-time-value.ended {
   color: #f87171;
+}
+
+.auction-details-modal .modal-content {
+  background: var(--page-surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+
+.auction-details-modal .modal-header {
+  background: linear-gradient(135deg, rgba(31, 79, 130, 0.95) 0%, rgba(47, 109, 225, 0.95) 100%);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.auction-details-modal .modal-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.auction-details-modal .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+  opacity: 0.95;
+}
+
+.auction-details-body {
+  background: var(--page-surface);
+  color: var(--text-primary);
+}
+
+.auction-details-image {
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--page-surface-muted);
+  border: 1px solid var(--border);
+}
+
+.auction-details-title {
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.auction-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: var(--page-surface-muted);
+}
+
+.auction-details-divider {
+  border-color: var(--border);
+  opacity: 1;
+}
+
+.auction-details-footer-meta {
+  font-size: 13px;
+}
+
+html[data-theme='dark'] .auction-details-modal .modal-content {
+  background: var(--page-surface);
+  border-color: var(--border);
+}
+
+html[data-theme='dark'] .auction-details-modal .modal-header {
+  background: linear-gradient(135deg, rgba(17, 32, 56, 0.98) 0%, rgba(31, 79, 130, 0.98) 100%);
+}
+
+html[data-theme='dark'] .auction-details-body {
+  background: var(--page-surface);
+}
+
+html[data-theme='dark'] .auction-details-image {
+  background: var(--page-surface-elevated);
+}
+
+html[data-theme='dark'] .auction-history-item {
+  background: var(--page-surface-elevated);
+  border-color: var(--border);
 }
 
 
@@ -2045,8 +2273,9 @@ html[data-theme='dark'] .form-control::placeholder { color: rgba(230,238,248,0.5
   white-space: nowrap;
 }
 
-.conversations-header { padding: 18px 20px; }
-.conversation-search  { width: 100%; margin-bottom: 14px; }
+.conversations-header { padding: 12px 16px; }
+.conversations-body { padding: 8px 10px 10px; }
+.conversation-search  { width: 100%; margin-bottom: 8px; min-height: 34px; padding: 7px 10px; font-size: 13px; }
 
 
 /* ─────────────────────────────────────────────────────
@@ -2972,6 +3201,30 @@ html[data-theme='dark'] [style*="var(--page-surface)"] {
   color: #fff;
 }
 
+.bdr-market-actions .bdr-btn-primary {
+  background: linear-gradient(135deg, rgba(47, 109, 225, 0.12), rgba(79, 70, 229, 0.16));
+  border: 1px solid rgba(47, 109, 225, 0.22);
+  color: #1e293b;
+}
+
+.bdr-market-actions .bdr-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(47, 109, 225, 0.18), rgba(79, 70, 229, 0.22));
+  border-color: rgba(47, 109, 225, 0.35);
+  color: #0f172a;
+}
+
+.bdr-market-actions .bdr-btn-danger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  color: #7f1d1d;
+}
+
+.bdr-market-actions .bdr-btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.34);
+  color: #450a0a;
+}
+
 html[data-theme='dark'] .bdr-btn-ghost {
   background: transparent;
   border-color: var(--border);
@@ -2982,6 +3235,134 @@ html[data-theme='dark'] .bdr-btn-ghost:hover:not(:disabled) {
   background: var(--page-surface-muted);
   border-color: var(--color-bright);
   color: var(--color-bright);
+}
+
+html[data-theme='dark'] .bdr-btn-primary {
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.36);
+  color: #e0e7ff;
+}
+
+html[data-theme='dark'] .bdr-btn-primary:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.26);
+  border-color: rgba(96, 165, 250, 0.6);
+  color: #ffffff;
+}
+
+html[data-theme='dark'] .bdr-btn-danger {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.34);
+  color: #fecaca;
+}
+
+html[data-theme='dark'] .bdr-btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.26);
+  border-color: rgba(248, 113, 113, 0.56);
+  color: #fff1f2;
+}
+
+html[data-theme='dark'] .bdr-market-actions .bdr-btn-primary {
+  background: rgba(37, 99, 235, 0.18) !important;
+  border: 1px solid rgba(96, 165, 250, 0.42) !important;
+  color: #eff6ff !important;
+}
+
+html[data-theme='dark'] .bdr-market-actions .bdr-btn-primary:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.3) !important;
+  border-color: rgba(147, 197, 253, 0.72) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] .bdr-market-actions .bdr-btn-danger {
+  background: rgba(239, 68, 68, 0.18) !important;
+  border: 1px solid rgba(248, 113, 113, 0.42) !important;
+  color: #fee2e2 !important;
+}
+
+html[data-theme='dark'] .bdr-market-actions .bdr-btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.3) !important;
+  border-color: rgba(252, 165, 165, 0.7) !important;
+  color: #fff5f5 !important;
+}
+
+/* Auction page cards need their own hover text contrast */
+.auction-card .bdr-btn-primary,
+.auction-card .bdr-btn-danger {
+  color: #1f2937 !important;
+}
+
+.auction-card .bdr-btn-primary:hover:not(:disabled),
+.auction-card .bdr-btn-danger:hover:not(:disabled) {
+  color: #0f172a !important;
+}
+
+html[data-theme='dark'] .auction-card .bdr-btn-primary {
+  color: #e0e7ff !important;
+}
+
+html[data-theme='dark'] .auction-card .bdr-btn-primary:hover:not(:disabled) {
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] .auction-card .bdr-btn-danger {
+  color: #fecaca !important;
+}
+
+html[data-theme='dark'] .auction-card .bdr-btn-danger:hover:not(:disabled) {
+  color: #fff1f2 !important;
+}
+
+/* Add Gem page buttons */
+.ag-action-row .bdr-btn-primary {
+  background: linear-gradient(135deg, rgba(47, 109, 225, 0.14), rgba(79, 70, 229, 0.18));
+  border: 1px solid rgba(47, 109, 225, 0.24);
+  color: #1e293b !important;
+}
+
+.ag-action-row .bdr-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(47, 109, 225, 0.22), rgba(79, 70, 229, 0.26));
+  border-color: rgba(47, 109, 225, 0.38);
+  color: #0f172a !important;
+}
+
+.ag-action-row .bdr-btn-ghost,
+.upload-dropzone .bdr-btn-ghost {
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #334155 !important;
+}
+
+.ag-action-row .bdr-btn-ghost:hover:not(:disabled),
+.upload-dropzone .bdr-btn-ghost:hover:not(:disabled) {
+  background: rgba(47, 109, 225, 0.1);
+  border-color: rgba(47, 109, 225, 0.34);
+  color: #0f172a !important;
+}
+
+html[data-theme='dark'] .ag-action-row .bdr-btn-primary {
+  background: rgba(37, 99, 235, 0.18);
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  color: #e0e7ff !important;
+}
+
+html[data-theme='dark'] .ag-action-row .bdr-btn-primary:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.28);
+  border-color: rgba(147, 197, 253, 0.7);
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] .ag-action-row .bdr-btn-ghost,
+html[data-theme='dark'] .upload-dropzone .bdr-btn-ghost {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0 !important;
+}
+
+html[data-theme='dark'] .ag-action-row .bdr-btn-ghost:hover:not(:disabled),
+html[data-theme='dark'] .upload-dropzone .bdr-btn-ghost:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.94);
+  border-color: rgba(96, 165, 250, 0.54);
+  color: #ffffff !important;
 }
 
 

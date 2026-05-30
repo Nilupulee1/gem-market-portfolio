@@ -186,6 +186,35 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
     setShowViewModal(true);
   };
 
+  const handlePayHere = async (auction: Auction) => {
+    try {
+      const response = await auctionAPI.retryPayHereCheckout(auction._id);
+      const { checkoutUrl, fields } = response.data.payhere;
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = checkoutUrl;
+      form.style.display = 'none';
+
+      Object.entries(fields).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(value);
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    } catch (error) {
+      console.error('Error starting PayHere checkout:', error);
+      setPaymentNotice({
+        variant: 'danger',
+        message: 'Unable to open PayHere checkout right now. Please try again.',
+      });
+    }
+  };
+
   const handleDelete = (auction: Auction) => {
     setSelectedAuction(auction);
     setShowDeleteModal(true);
@@ -569,7 +598,27 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                         <Eye size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
                         View Details
                       </button>
-                      {status === 'ended' && auction.bids?.length > 0 && onContactWinner ? (
+                      {status === 'pending' ? (
+                        <>
+                          <button
+                            type="button"
+                            className="bdr-btn-primary"
+                            style={{ flex: 1 }}
+                            onClick={() => void handlePayHere(auction)}
+                          >
+                            Pay Here
+                          </button>
+                          <button
+                            type="button"
+                            className="bdr-btn-danger"
+                            style={{ flex: 1 }}
+                            onClick={() => handleDelete(auction)}
+                          >
+                            <Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
+                            Delete
+                          </button>
+                        </>
+                      ) : status === 'ended' && auction.bids?.length > 0 && onContactWinner ? (
                         <button
                           type="button"
                           className="bdr-btn-ghost"
@@ -718,11 +767,11 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
       </Modal>
 
       {/* View Details Modal */}
-      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg">
+      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg" dialogClassName="auction-details-modal">
         <Modal.Header closeButton className="modal-header-gradient">
           <Modal.Title>Auction Details</Modal.Title>
         </Modal.Header>
-        <Modal.Body className="p-4">
+        <Modal.Body className="auction-details-body p-4">
           {selectedAuction && (
             <div>
               <Row className="g-4">
@@ -730,11 +779,11 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                   <img
                     src={selectedAuction.gem?.images?.[0] || 'https://via.placeholder.com/300'}
                     alt={selectedAuction.gem?.type}
-                    style={{ width: '100%', borderRadius: '8px', objectFit: 'cover' }}
+                    className="auction-details-image"
                   />
                 </Col>
                 <Col md={8}>
-                  <h5 style={{ fontWeight: 700, marginBottom: '12px' }}>{selectedAuction.gem?.type}</h5>
+                  <h5 className="auction-details-title">{selectedAuction.gem?.type}</h5>
                   <Row className="g-2" style={{ fontSize: '13px', marginBottom: '16px' }}>
                     <Col xs={6}>
                       <div style={{ color: 'var(--text-secondary)' }}>Start Price</div>
@@ -783,17 +832,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                           .map((bid, index) => (
                             <div
                               key={`${bid.bidder?._id || 'bidder'}-${bid.timestamp}-${index}`}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                gap: '12px',
-                                padding: '10px 12px',
-                                border: '1px solid var(--border)',
-                                borderRadius: '10px',
-                                marginBottom: '8px',
-                                background: '#f8fafc',
-                              }}
+                              className="auction-history-item"
                             >
                               <div>
                                 <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -839,8 +878,8 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                     </div>
                   ) : null}
 
-                  <hr />
-                  <div style={{ fontSize: '13px' }}>
+                  <hr className="auction-details-divider" />
+                  <div className="auction-details-footer-meta">
                     <div style={{ color: 'var(--text-secondary)', marginBottom: '4px' }}>End Time</div>
                     <div style={{ fontWeight: 600 }}>{formatDateTime(selectedAuction.endTime)}</div>
                   </div>
@@ -868,6 +907,31 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                         disabled={!getAuctionWinnerContact(selectedAuction)}
                       >
                         Contact Winner
+                      </Button>
+                    </div>
+                  )}
+
+                  {selectedAuction && getAuctionStatus(selectedAuction) === 'pending' && (
+                    <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <Button
+                        className="bdr-btn-primary"
+                        type="button"
+                        onClick={() => {
+                          void handlePayHere(selectedAuction);
+                          setShowViewModal(false);
+                        }}
+                      >
+                        Pay Here
+                      </Button>
+                      <Button
+                        className="bdr-btn-danger"
+                        type="button"
+                        onClick={() => {
+                          setShowViewModal(false);
+                          handleDelete(selectedAuction);
+                        }}
+                      >
+                        Delete
                       </Button>
                     </div>
                   )}
