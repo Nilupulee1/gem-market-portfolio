@@ -49,6 +49,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
   const resetUnreadCount = useChatStore((state) => state.resetUnreadCount);
   const [selectedConversation, setSelectedConversation] = useState<SelectedConversation | null>(null);
   const [showDirectChat, setShowDirectChat] = useState<boolean>(!!(initialContact && initialGem));
+  const [forceFullWidth, setForceFullWidth] = useState<boolean>(!!(initialContact && initialGem));
 
   useEffect(() => {
     resetUnreadCount();
@@ -80,7 +81,14 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
     : initialContact?.name || 'Support Inbox';
 
   const isDirectOpen = showDirectChat && !selectedConversation && !!(initialContact && initialGem);
-  const [forceFullWidth, setForceFullWidth] = useState<boolean>(!!(initialContact && initialGem));
+
+  useEffect(() => {
+    const hasDirectContext = !!(initialContact && initialGem);
+    if (hasDirectContext) {
+      setShowDirectChat(true);
+      setForceFullWidth(true);
+    }
+  }, [initialContact, initialGem]);
 
   useEffect(() => {
     if (initialContact && initialGem) setForceFullWidth(true);

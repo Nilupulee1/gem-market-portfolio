@@ -334,20 +334,20 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
       )}
 
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-start mb-4 animate-fade-up">
-        <div>
+      <Card className="dashboard-hero hero-premium-mesh auctions-hero-card animate-fade-up mb-4">
+        <div className="auctions-hero-copy">
           <h4>My Auctions & History</h4>
           <p className="mb-0">Track your active and past auction participation.</p>
         </div>
         <Button 
-          className="bdr-btn-primary d-flex align-items-center gap-2"
+          className="bdr-btn-primary auctions-hero-action d-flex align-items-center gap-2"
           onClick={() => setShowCreateModal(true)}
           style={{ whiteSpace: 'nowrap' }}
         >
           <Plus size={18} />
           Create New Auction
         </Button>
-      </div>
+      </Card>
 
       {/* Stats Cards */}
       <Row className="g-4 mb-4 animate-fade-up delay-1">

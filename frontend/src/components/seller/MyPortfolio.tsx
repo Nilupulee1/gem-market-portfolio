@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Card, Form, Modal, Alert } from 'react-bootstrap';
-import { Eye, Edit2, Trash2, Gem } from 'lucide-react';
+import { Eye, Edit2, Trash2, Gem, CheckCircle2, Clock3, CircleAlert } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { gemAPI, auctionAPI } from '../../api/axios';
 import type { Gem as GemType } from '../../types';
@@ -18,34 +18,65 @@ const StatsBar = ({ gems }: { gems: GemType[] }) => {
   const pending  = gems.filter(g => g.status === 'pending').length;
   const rejected = gems.filter(g => g.status === 'rejected').length;
   const total    = gems.length;
-  const totalCt  = gems.reduce((s, g) => s + Number(g.carat || 0), 0);
 
   return (
-    <div className="port-stats-bar animate-fade-up">
-      <div className="port-stat">
-        <span className="port-stat-value">{total}</span>
-        <span className="port-stat-label">Total gems</span>
-      </div>
-      <div className="port-stat-divider" />
-      <div className="port-stat">
-        <span className="port-stat-value" style={{ color: 'var(--success)' }}>{approved}</span>
-        <span className="port-stat-label">Approved</span>
-      </div>
-      <div className="port-stat-divider" />
-      <div className="port-stat">
-        <span className="port-stat-value" style={{ color: 'var(--warning)' }}>{pending}</span>
-        <span className="port-stat-label">Pending</span>
-      </div>
-      <div className="port-stat-divider" />
-      <div className="port-stat">
-        <span className="port-stat-value" style={{ color: 'var(--danger)' }}>{rejected}</span>
-        <span className="port-stat-label">Rejected</span>
-      </div>
-      <div className="port-stat-divider" />
-      <div className="port-stat">
-        <span className="port-stat-value">{totalCt.toFixed(2)}</span>
-        <span className="port-stat-label">Total carats</span>
-      </div>
+    <div className="port-stats-grid animate-fade-up">
+      <Card className="stat-card h-100">
+        <Card.Body>
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p className="text-muted mb-2 small">Total Gems</p>
+              <h3 className="mb-0">{total}</h3>
+            </div>
+            <div className="stat-icon" style={{ background: 'rgba(31, 79, 130, 0.1)' }}>
+              <Gem size={24} style={{ color: 'var(--color-primary)' }} />
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
+
+      <Card className="stat-card stat-card-approved h-100">
+        <Card.Body>
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p className="text-muted mb-2 small">Approved</p>
+              <h3 className="mb-0">{approved}</h3>
+            </div>
+            <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.08)' }}>
+              <CheckCircle2 size={24} style={{ color: 'var(--success)' }} />
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
+
+      <Card className="stat-card stat-card-pending h-100">
+        <Card.Body>
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p className="text-muted mb-2 small">Pending</p>
+              <h3 className="mb-0">{pending}</h3>
+            </div>
+            <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.08)' }}>
+              <Clock3 size={24} style={{ color: 'var(--warning)' }} />
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
+
+      <Card className="stat-card stat-card-rejected h-100">
+        <Card.Body>
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <p className="text-muted mb-2 small">Rejected</p>
+              <h3 className="mb-0">{rejected}</h3>
+            </div>
+            <div className="stat-icon" style={{ background: 'rgba(239, 68, 68, 0.08)' }}>
+              <CircleAlert size={24} style={{ color: 'var(--danger)' }} />
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
+
     </div>
   );
 };
@@ -63,32 +94,32 @@ const GemCard = ({
   onEdit: (g: GemType) => void;
   onDelete: (g: GemType) => void;
 }) => (
-  <Col md={6} lg={4} key={gem._id} className={`animate-fade-up delay-${Math.min(5, index + 1)}`}>
-    <article className="bdr-market-card h-100">
-      <div className="bdr-market-img-wrap">
+  <Col md={6} lg={3} key={gem._id} className={`animate-fade-up delay-${Math.min(5, index + 1)}`}>
+    <Card className="content-card portfolio-gem-card h-100">
+      <div className="portfolio-gem-img-wrap">
         <img
           src={gem.images[0] || 'https://via.placeholder.com/400x280?text=No+Image'}
           alt={gem.type}
-          className="bdr-market-img"
+          className="portfolio-gem-img"
           onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
         />
-        <span className={`bdr-market-badge ${gem.status === 'approved' ? 'bdr-badge-sale' : gem.status === 'pending' ? 'bdr-badge-live' : 'bdr-badge-live'}`}>
+        <span className={`portfolio-gem-badge ${gem.status === 'approved' ? 'portfolio-gem-badge--approved' : gem.status === 'pending' ? 'portfolio-gem-badge--pending' : 'portfolio-gem-badge--rejected'}`}>
           {gem.status}
         </span>
       </div>
 
-      <div className="bdr-market-body">
-        <strong className="bdr-market-name">{gem.type}</strong>
-        <p className="bdr-market-meta">{gem.origin} · {gem.carat} ct</p>
-        <div style={{ marginTop: 6 }}>
-          <div className="bdr-market-meta" style={{ marginBottom: 6 }}>
+      <Card.Body className="portfolio-gem-body">
+        <strong className="portfolio-gem-name">{gem.type}</strong>
+        <p className="portfolio-gem-meta">{gem.origin} · {gem.carat} ct</p>
+        <div className="portfolio-gem-specs">
+          <div className="portfolio-gem-meta">
             <strong>Color:</strong> {gem.color}
           </div>
-          {gem.cut && <div className="bdr-market-meta" style={{ marginBottom: 6 }}><strong>Cut:</strong> {gem.cut}</div>}
-          {gem.clarity && <div className="bdr-market-meta" style={{ marginBottom: 6 }}><strong>Clarity:</strong> {gem.clarity}</div>}
+          {gem.cut && <div className="portfolio-gem-meta"><strong>Cut:</strong> {gem.cut}</div>}
+          {gem.clarity && <div className="portfolio-gem-meta"><strong>Clarity:</strong> {gem.clarity}</div>}
         </div>
 
-        <div className="bdr-market-actions">
+        <div className="portfolio-gem-actions">
           <button
             className={`bdr-btn-ghost`}
             onClick={() => onView(gem)}
@@ -117,8 +148,8 @@ const GemCard = ({
             Delete
           </button>
         </div>
-      </div>
-    </article>
+      </Card.Body>
+    </Card>
   </Col>
 );
 
@@ -150,6 +181,8 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
   const [minimumBidIncrement, setMinimumBidIncrement] = useState('');
   const [duration, setDuration] = useState('7');
   const [startDate, setStartDate] = useState('');
+  const approvedCount = gems.filter(g => g.status === 'approved').length;
+  const approvalRate = gems.length ? Math.round((approvedCount / gems.length) * 100) : 0;
 
   const handleListingTypeChange = (value: 'portfolio' | 'fixed' | 'auction') => {
     if (value === 'auction' && selectedGem?.status !== 'approved') {
@@ -313,17 +346,23 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
     <div className="port-root">
 
       {/* ── Header ── */}
-      <div className="port-header animate-fade-up">
+      <Card className="dashboard-hero hero-premium-mesh port-hero-card animate-fade-up">
         <div>
-          <h4 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
-            Gem Collection
-          </h4>
-          <p style={{ margin: '4px 0 0', fontSize: 13.5, color: 'var(--text-secondary)' }}>
-            Manage, view, and edit your listed gems
-          </p>
+          <p className="dashboard-eyebrow mb-2">Gem collection</p>
+          <h4>Manage, view, and edit your listed gems</h4>
+          <p className="mb-0">Track your portfolio status, review listings, and manage each stone from one place.</p>
         </div>
 
-        {/* Filter pill group — no filter icon */}
+        <div className="dashboard-chip-stack port-hero-actions">
+          <span className="dashboard-chip dashboard-chip-soft">{approvalRate}% approval rate</span>
+          <span className="dashboard-chip">{gems.length} total gems</span>
+        </div>
+      </Card>
+
+      {/* ── Stats bar ── */}
+      {gems.length > 0 && <StatsBar gems={gems} />}
+
+      <div className="port-filter-row animate-fade-up delay-1">
         <div className="port-filter-group" role="group" aria-label="Filter gems by status">
           {FILTER_OPTIONS.map(opt => (
             <button
@@ -337,9 +376,6 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
           ))}
         </div>
       </div>
-
-      {/* ── Stats bar ── */}
-      {gems.length > 0 && <StatsBar gems={gems} />}
 
       {/* ── Gem Grid ── */}
       {filteredGems.length === 0 ? (

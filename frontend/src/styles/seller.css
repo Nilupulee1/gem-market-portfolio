@@ -360,6 +360,40 @@ html[data-theme='dark'] .seller-navbar-user {
   border-radius: var(--se-r-inner);
 }
 
+.bdr-signout-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  background: transparent;
+  color: #ef4444 !important;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bdr-signout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #ef4444 !important;
+}
+
+html[data-theme='dark'] .bdr-signout-btn {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5 !important;
+}
+
+html[data-theme='dark'] .bdr-signout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
 /* Sidebar scrollbar */
 .dashboard-sidebar-wrapper::-webkit-scrollbar { width: 6px; }
 .dashboard-sidebar-wrapper::-webkit-scrollbar-track { background: transparent; }
@@ -675,7 +709,88 @@ html[data-theme='dark'] .auctions-tab-btn.active { color: var(--color-bright); b
   color: var(--color-bright);
 }
 
+.port-hero-card {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.port-hero-card > div:first-child {
+  flex: 1 1 auto;
+  max-width: 720px;
+  min-width: 0;
+  text-align: left;
+}
+
+.port-hero-card .dashboard-chip-stack {
+  width: auto;
+  justify-content: flex-end;
+  align-items: center;
+  align-self: center;
+  margin-top: 0;
+}
+
+.port-hero-actions {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.port-hero-actions .port-filter-group {
+  margin-left: 0;
+}
+
+.port-hero-card .port-filter-group {
+  background: var(--page-surface-muted);
+}
+
+.port-filter-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
 html[data-theme='dark'] .dashboard-hero { background: var(--page-surface); border-color: var(--border); }
+
+.auctions-hero-card {
+  position: relative;
+  align-items: flex-start;
+}
+
+.auctions-hero-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 240px;
+}
+
+.auctions-hero-action {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  margin-left: 0;
+  align-self: auto;
+  width: fit-content;
+  background: var(--color-primary) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-color: var(--color-primary) !important;
+}
+
+.auctions-hero-action:hover:not(:disabled) {
+  background: var(--primary-dark) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.auctions-hero-action:focus-visible,
+.auctions-hero-action:active {
+  background: var(--color-primary) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.auctions-hero-card .btn {
+  align-self: auto;
+}
 
 
 /* ─────────────────────────────────────────────────────
@@ -1495,6 +1610,24 @@ html[data-theme='dark'] .skeleton-card { background: var(--page-surface-elevated
   box-shadow: 0 8px 16px rgba(31, 79, 130, 0.2);
 }
 
+.auctions-hero-action.btn-primary,
+.auctions-hero-action.btn-primary:hover,
+.auctions-hero-action.btn-primary:focus,
+.auctions-hero-action.btn-primary:focus-visible,
+.auctions-hero-action.btn-primary:active {
+  background: var(--color-primary) !important;
+  background-image: none !important;
+  border: none !important;
+  color: var(--text-inverse) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.auctions-hero-action.btn-primary:hover:not(:disabled) {
+  background: var(--primary-dark) !important;
+  background-image: none !important;
+}
+
 .btn-secondary {
   background: var(--page-surface);
   border: 1px solid var(--border);
@@ -1596,52 +1729,34 @@ html[data-theme='dark'] .skeleton-card { background: var(--page-surface-elevated
 html[data-theme='dark'] .port-filter-group { background: var(--page-surface-elevated); }
 html[data-theme='dark'] .port-filter-btn:hover:not(.active) { background: var(--page-surface-muted); }
 
-/* Stats bar */
-.port-stats-bar {
-  display: flex;
-  align-items: center;
-  background: var(--page-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--se-r-card);
-  padding: 14px 20px;
-  flex-wrap: wrap;
-  box-shadow: var(--se-sh-stat);
+/* Stats cards */
+.port-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
 }
 
-.port-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-  min-width: 80px;
+.port-stats-grid .stat-card .card-body {
+  padding: 20px 22px !important;
 }
 
-.port-stat-value {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.03em;
-  line-height: 1;
+@media (max-width: 1399px) {
+  .port-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-.port-stat-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-top: 4px;
+@media (max-width: 991px) {
+  .port-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.port-stat-divider {
-  width: 1px;
-  background: var(--border);
-  height: 32px;
-  margin: 0 8px;
-  flex-shrink: 0;
+@media (max-width: 575px) {
+  .port-stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
-
-html[data-theme='dark'] .port-stats-bar { background: var(--page-surface); border-color: var(--border); }
 
 /* Empty state */
 .port-empty { text-align: center; padding: 56px 24px; }
@@ -1665,6 +1780,162 @@ html[data-theme='dark'] .port-stats-bar { background: var(--page-surface); borde
 }
 
 .port-btn-add-first:hover { opacity: 0.92; transform: translateY(-1px); }
+
+/* Gem cards */
+.portfolio-gem-card {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--se-r-card) !important;
+  box-shadow: var(--se-sh-card) !important;
+  background: var(--page-surface) !important;
+  overflow: hidden;
+  position: relative;
+  transition: transform var(--se-ts), box-shadow var(--se-ts), border-color var(--se-ts) !important;
+}
+
+.portfolio-gem-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-bright));
+  opacity: 0.95;
+}
+
+.portfolio-gem-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--se-sh-hover) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.portfolio-gem-img-wrap {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--page-surface-muted);
+}
+
+.portfolio-gem-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform var(--se-ts);
+}
+
+.portfolio-gem-card:hover .portfolio-gem-img {
+  transform: scale(1.04);
+}
+
+.portfolio-gem-img-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 18, 34, 0) 0%, rgba(8, 18, 34, 0.22) 100%);
+  pointer-events: none;
+}
+
+.portfolio-gem-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: var(--se-r-pill);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+}
+
+.portfolio-gem-badge--approved {
+  background: rgba(16, 185, 129, 0.14);
+  color: #065f46;
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+.portfolio-gem-badge--pending {
+  background: rgba(245, 158, 11, 0.14);
+  color: #92400e;
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.portfolio-gem-badge--rejected {
+  background: rgba(239, 68, 68, 0.12);
+  color: #991b1b;
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
+.portfolio-gem-body {
+  padding: 18px 18px 16px !important;
+}
+
+.portfolio-gem-name {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.portfolio-gem-meta {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.portfolio-gem-specs {
+  display: grid;
+  gap: 6px;
+  padding-top: 6px;
+  margin-bottom: 12px;
+}
+
+.portfolio-gem-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.portfolio-gem-actions .bdr-btn-ghost,
+.portfolio-gem-actions .bdr-btn-primary,
+.portfolio-gem-actions .bdr-btn-danger {
+  flex: 1 1 0;
+  min-width: 88px;
+}
+
+html[data-theme='dark'] .portfolio-gem-card {
+  background: var(--page-surface) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-theme='dark'] .portfolio-gem-img-wrap {
+  background: var(--page-surface-elevated);
+}
+
+html[data-theme='dark'] .portfolio-gem-badge--approved {
+  background: rgba(16, 185, 129, 0.16);
+  color: #a7f3d0;
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+html[data-theme='dark'] .portfolio-gem-badge--pending {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+html[data-theme='dark'] .portfolio-gem-badge--rejected {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.28);
+}
 
 /* Portfolio modals */
 .port-modal-header {
@@ -3247,6 +3518,23 @@ html[data-theme='dark'] .bdr-btn-primary:hover:not(:disabled) {
   background: rgba(37, 99, 235, 0.26);
   border-color: rgba(96, 165, 250, 0.6);
   color: #ffffff;
+}
+
+html[data-theme='dark'] .auctions-hero-action.btn-primary,
+html[data-theme='dark'] .auctions-hero-action.btn-primary:hover,
+html[data-theme='dark'] .auctions-hero-action.btn-primary:focus,
+html[data-theme='dark'] .auctions-hero-action.btn-primary:focus-visible,
+html[data-theme='dark'] .auctions-hero-action.btn-primary:active {
+  background: rgba(37, 99, 235, 0.22) !important;
+  border: 1px solid rgba(96, 165, 250, 0.42) !important;
+  color: #e0e7ff !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22) !important;
+}
+
+html[data-theme='dark'] .auctions-hero-action.btn-primary:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.3) !important;
+  border-color: rgba(96, 165, 250, 0.62) !important;
+  color: #ffffff !important;
 }
 
 html[data-theme='dark'] .bdr-btn-danger {

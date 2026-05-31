@@ -52,25 +52,27 @@ const Marketplace = ({
 
   return (
     <>
-      <div className="section-head">
-        <div>
-          <h3>Browse Gems</h3>
-          <p className="mb-0 text-secondary">Showing {totalVisible} listings matching your filters</p>
+      <div className="bdr-dashboard-hero bdr-market-hero-card">
+        <div className="bdr-dashboard-hero-copy bdr-market-hero-copy">
+          <p className="dashboard-eyebrow bdr-market-hero-kicker">Marketplace</p>
+          <h4 className="bdr-market-hero-title">Masterpiece Collection</h4>
+          <p className="bdr-market-hero-subtitle">Showing {totalVisible} exquisite specimens curated for investment.</p>
         </div>
-        <div className="buyer-pill-row" aria-label="Marketplace summary">
-          <span className="buyer-pill buyer-pill-soft">Direct Sale: {filteredGems.length}</span>
-          <span className="buyer-pill">Auction: {auctions.length}</span>
-        </div>
-      </div>
 
-      <div className="control-row">
-        <select value={selectedType} onChange={(event) => onTypeChange(event.target.value)}>
-          {uniqueTypes.map((type) => (
-            <option key={type} value={type}>
-              {type === 'all' ? 'All Types' : type}
-            </option>
-          ))}
-        </select>
+        <div className="bdr-dashboard-hero-actions bdr-market-hero-controls" aria-label="Marketplace filters">
+          <span className="bdr-market-hero-label">Sort by</span>
+          <select
+            className="bdr-market-hero-select"
+            value={selectedType}
+            onChange={(event) => onTypeChange(event.target.value)}
+          >
+            {uniqueTypes.map((type) => (
+              <option key={type} value={type}>
+                {type === 'all' ? 'All Types' : type}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="market-grid">
@@ -94,7 +96,7 @@ const Marketplace = ({
               </p>
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span className="bid-price">Contact Seller</span>
-                <span style={{ fontSize: '12px', backgroundColor: '#e8f5e9', padding: '4px 8px', borderRadius: '4px', color: '#2e7d32' }}>
+                <span className="market-sale-badge">
                   Direct Sale
                 </span>
               </div>

@@ -126,18 +126,6 @@ const getLeadingBidderName = (auction?: Auction | null) => {
 const formatShortDate = (value: string) =>
   new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-const getOrderStatusLabel = (auction: Auction) => {
-  if (auction.paymentStatus === 'completed') return 'Delivered';
-  if (auction.paymentStatus === 'pending') return 'In Transit';
-  return 'Pending';
-};
-
-const getOrderStatusTone = (auction: Auction) => {
-  if (auction.paymentStatus === 'completed') return 'success';
-  if (auction.paymentStatus === 'pending') return 'warning';
-  return 'muted';
-};
-
 /* ─── Nav items ─── */
 const NAV_ITEMS: { view: BuyerView; icon: React.ReactNode; label: string }[] = [
   { view: 'dashboard',   icon: <LayoutDashboard size={16} />, label: 'Dashboard'   },
@@ -314,6 +302,7 @@ const BuyerDashboard = ({
 
   const openSellerContact = async (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => {
     setSelectedSeller(seller);
+    setSelectedGemForContact({ name: gemName, id: gemId, images: [] });
     try { const gr = await gemAPI.getGemById(gemId); const g = gr.data.gem || gr.data; setSelectedGemForContact({ name: g?.type || gemName, id: gemId, images: g?.images || [] }); }
     catch { setSelectedGemForContact({ name: gemName, id: gemId }); }
   };
@@ -321,6 +310,7 @@ const BuyerDashboard = ({
   const closeSellerContact = () => { setSelectedSeller(null); setSelectedGemForContact(null); };
 
   const handleStartChatWithSeller = () => {
+    closeDetails();
     setChatInitialContact(selectedSeller); setChatInitialGem(selectedGemForContact);
     setView('messages'); closeSellerContact();
     setTimeout(() => refreshData(), 500);
@@ -370,27 +360,6 @@ const BuyerDashboard = ({
       { label: 'Saved Gems', value: watchlistIds.length, accent: '#5b7cfa', icon: <Heart size={18} /> },
     ];
 
-    const downloadReports = () => {
-      if (orderHistory.length === 0) return;
-      const rows = [
-        ['Order Reference', 'Acquisition', 'Purchase Date', 'Status', 'Amount'].join(','),
-        ...orderHistory.map(auction => [
-          `#${auction._id.slice(-7).toUpperCase()}`,
-          `"${auction.gem.type}"`,
-          formatShortDate(auction.endTime),
-          getOrderStatusLabel(auction),
-          formatCurrency(auction.currentBid),
-        ].join(',')),
-      ].join('\n');
-
-      const blob = new Blob([rows], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'buyer-reports.csv';
-      link.click();
-      URL.revokeObjectURL(link.href);
-    };
-
     return (
       <div className="bdr-dashboard-page animate-fade-up">
         <section className="bdr-dashboard-hero">
@@ -404,9 +373,6 @@ const BuyerDashboard = ({
               <span className="dashboard-chip">{leadRate}% winning rate</span>
               <span className="dashboard-chip dashboard-chip-soft">{stats?.totalBidsPlaced || 0} bids placed</span>
             </div>
-            <button className="bdr-link-btn bdr-report-btn" type="button" onClick={downloadReports} disabled={orderHistory.length === 0}>
-              Download Reports
-            </button>
           </div>
         </section>
 
@@ -513,13 +479,12 @@ const BuyerDashboard = ({
             <div className="bdr-panel-header bdr-panel-header--table">
               <div>
                 <p className="dashboard-eyebrow mb-1">Order history</p>
-                <h5 className="mb-0">Completed purchases</h5>
+                <h5 className="mb-0">Completed auctions</h5>
               </div>
-              <button className="bdr-link-btn" type="button" onClick={downloadReports} disabled={orderHistory.length === 0}>Download Reports</button>
             </div>
 
             {orderHistory.length === 0 ? (
-              <div className="bdr-empty-state">No completed orders yet.</div>
+              <div className="bdr-empty-state">No completed auctions yet.</div>
             ) : (
               <div className="bdr-history-table-wrap">
                 <table className="bdr-history-table">
@@ -528,14 +493,13 @@ const BuyerDashboard = ({
                       <th>Order reference</th>
                       <th>Acquisition</th>
                       <th>Purchase date</th>
-                      <th>Status</th>
+                      <th>View</th>
                       <th>Documents</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orderHistory.map(auction => {
                       const certificateUrl = getCertificateAccessUrl(auction.gem.certificate);
-                      const statusTone = getOrderStatusTone(auction);
                       return (
                         <tr key={auction._id}>
                           <td className="bdr-history-ref">#{auction._id.slice(-7).toUpperCase()}</td>
@@ -550,7 +514,7 @@ const BuyerDashboard = ({
                           </td>
                           <td>{formatShortDate(auction.endTime)}</td>
                           <td>
-                            <span className={`bdr-history-status is-${statusTone}`}>{getOrderStatusLabel(auction)}</span>
+                            <button className="bdr-history-track" type="button" onClick={() => openDetails(auction._id)}>View</button>
                           </td>
                           <td>
                             <div className="bdr-history-docs">
@@ -559,7 +523,6 @@ const BuyerDashboard = ({
                               ) : (
                                 <span className="bdr-history-muted">Certificate</span>
                               )}
-                              <button className="bdr-history-track" type="button" onClick={() => openDetails(auction._id)}>Track</button>
                             </div>
                           </td>
                         </tr>

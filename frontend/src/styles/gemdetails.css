@@ -117,7 +117,7 @@
 .gd-quick-bids{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .gd-quick-bid-btn{padding:8px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#2563eb;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s ease}
 .gd-quick-bid-btn:hover{background:rgba(37,99,235,.06);border-color:rgba(37,99,235,.3)}
-.gd-place-bid-btn{width:100%;padding:12px;border:none;border-radius:14px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s ease,transform .1s ease}
+.gd-place-bid-btn{width:100%;padding:12px;border:none;border-radius:14px;background:#2563eb;color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s ease,transform .1s ease}
 .gd-place-bid-btn:hover{opacity:.92}
 .gd-place-bid-btn:active{transform:scale(.98)}
 .gd-place-bid-btn:disabled{opacity:.5;cursor:wait}

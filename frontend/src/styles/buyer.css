@@ -577,9 +577,7 @@ html[data-theme='dark'] .buyer-dashboard-hero {
   padding: 24px 28px;
   border-radius: 18px;
   border: 1px solid var(--border);
-  background:
-    radial-gradient(circle at top right, rgba(91, 124, 250, 0.14), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(243, 247, 252, 0.96));
+  background: var(--page-surface);
   box-shadow: 0 10px 32px rgba(17, 37, 62, 0.05);
 }
 
@@ -624,9 +622,7 @@ html[data-theme='dark'] .buyer-dashboard-hero {
 }
 
 html[data-theme='dark'] .bdr-dashboard-hero {
-  background:
-    radial-gradient(circle at top right, rgba(91, 124, 250, 0.16), transparent 34%),
-    linear-gradient(135deg, rgba(18, 26, 39, 0.95), rgba(27, 35, 51, 0.96));
+  background: var(--page-surface);
 }
 
 /* ─────────────────────────────────────────────────────
@@ -1269,6 +1265,86 @@ html[data-theme='dark'] .bdr-watch-row:hover {
 /* ─────────────────────────────────────────────────────
    MARKET GRID & CARDS
    ───────────────────────────────────────────────────── */
+.bdr-market-hero-card {
+  margin-bottom: 18px;
+  background: var(--page-surface);
+}
+
+.bdr-market-hero-copy {
+  min-width: 0;
+  max-width: 700px;
+}
+
+.bdr-market-hero-kicker {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.bdr-market-hero-title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.bdr-market-hero-subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.bdr-market-hero-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.bdr-market-hero-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.bdr-market-hero-select {
+  min-width: 136px;
+  height: 34px;
+  border-radius: 0;
+  border: 1px solid var(--border-strong);
+  background: var(--page-surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 34px 0 12px;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%), linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 10px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  box-shadow: 0 1px 0 rgba(17, 37, 62, 0.06);
+}
+
+.bdr-market-hero-select:focus {
+  outline: none;
+  border-color: var(--color-bright);
+  box-shadow: 0 0 0 3px rgba(47, 109, 225, 0.12);
+}
+
+.bdr-market-hero-select option {
+  color: var(--text-primary);
+}
+
 .bdr-market-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1414,6 +1490,21 @@ html[data-theme='dark'] .bdr-watch-row:hover {
 html[data-theme='dark'] .bdr-market-card {
   background: var(--page-surface-elevated);
   border-color: var(--border);
+}
+
+html[data-theme='dark'] .bdr-market-hero-select {
+  background: var(--page-surface-elevated);
+  border-color: var(--border);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .bdr-market-hero-select option {
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .bdr-market-hero-card {
+  background: var(--page-surface);
 }
 
 html[data-theme='dark'] .bdr-market-body { background: var(--page-surface-elevated); }
@@ -1716,6 +1807,10 @@ html[data-theme='dark'] .bdr-btn-danger:hover:not(:disabled) {
   .bdr-sidebar       { display: none; }
   .bdr-main          { padding: 16px; gap: 16px; }
   .bdr-hero          { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .bdr-market-hero-card { margin-bottom: 14px; }
+  .bdr-market-hero-copy { max-width: none; }
+  .bdr-market-hero-controls { width: 100%; justify-content: space-between; margin-left: 0; }
+  .bdr-market-hero-select { min-width: 0; width: min(220px, 100%); }
   .bdr-dashboard-hero { flex-direction: column; align-items: flex-start; }
   .bdr-dashboard-hero-actions { width: 100%; align-items: flex-start; }
   .bdr-dashboard-pill-row { justify-content: flex-start; }

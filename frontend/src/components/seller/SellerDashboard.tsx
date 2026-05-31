@@ -611,7 +611,7 @@ const SellerDashboard = ({
           </Nav>
 
           <div className="sidebar-button-group">
-            <Button className="bdr-btn-ghost w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
+            <Button variant="secondary" className="bdr-signout-btn w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
               <LogOut size={16} />
               Sign Out
             </Button>
