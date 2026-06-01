@@ -1115,9 +1115,10 @@ h6,
   height: 16px;
 }
 
-.auth-input-wrap .form-control,
-.auth-password-field {
-  padding-left: 3.8rem;
+
+.auth-input-wrap .form-control.form-control,
+.auth-password-field.form-control {
+  padding-left: 2.75rem !important;
 }
 
 input.form-control.auth-input-field {
