@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Card, Form, Row, Col, Alert } from 'react-bootstrap';
 import { Upload, ArrowRight, ArrowLeft, CheckCircle, Gem } from 'lucide-react';
-import { gemAPI, auctionAPI } from '../../api/axios';
+import { gemAPI } from '../../api/axios';
 import { AxiosError } from 'axios';
 
-const LISTING_PLACEMENT_FEE_PERCENT = 5;
+const LISTING_PLACEMENT_FEE_PERCENT = 5; // Kept for potential future use
 
 interface AddGemFormProps {
   onSuccess: () => void;
@@ -25,14 +25,11 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
   const [certificateAuthority, setCertificateAuthority] = useState('');
   const [imagePreviews,        setImagePreviews]        = useState<string[]>([]);
 
-  const [listingType,       setListingType]       = useState<'portfolio' | 'fixed' | 'auction'>('portfolio');
-  const [fixedPrice,        setFixedPrice]        = useState('');
-  const [auctionStartingBid, setAuctionStartingBid] = useState('');
-  const [minimumBidIncrement, setMinimumBidIncrement] = useState('');
-  const [duration,          setDuration]          = useState('7');
-  const [startDate,         setStartDate]         = useState('');
-  const [portfolioDisplay,  setPortfolioDisplay]  = useState<'public' | 'private'>('public');
-  const [agreeToTerms,      setAgreeToTerms]      = useState(false);
+  const [listingType,      setListingType]      = useState<'portfolio' | 'fixed'>('portfolio');
+  const [fixedPrice,       setFixedPrice]       = useState('');
+  const [duration,         setDuration]         = useState('7');
+  const [portfolioDisplay, setPortfolioDisplay] = useState<'public' | 'private'>('public');
+  const [agreeToTerms,     setAgreeToTerms]     = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
@@ -41,21 +38,6 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const calculateListingFee = (v = auctionStartingBid) => {
-    const bid = parseFloat(v);
-    return !Number.isFinite(bid) || bid <= 0 ? 0 : Math.round((bid * LISTING_PLACEMENT_FEE_PERCENT) / 100);
-  };
-
-  const submitPayHereForm = (checkoutUrl: string, fields: Record<string, string>) => {
-    const form = document.createElement('form');
-    form.method = 'POST'; form.action = checkoutUrl; form.style.display = 'none';
-    Object.entries(fields).forEach(([k, v]) => {
-      const input = document.createElement('input');
-      input.type = 'hidden'; input.name = k; input.value = v;
-      form.appendChild(input);
-    });
-    document.body.appendChild(form); form.submit();
-  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -104,10 +86,8 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
 
   const handleSubmit = async () => {
     setError(''); setSuccess('');
-    if (!agreeToTerms)                                      { setError('Please agree to the terms of services'); return; }
-    if (listingType === 'auction' && !auctionStartingBid)   { setError('Please enter starting bid for auction'); return; }
-    if (listingType === 'auction' && calculateListingFee() <= 0) { setError('Please enter a valid starting bid'); return; }
-    if (listingType === 'fixed' && !fixedPrice)             { setError('Please enter fixed price'); return; }
+    if (!agreeToTerms)                            { setError('Please agree to the terms of services'); return; }
+    if (listingType === 'fixed' && !fixedPrice)   { setError('Please enter fixed price'); return; }
     if (!validateStep1() || !validateStep2()) return;
 
     setLoading(true);
@@ -128,23 +108,6 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
       const gemRes = await gemAPI.createGem(fd);
       const createdGem = gemRes.data.gem;
       setSuccess('Gem created successfully!');
-
-      if (listingType === 'auction' && createdGem._id) {
-        const startTime = startDate ? new Date(startDate) : new Date();
-        const endTime   = new Date(startTime);
-        endTime.setDate(endTime.getDate() + parseInt(duration));
-        const auctionData = {
-          gemId: createdGem._id,
-          startPrice: parseFloat(auctionStartingBid),
-          minimumBidIncrement: parseFloat(minimumBidIncrement || '1000'),
-          listingPlacementFee: calculateListingFee(),
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-        };
-        const res = await auctionAPI.initiatePayHereCheckout(auctionData);
-        setSuccess('Gem created. Redirecting to PayHere sandbox...');
-        submitPayHereForm(res.data.payhere.checkoutUrl, res.data.payhere.fields);
-      }
 
       setTimeout(() => onSuccess(), 1500);
     } catch (err) {
@@ -198,7 +161,6 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
 
       <Card className="content-card animate-fade-up delay-1">
         <Card.Body className="p-4">
-
           {/* Core attributes */}
           <div className="mb-4">
             <div className="d-flex align-items-center gap-2 mb-1">
@@ -275,7 +237,6 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
 
       <Card className="content-card animate-fade-up delay-1">
         <Card.Body className="p-4">
-
           {/* Images */}
           <div className="mb-4">
             <div className="d-flex align-items-center gap-2 mb-1">
@@ -283,7 +244,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
               <h5 className="fw-bold mb-0">Gem Visuals</h5>
             </div>
             <p className="text-muted small mb-3">
-              Upload high-resolution images (PNG, JPG, WEBP). Multiple angles increase bid conversion.
+              Upload high-resolution images (PNG, JPG). Multiple angles increase bid conversion.
             </p>
 
             <div className="upload-dropzone p-5 text-center">
@@ -291,7 +252,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
               <p className="fw-semibold mb-2" style={{ color: 'var(--ag-text-sub)' }}>
                 Click to upload or drag and drop
               </p>
-              <p className="text-muted small mb-3">PNG, JPG, WEBP · up to 5 images</p>
+              <p className="text-muted small mb-3">PNG, JPG· up to 5 images</p>
               <Form.Control
                 type="file" accept="image/*" multiple
                 onChange={handleImageChange} className="d-none" id="imageUpload"
@@ -393,26 +354,21 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
             <div className="success-checkmark">✓</div>
             <h4 className="fw-bold">Gem Listing Submitted!</h4>
             <p>{success}</p>
-            <div className="spinner-border text-success mt-3" role="status"
-              style={{ width: '2rem', height: '2rem', borderWidth: 3 }}>
-              <span className="visually-hidden">Redirecting...</span>
-            </div>
           </Card.Body>
         </Card>
       ) : (
         <Card className="content-card animate-fade-up delay-1">
           <Card.Body className="p-4">
 
-            {/* Listing type */}
+            {/* Listing type - Auction removed */}
             <div className="mb-4">
               <h5 className="fw-bold mb-3">Listing Type</h5>
               <Row className="g-3">
                 {([
                   { key: 'portfolio', title: 'Portfolio Only',   desc: 'Display in your collection only, not open for public sale' },
                   { key: 'fixed',     title: 'Fixed Price',      desc: 'Set a premium "Buy Now" price for instant buyers' },
-                  { key: 'auction',   title: 'Live Auction',     desc: 'Maximize value with competitive marketplace bidding' },
                 ] as const).map(({ key, title, desc }) => (
-                  <Col md={4} key={key}>
+                  <Col md={6} key={key}>
                     <div
                       className={`p-4 text-center choice-card h-100 ${listingType === key ? 'active' : ''}`}
                       onClick={() => setListingType(key)}
@@ -476,63 +432,6 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
               </div>
             )}
 
-            {/* Auction details */}
-            {listingType === 'auction' && (
-              <div className="mb-4 animate-fade-up">
-                <h5 className="fw-bold mb-3">Auction Details</h5>
-                <Row className="g-3 mb-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="port-form-label">Starting Bid (Rs) *</Form.Label>
-                      <Form.Control type="number" value={auctionStartingBid}
-                        onChange={e => setAuctionStartingBid(e.target.value)}
-                        placeholder="50000" className="surface-muted" required />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="port-form-label">Min. Bid Increment (Rs) *</Form.Label>
-                      <Form.Control type="number" value={minimumBidIncrement}
-                        onChange={e => setMinimumBidIncrement(e.target.value)}
-                        placeholder="5000" className="surface-muted" required />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="port-form-label">Listing Placement Fee (%)</Form.Label>
-                      <Form.Control type="number" value={LISTING_PLACEMENT_FEE_PERCENT}
-                        readOnly disabled className="surface-muted" />
-                      <Form.Text>
-                        Fixed at 5% · Calculated fee: Rs.{calculateListingFee().toLocaleString()}
-                      </Form.Text>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="port-form-label">Duration</Form.Label>
-                      <Form.Select value={duration} onChange={e => setDuration(e.target.value)} className="surface-muted">
-                        {['3','5','7','14','30'].map(d => <option key={d} value={d}>{d} days</option>)}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="port-form-label">Start Date</Form.Label>
-                      <Form.Control type="date" value={startDate}
-                        onChange={e => setStartDate(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                        className="surface-muted" />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                {/* PayHere info box */}
-                <div className="ag-payhere-box">
-                  <h6>PayHere Sandbox Payment</h6>
-                </div>
-              </div>
-            )}
-
             {/* Terms */}
             <Form.Check
               type="checkbox" id="terms"
@@ -552,8 +451,6 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
               >
                 {loading ? (
                   <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" /> Submitting…</>
-                ) : listingType === 'auction' ? (
-                  <>Pay via PayHere <CheckCircle size={15} /></>
                 ) : (
                   <>List Gemstone <CheckCircle size={15} /></>
                 )}
