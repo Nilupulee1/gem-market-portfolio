@@ -17,7 +17,6 @@ import LiveAuctions from './LiveAuctions';
 import Marketplace from './Marketplace';
 import SellerContactModal from './SellerContactModal';
 import MessagesPage from './MessagesPage';
-// WinningAuctionCard removed — use inline alerts instead
 import ActiveBidsCard from './ActiveBidsCard';
 
 type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist' | 'messages';
@@ -65,7 +64,7 @@ export interface ActiveBidItem {
   remainingTimeMs: number;
 }
 
-const watchlistStorageKey   = 'buyer-watchlist-auction-ids';
+const watchlistStorageKey    = 'buyer-watchlist-auction-ids';
 const buyerDashboardCacheKey = 'buyer-dashboard-cache';
 
 type BuyerDashboardCache = {
@@ -90,17 +89,13 @@ const saveBuyerDashboardCache = (cache: BuyerDashboardCache) =>
   localStorage.setItem(buyerDashboardCacheKey, JSON.stringify(cache));
 
 const formatCurrency  = (v: number) => `Rs.${v.toLocaleString()}`;
-
 const formatDateTime  = (v: string) =>
   new Date(v).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-
 const getCertificateAccessUrl = (cert?: { url?: string; accessUrl?: string }) => cert?.accessUrl || cert?.url || '';
-
 const isPdfCertificate = (cert?: { url?: string; accessUrl?: string; mimeType?: string }) => {
   const u = (cert?.url || cert?.accessUrl || '').toLowerCase();
   return cert?.mimeType === 'application/pdf' || u.includes('.pdf') || u.includes('application/pdf');
 };
-
 const formatRemaining = (endTime: string, nowMs: number) => {
   const ms = new Date(endTime).getTime() - nowMs;
   if (ms <= 0) return 'Ended';
@@ -110,23 +105,18 @@ const formatRemaining = (endTime: string, nowMs: number) => {
   const s = Math.floor((ms / 1000) % 60);
   return [d > 0 ? `${d}d` : null, d > 0 || h > 0 ? `${h}h` : null, d > 0 || h > 0 || m > 0 ? `${m}m` : null, `${s}s`].filter(Boolean).join(' ');
 };
-
 const parseWatchlist = () => {
   try { const p = JSON.parse(localStorage.getItem(watchlistStorageKey) || ''); return Array.isArray(p) ? p : []; }
   catch { return []; }
 };
-
 const saveWatchlist = (ids: string[]) => localStorage.setItem(watchlistStorageKey, JSON.stringify(ids));
-
 const getLeadingBidderName = (auction?: Auction | null) => {
   const latest = auction?.bids?.[auction.bids.length - 1];
   return latest?.bidder?.name || 'No bids yet';
 };
-
 const formatShortDate = (value: string) =>
   new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-/* ─── Nav items ─── */
 const NAV_ITEMS: { view: BuyerView; icon: React.ReactNode; label: string }[] = [
   { view: 'dashboard',   icon: <LayoutDashboard size={16} />, label: 'Dashboard'   },
   { view: 'marketplace', icon: <Compass size={16} />,         label: 'Marketplace' },
@@ -135,7 +125,6 @@ const NAV_ITEMS: { view: BuyerView; icon: React.ReactNode; label: string }[] = [
   { view: 'messages',    icon: <MessageSquare size={16} />,   label: 'Messages'    },
 ];
 
-/* ─── Stat card ─── */
 const QuickStat = ({
   icon, label, value, accent, onClick,
 }: { icon: React.ReactNode; label: string; value: string | number; accent?: string; onClick?: () => void }) => (
@@ -155,6 +144,43 @@ const QuickStat = ({
     </div>
     <strong className="bdr-quick-stat-value">{value}</strong>
   </article>
+);
+
+/* ── Active bids grid (shared by My Bids + Winning Bids sections) ── */
+const ActiveBidsGrid = ({
+  items,
+  nowMs,
+  onIncreaseBid,
+  onViewDetails,
+}: {
+  items: ActiveBidItem[];
+  nowMs: number;
+  onIncreaseBid: (item: ActiveBidItem) => void;
+  onViewDetails: (id: string) => void;
+}) => (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+      gap: '16px',
+      marginTop: '16px',
+      // Critical: let the grid expand naturally — no fixed height, no overflow clipping
+      overflow: 'visible',
+      alignItems: 'start',
+    }}
+  >
+    {items.map(item => (
+      <ActiveBidsCard
+        key={item.auction._id}
+        item={item}
+        nowMs={nowMs}
+        formatCurrency={formatCurrency}
+        formatRemaining={formatRemaining}
+        onIncreaseBid={onIncreaseBid}
+        onViewDetails={onViewDetails}
+      />
+    ))}
+  </div>
 );
 
 /* ════════════════════════════════════════════════════════
@@ -202,13 +228,11 @@ const BuyerDashboard = ({
 
   const isBuyerAccount = user?.role === 'buyer';
 
-  /* timers */
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
 
-  /* fetch */
   const refreshData = async (isInitialLoad = false) => {
     try {
       if (isInitialLoad && !cached) setLoading(true);
@@ -222,7 +246,6 @@ const BuyerDashboard = ({
       let convData: typeof conversations = [];
       try { const r = await axiosInstance.get('/chat/conversations'); convData = Array.isArray(r.data) ? r.data : []; }
       catch { /* silent */ }
-
       const gemsRes = await gemAPI.getApprovedGems();
       setAllAuctions(activeRes.data.auctions || []);
       setApprovedGems(gemsRes.data.gems || []);
@@ -234,7 +257,7 @@ const BuyerDashboard = ({
       setBidHistory(nextHist);
       saveBuyerDashboardCache({ allAuctions: activeRes.data.auctions || [], approvedGems: gemsRes.data.gems || [], dashboard: dashRes.data, activeBids: bidsRes.data.activeBids || [], wonAuctions: wonRes.data.wonAuctions || [], bidHistory: nextHist });
     } catch (e) { console.error(e); }
-    finally     { setLoading(false); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { refreshData(true); }, []);
@@ -249,7 +272,6 @@ const BuyerDashboard = ({
     return () => window.clearInterval(id);
   }, [view]);
 
-  /* memos */
   const uniqueTypes = useMemo(() => {
     const s = new Set(allAuctions.map(a => a.gem.type));
     approvedGems.forEach(g => s.add(g.type));
@@ -263,15 +285,14 @@ const BuyerDashboard = ({
         && (selectedType === 'all' || a.gem.type === selectedType);
     }), [allAuctions, query, selectedType]);
 
-  const watchedAuctions  = useMemo(() => allAuctions.filter(a => watchlistIds.includes(a._id)), [allAuctions, watchlistIds]);
-  const liveAuctions     = useMemo(() => allAuctions.filter(a => new Date(a.endTime).getTime() > Date.now()), [allAuctions]);
+  const watchedAuctions = useMemo(() => allAuctions.filter(a => watchlistIds.includes(a._id)), [allAuctions, watchlistIds]);
+  const liveAuctions    = useMemo(() => allAuctions.filter(a => new Date(a.endTime).getTime() > Date.now()), [allAuctions]);
 
   const wonAuctionsWithoutContact = useMemo(() => {
     const ids = new Set(conversations.map(c => c.auction?._id).filter(Boolean));
     return wonAuctions.filter(a => !ids.has(a._id) && !dismissedWinningAuctions.includes(a._id));
   }, [wonAuctions, conversations, dismissedWinningAuctions]);
 
-  /* handlers */
   const toggleWatchlist = (id: string) => {
     const updated = watchlistIds.includes(id) ? watchlistIds.filter(x => x !== id) : [...watchlistIds, id];
     setWatchlistIds(updated); saveWatchlist(updated);
@@ -344,20 +365,22 @@ const BuyerDashboard = ({
 
   const handleSignOut = () => { logout(); navigate('/login'); };
 
-  /* ── Render helpers ── */
+  /* ─────────────────────────────────────────────────────
+     renderDashboard  (unchanged)
+  ───────────────────────────────────────────────────── */
   const renderDashboard = () => {
-    const stats      = dashboard?.stats;
+    const stats         = dashboard?.stats;
     const activeBidCards = activeBids.slice(0, 2);
     const savedAuctions = watchedAuctions.slice(0, 2);
-    const orderHistory = wonAuctions.slice(0, 5);
-    const winningBids = activeBids.filter(i => i.isWinning).length;
-    const leadRate   = activeBids.length ? Math.round((winningBids / activeBids.length) * 100) : 0;
+    const orderHistory  = wonAuctions.slice(0, 5);
+    const winningBids   = activeBids.filter(i => i.isWinning).length;
+    const leadRate      = activeBids.length ? Math.round((winningBids / activeBids.length) * 100) : 0;
 
     const summaryCards = [
-      { label: 'Active Bids', value: stats?.activeBids || 0, accent: '#0f766e', icon: <Gavel size={18} /> },
-      { label: 'Completed Orders', value: stats?.wonAuctions || 0, accent: '#eab308', icon: <Trophy size={18} /> },
-      { label: 'Winning Rate', value: `${leadRate}%`, accent: '#16a34a', icon: <Target size={18} /> },
-      { label: 'Saved Gems', value: watchlistIds.length, accent: '#5b7cfa', icon: <Heart size={18} /> },
+      { label: 'Active Bids',      value: stats?.activeBids  || 0,       accent: '#0f766e', icon: <Gavel  size={18} /> },
+      { label: 'Completed Orders', value: stats?.wonAuctions || 0,       accent: '#eab308', icon: <Trophy size={18} /> },
+      { label: 'Winning Rate',     value: `${leadRate}%`,                 accent: '#16a34a', icon: <Target size={18} /> },
+      { label: 'Saved Gems',       value: watchlistIds.length,            accent: '#5b7cfa', icon: <Heart  size={18} /> },
     ];
 
     return (
@@ -378,14 +401,8 @@ const BuyerDashboard = ({
 
         <div className="bdr-stat-grid">
           {summaryCards.map(card => (
-            <QuickStat
-              key={card.label}
-              icon={card.icon}
-              label={card.label}
-              value={card.value}
-              accent={card.accent}
-              onClick={() => setView(card.label === 'Saved Gems' ? 'watchlist' : 'auctions')}
-            />
+            <QuickStat key={card.label} icon={card.icon} label={card.label} value={card.value} accent={card.accent}
+              onClick={() => setView(card.label === 'Saved Gems' ? 'watchlist' : 'auctions')} />
           ))}
         </div>
 
@@ -407,11 +424,9 @@ const BuyerDashboard = ({
                   {activeBidCards.map(item => (
                     <article key={item.auction._id} className="bdr-active-bid-card">
                       <div className="bdr-active-bid-image-wrap">
-                        <img
-                          className="bdr-active-bid-image"
+                        <img className="bdr-active-bid-image"
                           src={item.auction.gem.images?.[0] || 'https://via.placeholder.com/320x240'}
-                          alt={item.auction.gem.type}
-                        />
+                          alt={item.auction.gem.type} />
                         <span className={`bdr-status-pill ${item.isWinning ? 'is-winning' : 'is-outbid'}`}>
                           {item.isWinning ? 'Winning' : 'Outbid'}
                         </span>
@@ -454,7 +469,6 @@ const BuyerDashboard = ({
                 </div>
                 <button className="bdr-link-btn" type="button" onClick={() => setView('watchlist')}>View All Saved</button>
               </div>
-
               {savedAuctions.length === 0 ? (
                 <div className="bdr-empty-state bdr-empty-state--tight">No saved gems yet. Add one from Marketplace.</div>
               ) : (
@@ -482,7 +496,6 @@ const BuyerDashboard = ({
                 <h5 className="mb-0">Completed auctions</h5>
               </div>
             </div>
-
             {orderHistory.length === 0 ? (
               <div className="bdr-empty-state">No completed auctions yet.</div>
             ) : (
@@ -518,11 +531,9 @@ const BuyerDashboard = ({
                           </td>
                           <td>
                             <div className="bdr-history-docs">
-                              {certificateUrl ? (
-                                <a href={certificateUrl} target="_blank" rel="noreferrer">Certificate</a>
-                              ) : (
-                                <span className="bdr-history-muted">Certificate</span>
-                              )}
+                              {certificateUrl
+                                ? <a href={certificateUrl} target="_blank" rel="noreferrer">Certificate</a>
+                                : <span className="bdr-history-muted">Certificate</span>}
                             </div>
                           </td>
                         </tr>
@@ -538,111 +549,144 @@ const BuyerDashboard = ({
     );
   };
 
-  const renderAuctions = () => (
-    <>
-      {/* Live auctions header and two-column layout (filters + cards) */}
-      <section className="content-card animate-fade-up">
-        <div className="card-body">
-          <div className="bdr-panel-header">
-            <div>
-              <p className="dashboard-eyebrow mb-1">Live auctions</p>
-              <h5 className="mb-0">Currently Live</h5>
-              <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>Participate in the global acquisition of the world's most rare and certified geological wonders.</p>
-            </div>
-            <button className="bdr-link-btn" type="button" onClick={() => setView('marketplace')}>Go to Marketplace</button>
-          </div>
+  /* ─────────────────────────────────────────────────────
+     renderAuctions  — FIXED
+  ───────────────────────────────────────────────────── */
+  const renderAuctions = () => {
+    const winningItems = activeBids.filter(i => i.isWinning);
 
-          <div className="auctions-layout">
-            <aside className="auctions-sidebar">
-              <div className="filter-card">
-                <h6 style={{ margin: '0 0 8px' }}>FILTER PORTFOLIO</h6>
-                <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-                  <label><input type="checkbox" defaultChecked /> Closing Soon</label>
-                  <label><input type="checkbox" /> High Value</label>
-                  <label><input type="checkbox" /> No Reserve</label>
-                </div>
+    const bidGridStyle: React.CSSProperties = {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+      gap: '16px',
+      marginTop: '16px',
+      // These two lines are the critical fix:
+      // overflow must be visible so the card body is not clipped,
+      // and align-items start so cards don't stretch to a ghost height.
+      overflow: 'visible',
+      alignItems: 'start',
+    };
 
-                <h6 style={{ margin: '12px 0 8px' }}>STONE CATEGORY</h6>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <span className="tag-pill">Ruby</span>
-                  <span className="tag-pill">Emerald</span>
-                  <span className="tag-pill">Diamond</span>
-                  <span className="tag-pill">Tourmaline</span>
-                  <span className="tag-pill">Sapphire</span>
-                </div>
+    return (
+      <>
+        {/* Live auctions */}
+        <section className="content-card animate-fade-up">
+          <div className="card-body">
+            <div className="bdr-panel-header">
+              <div>
+                <p className="dashboard-eyebrow mb-1">Live auctions</p>
+                <h5 className="mb-0">Currently Live</h5>
+                <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
+                  Participate in the global acquisition of the world's most rare and certified geological wonders.
+                </p>
               </div>
+              <button className="bdr-link-btn" type="button" onClick={() => setView('marketplace')}>
+                Go to Marketplace
+              </button>
+            </div>
 
-              <div className="concierge-box">
-                <h6>CONCIERGE ASSISTANCE</h6>
-                <p style={{ color: 'var(--text-secondary)' }}>Require private viewing or appraisal records?</p>
-                <button className="bdr-btn-primary" style={{ marginTop: 12 }}>Contact Expert</button>
+            <div className="auctions-layout">
+              <aside className="auctions-sidebar">
+                <div className="filter-card">
+                  <h6 style={{ margin: '0 0 8px' }}>FILTER PORTFOLIO</h6>
+                  <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+                    <label><input type="checkbox" defaultChecked /> Closing Soon</label>
+                    <label><input type="checkbox" /> High Value</label>
+                    <label><input type="checkbox" /> No Reserve</label>
+                  </div>
+                  <h6 style={{ margin: '12px 0 8px' }}>STONE CATEGORY</h6>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="tag-pill">Ruby</span>
+                    <span className="tag-pill">Emerald</span>
+                    <span className="tag-pill">Diamond</span>
+                    <span className="tag-pill">Tourmaline</span>
+                    <span className="tag-pill">Sapphire</span>
+                  </div>
+                </div>
+                <div className="concierge-box">
+                  <h6>CONCIERGE ASSISTANCE</h6>
+                  <p style={{ color: 'var(--text-secondary)' }}>Require private viewing or appraisal records?</p>
+                  <button className="bdr-btn-primary" style={{ marginTop: 12 }}>Contact Expert</button>
+                </div>
+              </aside>
+              <main className="auctions-main">
+                <LiveAuctions
+                  auctions={liveAuctions} watchlistIds={watchlistIds} nowMs={nowMs}
+                  onToggleWatchlist={toggleWatchlist} onOpenDetails={openDetails}
+                  formatCurrency={formatCurrency} formatRemaining={formatRemaining}
+                  getLeadingBidderName={getLeadingBidderName} showHeader={false}
+                />
+              </main>
+            </div>
+          </div>
+        </section>
+
+        {/* ── My Active Bids ── */}
+        <section
+          className="content-card mt-4 animate-fade-up"
+          style={{ overflow: 'visible' }}   /* prevent parent clipping */
+        >
+          <div className="card-body" style={{ overflow: 'visible' }}>
+            <div className="bdr-panel-header">
+              <div>
+                <p className="dashboard-eyebrow mb-1">My bids</p>
+                <h5 className="mb-0">Active Bids</h5>
               </div>
-            </aside>
-
-            <main className="auctions-main">
-              <LiveAuctions auctions={liveAuctions} watchlistIds={watchlistIds} nowMs={nowMs}
-                onToggleWatchlist={toggleWatchlist} onOpenDetails={openDetails}
-                formatCurrency={formatCurrency} formatRemaining={formatRemaining} getLeadingBidderName={getLeadingBidderName}
-                showHeader={false} />
-            </main>
-          </div>
-        </div>
-      </section>
-
-      {/* My Bids section */}
-      <section className="content-card mt-4 animate-fade-up">
-        <div className="card-body">
-          <div className="bdr-panel-header">
-            <div>
-              <p className="dashboard-eyebrow mb-1">My bids</p>
-              <h5 className="mb-0">Active Bids</h5>
+              <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>View All</button>
             </div>
-            <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>View All</button>
-          </div>
 
-          {activeBids.length === 0 ? (
-            <div className="dashboard-empty-inline">You have no active bids at the moment.</div>
-          ) : (
-            <div className="bdr-market-grid">
-              {activeBids.map(item => (
-                <ActiveBidsCard key={item.auction._id} item={item} nowMs={nowMs}
-                  formatCurrency={formatCurrency} formatRemaining={formatRemaining}
+            {activeBids.length === 0 ? (
+              <div className="dashboard-empty-inline">You have no active bids at the moment.</div>
+            ) : (
+              <div style={bidGridStyle}>
+                <ActiveBidsGrid
+                  items={activeBids}
+                  nowMs={nowMs}
                   onIncreaseBid={b => { setSelectedAuction(b.auction); setShowBidConfirm(true); }}
-                  onViewDetails={openDetails} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Winning bids section */}
-      <section className="content-card mt-4 animate-fade-up delay-1">
-        <div className="card-body">
-          <div className="bdr-panel-header">
-            <div>
-              <p className="dashboard-eyebrow mb-1">Winning bids</p>
-              <h5 className="mb-0">You're currently winning</h5>
-            </div>
-            <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>Manage</button>
+                  onViewDetails={openDetails}
+                />
+              </div>
+            )}
           </div>
+        </section>
 
-          {activeBids.filter(i => i.isWinning).length === 0 ? (
-            <div className="dashboard-empty-inline">You are not currently the highest bidder on any auctions.</div>
-          ) : (
-            <div className="bdr-market-grid">
-              {activeBids.filter(i => i.isWinning).map(item => (
-                <ActiveBidsCard key={item.auction._id} item={item} nowMs={nowMs}
-                  formatCurrency={formatCurrency} formatRemaining={formatRemaining}
-                  onIncreaseBid={b => { setSelectedAuction(b.auction); setShowBidConfirm(true); }}
-                  onViewDetails={openDetails} />
-              ))}
+        {/* ── Winning Bids ── */}
+        <section
+          className="content-card mt-4 animate-fade-up delay-1"
+          style={{ overflow: 'visible' }}
+        >
+          <div className="card-body" style={{ overflow: 'visible' }}>
+            <div className="bdr-panel-header">
+              <div>
+                <p className="dashboard-eyebrow mb-1">Winning bids</p>
+                <h5 className="mb-0">You're currently winning</h5>
+              </div>
+              <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>Manage</button>
             </div>
-          )}
-        </div>
-      </section>
-    </>
-  );
 
+            {winningItems.length === 0 ? (
+              <div className="dashboard-empty-inline">
+                You are not currently the highest bidder on any auctions.
+              </div>
+            ) : (
+              <div style={bidGridStyle}>
+                <ActiveBidsGrid
+                  items={winningItems}
+                  nowMs={nowMs}
+                  onIncreaseBid={b => { setSelectedAuction(b.auction); setShowBidConfirm(true); }}
+                  onViewDetails={openDetails}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+      </>
+    );
+  };
+
+  /* ─────────────────────────────────────────────────────
+     renderWatchlist  (unchanged)
+  ───────────────────────────────────────────────────── */
   const renderWatchlist = () => (
     <div className="content-card animate-fade-up">
       <div className="card-body">
@@ -697,7 +741,6 @@ const BuyerDashboard = ({
         </div>
       </div>
     );
-
     if (loading) return (
       <div className="content-card animate-fade-up">
         <div className="card-body" style={{ textAlign: 'center', padding: '60px 24px' }}>
@@ -706,7 +749,6 @@ const BuyerDashboard = ({
         </div>
       </div>
     );
-
     switch (view) {
       case 'marketplace': return (
         <Marketplace auctions={filteredAuctions} approvedGems={approvedGems} query={query}
@@ -716,10 +758,10 @@ const BuyerDashboard = ({
           onOpenSellerContact={openSellerContact} formatCurrency={formatCurrency}
           formatRemaining={formatRemaining} getLeadingBidderName={getLeadingBidderName} />
       );
-      case 'auctions':   return renderAuctions();
-      case 'watchlist':  return renderWatchlist();
-      case 'messages':   return <MessagesPage initialContact={chatInitialContact} initialGem={chatInitialGem} />;
-      default:           return renderDashboard();
+      case 'auctions':  return renderAuctions();
+      case 'watchlist': return renderWatchlist();
+      case 'messages':  return <MessagesPage initialContact={chatInitialContact} initialGem={chatInitialGem} />;
+      default:          return renderDashboard();
     }
   };
 
@@ -727,8 +769,6 @@ const BuyerDashboard = ({
 
   return (
     <div className="bdr-shell">
-
-      {/* ── Navbar ── */}
       <header className="bdr-navbar">
         <div className="bdr-navbar-inner">
           <button type="button" className="bdr-navbar-brand" onClick={() => setView('dashboard')}>
@@ -751,12 +791,8 @@ const BuyerDashboard = ({
         </div>
       </header>
 
-      {/* ── Content wrapper ── */}
       <div className="bdr-content-wrapper">
-
-        {/* ── Sidebar ── */}
         <aside className="bdr-sidebar">
-          {/* Profile card */}
           <div className="sidebar-profile-section">
             <div className="sidebar-profile-card">
               <div className="sidebar-profile-avatar-container">
@@ -771,15 +807,11 @@ const BuyerDashboard = ({
             </div>
           </div>
 
-          {/* Nav */}
           <nav className="sidebar-nav" aria-label="Buyer navigation">
             {NAV_ITEMS.map(({ view: v, icon, label }) => (
-              <button
-                key={v}
-                type="button"
+              <button key={v} type="button"
                 className={`sidebar-nav-link ${view === v ? 'active' : ''}`}
-                onClick={() => setView(v)}
-              >
+                onClick={() => setView(v)}>
                 {icon}
                 <span>{label}</span>
                 {v === 'messages' && unreadCount > 0 && (
@@ -791,7 +823,6 @@ const BuyerDashboard = ({
             ))}
           </nav>
 
-          {/* Sign out */}
           <div className="sidebar-button-group">
             <button type="button" className="bdr-signout-btn" onClick={handleSignOut}>
               <LogOut size={15}/> Sign Out
@@ -799,13 +830,11 @@ const BuyerDashboard = ({
           </div>
         </aside>
 
-        {/* ── Main ── */}
         <main className={`bdr-main ${view === 'messages' ? 'bdr-main--messages' : ''}`}>
           {renderBody()}
         </main>
       </div>
 
-      {/* ── Modals / overlays ── */}
       <GemDetails
         selectedAuction={selectedAuction} selectedGemDetails={selectedGemDetails}
         loading={loadingDetails} bidAmount={bidAmount} bidFeedback={bidFeedback}

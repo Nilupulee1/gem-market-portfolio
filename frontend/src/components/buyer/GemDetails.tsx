@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Download, FileDown, ScanSearch } from 'lucide-react';
 import type { Auction } from '../../types';
-import PdfViewer from '../common/PdfViewer';
 import '../../styles/gemdetails.css';
 
 interface GemDetailsProps {
@@ -48,7 +47,6 @@ const GemDetails = ({
   formatDateTime,
   getLeadingBidderName,
   getCertificateAccessUrl,
-  isPdfCertificate,
 }: GemDetailsProps) => {
   const [countdown, setCountdown] = useState<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [downloading, setDownloading] = useState(false);

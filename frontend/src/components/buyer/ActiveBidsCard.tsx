@@ -25,164 +25,121 @@ export default function ActiveBidsCard({
   const lotNumber = auctionId.slice(-4).toUpperCase();
 
   return (
-    <article className="market-card">
-      {/* Image Container */}
-      <div style={{ position: 'relative' }}>
-          <img
-          className="market-image"
+    <article
+      className="market-card"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+        backgroundColor: 'var(--surface, #fff)',
+        height: '100%',         // fill the Col height so cards in a row align
+      }}
+    >
+      {/* ── Image ── */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <img
           src={gemImage}
           alt={gem.type}
           style={{
             width: '100%',
             height: '180px',
             objectFit: 'cover',
-              backgroundColor: 'var(--page-surface-muted)',
+            display: 'block',   // kills the 4px gap under inline images
+            backgroundColor: 'var(--page-surface-muted)',
           }}
         />
-        {/* Lot Number Badge */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
-            backgroundColor: 'var(--badge-bg)',
-            color: 'var(--surface-text-on-accent)',
-            padding: '4px 10px',
-            borderRadius: '6px',
-            fontSize: '12px',
-            fontWeight: '600',
-          }}
-        >
+
+        {/* Lot badge */}
+        <div style={{
+          position: 'absolute', top: 10, left: 10,
+          backgroundColor: 'var(--badge-bg, #1a202c)',
+          color: 'var(--surface-text-on-accent, #fff)',
+          padding: '4px 10px', borderRadius: '6px',
+          fontSize: '12px', fontWeight: 600,
+        }}>
           Lot #{lotNumber}
         </div>
 
-        {/* Status Badge */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '10px',
-              right: '10px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: '700',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              backgroundColor: isWinning ? 'var(--success)' : 'var(--danger)',
-              color: 'var(--surface-text-on-accent)',
-            }}
-        >
-          {isWinning ? <TrendingUp size={12} /> : null}
+        {/* Status badge */}
+        <div style={{
+          position: 'absolute', top: 10, right: 10,
+          backgroundColor: isWinning ? 'var(--success, #10b981)' : 'var(--danger, #ef4444)',
+          color: 'var(--surface-text-on-accent, #fff)',
+          padding: '4px 10px', borderRadius: '6px',
+          fontSize: '11px', fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: '4px',
+        }}>
+          {isWinning && <TrendingUp size={12} />}
           {isWinning ? 'Winning' : 'Outbid'}
         </div>
       </div>
 
-      {/* Card Body */}
-      <div className="market-body">
-        {/* Gem Name */}
-        <strong
-          style={{
-            display: 'block',
-            fontSize: '15px',
-            marginBottom: '6px',
-            color: '#1a202c',
-          }}
-        >
+      {/* ── Body ── */}
+      <div style={{
+        padding: '14px 16px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        gap: '10px',
+      }}>
+        {/* Name */}
+        <strong style={{ fontSize: '15px', color: 'var(--text-primary, #1a202c)', lineHeight: 1.3 }}>
           {gem.type}
         </strong>
 
-        {/* Gem Details */}
+        {/* Origin / carat */}
         {gem.origin && (
-          <p
-            className="market-meta"
-            style={{
-              fontSize: '13px',
-              color: '#718096',
-              margin: '0 0 8px',
-            }}
-          >
-            {gem.origin}
-            {gem.carat ? ` • ${gem.carat} ct` : ''}
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary, #718096)', margin: 0 }}>
+            {gem.origin}{gem.carat ? ` • ${gem.carat} ct` : ''}
           </p>
         )}
 
-        {/* Bid Information */}
-        <div style={{ marginBottom: '10px' }}>
-          <p
-            style={{
-              fontSize: '12px',
-              color: '#718096',
-              margin: '0 0 4px',
-              fontWeight: '500',
-            }}
-          >
-            Current Bid
-          </p>
-          <p
-            style={{
-              fontSize: '16px',
-              fontWeight: '700',
-              color: '#1a202c',
-              margin: '0 0 6px',
-            }}
-          >
-            {formatCurrency(currentBid)}
-          </p>
-
-          <p
-            style={{
-              fontSize: '12px',
-              color: '#718096',
-              margin: '0 0 4px',
-              fontWeight: '500',
-            }}
-          >
-            Your Bid
-          </p>
-          <p
-            style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: isWinning ? '#10b981' : '#ef4444',
-              margin: '0',
-            }}
-          >
-            {formatCurrency(myHighestBid)}
-          </p>
+        {/* Bid row */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px',
+          padding: '10px', borderRadius: '8px',
+          backgroundColor: 'var(--page-surface-muted, #f8f9fa)',
+        }}>
+          <div>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary, #718096)', margin: '0 0 2px', fontWeight: 500 }}>
+              Current Bid
+            </p>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary, #1a202c)', margin: 0 }}>
+              {formatCurrency(currentBid)}
+            </p>
+          </div>
+          <div>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary, #718096)', margin: '0 0 2px', fontWeight: 500 }}>
+              Your Bid
+            </p>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: isWinning ? '#10b981' : '#ef4444', margin: 0 }}>
+              {formatCurrency(myHighestBid)}
+            </p>
+          </div>
         </div>
 
-        {/* Time Remaining */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginBottom: '12px',
-            padding: '8px',
-            backgroundColor: hasEnded ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.06)',
-            borderRadius: '8px',
-            fontSize: '12px',
-            fontWeight: '600',
-            color: hasEnded ? 'var(--danger)' : 'var(--success)',
-          }}
-        >
+        {/* Timer */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '8px', borderRadius: '8px',
+          backgroundColor: hasEnded ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.06)',
+          fontSize: '12px', fontWeight: 600,
+          color: hasEnded ? 'var(--danger, #ef4444)' : 'var(--success, #10b981)',
+        }}>
           <Timer size={14} />
           {hasEnded ? 'Ended' : formatRemaining(endTime, nowMs)}
         </div>
 
-        {/* Action Buttons */}
-        <div className="market-actions" style={{ marginTop: '10px' }}>
+        {/* Buttons pushed to bottom */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
           <button
             className="bid-btn"
             type="button"
             onClick={() => onIncreaseBid(item)}
             disabled={hasEnded}
-            style={{
-              flex: 1,
-              opacity: hasEnded ? 0.5 : 1,
-              cursor: hasEnded ? 'not-allowed' : 'pointer',
-            }}
+            style={{ flex: 1, opacity: hasEnded ? 0.5 : 1, cursor: hasEnded ? 'not-allowed' : 'pointer' }}
           >
             Increase Bid
           </button>
