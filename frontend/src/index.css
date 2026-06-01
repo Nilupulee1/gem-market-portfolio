@@ -1100,16 +1100,32 @@ h6,
   top: 50%;
   transform: translateY(-50%);
   color: #8b98a8;
-  z-index: 2;
+  z-index: 3;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+
+.auth-input-icon svg,
+.auth-password-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .auth-input-wrap .form-control,
 .auth-password-field {
-  padding-left: 2.3rem;
+  padding-left: 3.8rem;
+}
+
+input.form-control.auth-input-field {
+  padding-left: 4.6rem !important;
 }
 
 .auth-password-field {
-  padding-right: 2.6rem;
+  padding-right: 3.8rem;
 }
 
 .auth-password-toggle {
@@ -1117,7 +1133,7 @@ h6,
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 2;
+  z-index: 4;
   color: #8b98a8;
   text-decoration: none;
   padding: 0;
@@ -1280,8 +1296,7 @@ h6,
 
 .dashboard-shell {
   min-height: 100vh;
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
+  padding: 0;
 }
 
 .sidebar-card,
@@ -2584,9 +2599,9 @@ h6,
 
 /* Seller dashboard enhancements */
 .dashboard-shell {
-  padding: 28px 24px;
+  padding: 0;
   background: var(--section-shell-bg);
-  min-height: calc(100vh - 60px);
+  min-height: 100vh;
 }
 
 .sidebar-card {
@@ -3202,19 +3217,7 @@ html[data-theme='dark'] .chat-header-subtitle {
   object-fit: cover;
 }
 
-.auction-ended-badge {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(50, 50, 50, 0.85);
-  color: #ffffff;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  backdrop-filter: blur(10px);
-}
+
 
 .winning-info-section {
   display: flex;

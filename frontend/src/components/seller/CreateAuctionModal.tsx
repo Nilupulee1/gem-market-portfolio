@@ -11,10 +11,9 @@ interface CreateAuctionModalProps {
   onHide: () => void;
   selectedGem: Gem | null;
   availableGems: Gem[];
-  onAuctionCreated: () => void;
 }
 
-const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctionCreated }: CreateAuctionModalProps) => {
+const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems }: CreateAuctionModalProps) => {
   const [gemId, setGemId] = useState('');
   const [startPrice, setStartPrice] = useState('');
   const [minimumBidIncrement, setMinimumBidIncrement] = useState('');
@@ -58,21 +57,6 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
       setGemId(selectedGem._id);
     }
   }, [selectedGem]);
-
-  const calculateEndDate = () => {
-    const days = parseInt(duration);
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + days);
-    return endDate.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
-    }) + ' at ' + endDate.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,31 +194,22 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
 
                   <div className="mt-3">
                     <Form.Group>
-                      <Form.Label className="fw-semibold text-secondary">Listing Placement Fee (%) *</Form.Label>
+                      <Form.Label className="fw-semibold text-secondary">Listing Placement Fee</Form.Label>
                       <Form.Control
-                        type="number"
-                        value={LISTING_PLACEMENT_FEE_PERCENT}
+                        type="text"
+                        value={`Rs.${listingFee.toLocaleString()}`}
                         readOnly
                         disabled
                         size="lg"
                         className="surface-muted"
                       />
                       <Form.Text className="text-muted">
-                        Fixed at 5% of the starting bid. Calculated fee: Rs.{listingFee.toLocaleString()}.
+                        (Fixed at {LISTING_PLACEMENT_FEE_PERCENT}% of the starting bid)
                       </Form.Text>
                     </Form.Group>
                   </div>
 
-                  <div className="mt-4 p-3 rounded" style={{ background: 'var(--page-surface)', border: '1px solid var(--border)' }}>
-                    <div className="d-flex justify-content-between align-items-start gap-3">
-                      <div>
-                        <div className="fw-semibold text-dark mb-1">PayHere Sandbox Payment</div>
-                        <div className="text-secondary small">
-                          Launch the PayHere sandbox checkout to pay the calculated listing fee.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  
                 </div>
 
                 {/* Auction Timing */}
@@ -258,29 +233,7 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems, onAuctio
                   </Form.Group>
                 </div>
 
-                {/* Auction Summary */}
-                <div className="mb-4">
-                  <h5 className="fw-bold text-dark mb-3">Fee Structure & Summary</h5>
-                  
-                  <div className="p-3 rounded mb-3" style={{ background: 'var(--page-surface)', border: '1px solid var(--border)', fontSize: '13px' }}>
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="text-secondary fw-semibold">Estimated End Date:</span>
-                      <span className="fw-bold text-dark">{calculateEndDate()}</span>
-                    </div>
-                    <div className="d-flex justify-content-between mb-2">
-                      <span className="text-secondary fw-semibold">Listing Placement Fee:</span>
-                      <span className="fw-bold text-dark">Rs.{listingFee.toLocaleString()} ({LISTING_PLACEMENT_FEE_PERCENT}%)</span>
-                    </div>
-                    <div className="d-flex justify-content-between">
-                      <span className="text-secondary fw-semibold">Platform Success Commission:</span>
-                      <span className="fw-bold text-dark">5% of winning bid</span>
-                    </div>
-                  </div>
-                  
-                  <p className="text-muted small mt-2">
-                    Listing placement fees will be deducted from your portfolio payout. By confirming, you acknowledge that all bids are legally binding contracts.
-                  </p>
-                </div>
+                
 
                 {/* Buttons */}
                 <div className="d-flex gap-3 pt-2">

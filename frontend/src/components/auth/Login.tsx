@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { authAPI } from '../../api/axios';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { AxiosError } from 'axios';
+import { Eye, EyeOff } from 'lucide-react';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
 
 const Login = () => {
@@ -88,7 +88,6 @@ const Login = () => {
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>Email Address</Form.Label>
                   <div className="auth-input-wrap">
-                    <Mail size={16} className="auth-input-icon" />
                     <Form.Control
                       type="email"
                       value={email}
@@ -103,7 +102,6 @@ const Login = () => {
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>Password</Form.Label>
                   <div className="position-relative">
-                    <Lock className="auth-password-icon" size={16} />
                     <Form.Control
                       type={showPassword ? 'text' : 'password'}
                       value={password}

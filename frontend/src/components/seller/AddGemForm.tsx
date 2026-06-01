@@ -187,11 +187,14 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
   /* ── Step 1 ── */
   const renderStep1 = () => (
     <div className="animate-fade-up">
-      <h4 className="mb-1 fw-bold">List Your Gem for Verification</h4>
-      <p className="text-muted mb-4">Provide core details about your exquisite gem to request verification.</p>
-
-      {renderProgress()}
-      {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+      <Card className="content-card mb-4">
+        <Card.Body className="p-4">
+          <h4 className="mb-1 fw-bold">List Your Gem for Verification</h4>
+          <p className="text-muted mb-3">Provide core details about your exquisite gem to request verification.</p>
+          {renderProgress()}
+          {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+        </Card.Body>
+      </Card>
 
       <Card className="content-card animate-fade-up delay-1">
         <Card.Body className="p-4">
@@ -526,7 +529,6 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
                 {/* PayHere info box */}
                 <div className="ag-payhere-box">
                   <h6>PayHere Sandbox Payment</h6>
-                  <p>Launch the PayHere sandbox checkout to pay the calculated listing placement fee.</p>
                 </div>
               </div>
             )}

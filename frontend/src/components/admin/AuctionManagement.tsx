@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, Table, Button, Modal } from 'react-bootstrap';
-import { TrendingUp, Gavel, AlertCircle, Package, Users, CheckCircle } from 'lucide-react';
+import { TrendingUp, Gavel, AlertCircle, Package } from 'lucide-react';
 import { adminAPI, auctionAPI } from '../../api/axios';
 import type { DashboardStats } from '../../types/admin';
 
@@ -136,13 +136,7 @@ const AuctionManagement = () => {
     }
   };
 
-  const summaryCards = [
-    // Placeholder values — replaced below by auction-derived metrics in render
-    { label: 'Pending Verification', value: stats.pendingGems, subtitle: 'awaiting review', icon: AlertCircle, tone: 'amber' },
-    { label: 'Active Listings', value: stats.activeAuctions, subtitle: 'live on market', icon: Package, tone: 'teal' },
-    { label: 'Auctions Ending Today', value: 0, subtitle: 'ending today', icon: Gavel, tone: 'indigo' },
-    { label: 'Total Active Bids', value: 0, subtitle: 'aggregate bids', icon: TrendingUp, tone: 'rose' },
-  ];
+  
 
   return (
     <div>

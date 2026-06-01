@@ -24,7 +24,6 @@ interface GemDetailsProps {
   getLeadingBidderName: (auction?: Auction | null) => string;
   getCertificateAccessUrl: (certificate?: { url?: string; accessUrl?: string }) => string;
   isPdfCertificate: (certificate?: { url?: string; accessUrl?: string; mimeType?: string }) => boolean;
-  onOpenSellerContact: (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => void;
 }
 
 interface CountdownTime {
@@ -50,7 +49,6 @@ const GemDetails = ({
   getLeadingBidderName,
   getCertificateAccessUrl,
   isPdfCertificate,
-  onOpenSellerContact,
 }: GemDetailsProps) => {
   const [countdown, setCountdown] = useState<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [downloading, setDownloading] = useState(false);
@@ -322,21 +320,7 @@ const GemDetails = ({
                     </p>
                   </div>
                 ) : (
-                  /* Auction ended */
-                  <div className="gd-surface-card gd-bid-card">
-                    <p className="gd-bid-label">Auction Ended</p>
-                    <div className="gd-bid-price">Winner: {getLeadingBidderName(selectedAuction)}</div>
-                    <p className="gd-bid-sub">Final bid: {formatCurrency(selectedAuction.currentBid)}</p>
-                    {selectedAuction.seller && (
-                      <button
-                        className="gd-contact-btn"
-                        type="button"
-                        onClick={() => onOpenSellerContact(selectedAuction.seller, gem.type, selectedAuction.gem._id || gem._id)}
-                      >
-                        Contact Seller
-                      </button>
-                    )}
-                  </div>
+                  <></>
                 )}
 
                 {/* Bid history */}

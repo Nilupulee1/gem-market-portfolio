@@ -175,11 +175,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
     }
   };
 
-  const handleAuctionCreated = () => {
-    setShowCreateModal(false);
-    setSelectedGem(null);
-    fetchAuctions();
-  };
+  
 
   const handleViewDetails = (auction: Auction) => {
     setSelectedAuction(auction);
@@ -336,7 +332,7 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
       {/* Header */}
       <Card className="dashboard-hero hero-premium-mesh auctions-hero-card animate-fade-up mb-4">
         <div className="auctions-hero-copy">
-          <h4>My Auctions & History</h4>
+          <h4>My Auctions and History</h4>
           <p className="mb-0">Track your active and past auction participation.</p>
         </div>
         <Button 
@@ -730,7 +726,6 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
         }}
         selectedGem={selectedGem}
         availableGems={myGems}
-        onAuctionCreated={handleAuctionCreated}
       />
 
       {/* Delete Confirmation Modal */}

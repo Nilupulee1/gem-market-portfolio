@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Users,
   AlertCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
 import { onActivity } from '../../api/socket';
@@ -18,13 +19,14 @@ import { useAuthStore } from '../../store/authStore';
 import PendingGems from './PendingGems';
 import UserManagement from './UserManagement';
 import AuctionManagement from './AuctionManagement.tsx';
+import MessagesPage from '../buyer/MessagesPage';
 import type { DashboardStats } from '../../types/admin';
 import type { Gem } from '../../types';
 import logo from '../../assets/logo.png';
 
 import '../../styles/admin.css';
 
-type TabType = 'dashboard' | 'pending-gems' | 'users' | 'auctions';
+type TabType = 'dashboard' | 'pending-gems' | 'users' | 'auctions' | 'messages';
 type ThemeMode = 'light' | 'dark';
 type Tone = 'teal' | 'indigo' | 'amber' | 'rose';
 
@@ -33,6 +35,7 @@ const sidebarItems: Array<{ id: TabType; label: string; icon: any }> = [
   { id: 'pending-gems', label: 'Verifications', icon: ShieldCheck },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'auctions', label: 'Auctions', icon: Gavel },
+  { id: 'messages', label: 'Messages', icon: MessageSquare },
   
 ];
 
@@ -326,10 +329,10 @@ const AdminDashboard = ({
           </div>
 
           <div className="admin-activity-feed">
-            {recentActivity.map((item) => {
+            {recentActivity.map((item, index) => {
               const Icon = item.icon;
               return (
-                <div key={item.title} className="admin-activity-item">
+                <div key={`${item.title}-${item.time}-${index}`} className="admin-activity-item">
                   <div className={`admin-activity-icon tone-${item.tone}`}>
                     <Icon size={14} />
                   </div>
@@ -354,6 +357,8 @@ const AdminDashboard = ({
         return <UserManagement />;
       case 'auctions':
         return <AuctionManagement />;
+      case 'messages':
+        return <MessagesPage />;
       
       default:
         return renderDashboard();

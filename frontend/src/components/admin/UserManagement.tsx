@@ -29,10 +29,7 @@ const UserManagement = () => {
     }
   };
 
-  const handleViewUser = (user: AdminUser) => {
-    setSelectedUser(user);
-    setShowDetailsModal(true);
-  };
+  
 
   const getRoleChip = (role: string) => {
     switch (role) {
@@ -87,12 +84,18 @@ const UserManagement = () => {
   return (
     <div className="user-management-page">
       <div className="user-management-header animate-fade-up">
-        <div>
-          <div className="dashboard-title">
-            <h4 className="fw-bold">User Management</h4>
-            <p>Manage all registered users on the platform</p>
+        <section className="dashboard-hero hero-premium-mesh admin-dashboard-hero section-card--long">
+          <div>
+            <p className="dashboard-eyebrow">User Management</p>
+            <h4>Manage all registered users on the platform</h4>
+            <p>Keep track of accounts, verifications, and roles.</p>
           </div>
-        </div>
+
+          <div className="dashboard-chip-stack">
+            <span className="dashboard-chip dashboard-chip-soft">{users.length} total users</span>
+            <span className="dashboard-chip">{users.filter(u => u.isVerified).length} verified</span>
+          </div>
+        </section>
       </div>
 
       <div className="dashboard-metric-grid user-management-stats animate-fade-up delay-1">

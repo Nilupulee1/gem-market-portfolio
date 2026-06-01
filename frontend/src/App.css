@@ -353,13 +353,13 @@
 
 .conversation-item {
   border: 1px solid #e5edf7 !important;
-  border-radius: 18px !important;
-  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  padding: 14px;
+  border-radius: 12px !important;
+  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  padding: 10px 10px;
   cursor: pointer;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   background: linear-gradient(180deg, #ffffff, #fcfbff);
-  box-shadow: 0 12px 22px rgba(31, 79, 130, 0.06);
+  box-shadow: 0 6px 12px rgba(31, 79, 130, 0.04);
 }
 
 .conversation-item:hover {
@@ -387,14 +387,15 @@
 }
 
 .conversation-avatar {
-  width: 46px;
-  height: 46px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  margin-right: 12px;
+  margin-right: 10px;
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 14px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-bright));
   flex-shrink: 0;
 }
@@ -402,23 +403,25 @@
 .conversation-info h6 {
   color: #22244a;
   font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 2px;
 }
 
 .conversation-meta {
   color: #2f6de1;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .message-preview {
   color: #7280a3;
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 12px;
+  line-height: 1.25;
 }
 
 .conversation-time-block {
   color: #98a1be;
   font-size: 11px;
-  min-width: 80px;
+  min-width: 64px;
 }
 
 .conversation-time-block .price {
@@ -945,8 +948,8 @@
 
 .market-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
 }
 
 .market-card {

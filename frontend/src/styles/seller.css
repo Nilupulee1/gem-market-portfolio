@@ -232,7 +232,7 @@ html[data-theme='dark'] .seller-navbar-user {
   height: 100%;
   border-radius: 50%;
   background: var(--page-surface);
-  color: var(--color-primary);
+  color: var(--color-primary) !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -244,6 +244,12 @@ html[data-theme='dark'] .seller-navbar-user {
 .sidebar-profile-card:hover .sidebar-profile-avatar-inner {
   background: linear-gradient(135deg, var(--color-navy) 0%, var(--color-primary) 100%);
   color: white;
+}
+
+/* Ensure avatar inner uses original surface and primary color (override sidebar-wide white) */
+.dashboard-sidebar-wrapper .sidebar-profile-avatar-inner {
+  background: var(--page-surface) !important;
+  color: var(--color-primary) !important;
 }
 
 .sidebar-profile-info {
@@ -398,11 +404,78 @@ html[data-theme='dark'] .bdr-signout-btn:hover {
 .dashboard-sidebar-wrapper::-webkit-scrollbar { width: 6px; }
 .dashboard-sidebar-wrapper::-webkit-scrollbar-track { background: transparent; }
 .dashboard-sidebar-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Dark-blue sidebar theme overrides */
+.dashboard-sidebar-wrapper {
+  background: linear-gradient(180deg, var(--seller-dark) 0%, rgba(6,25,58,1) 100%);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 4px 0 24px rgba(2, 6, 23, 0.35);
+  color: #ffffff;
+}
+
+.dashboard-sidebar-wrapper::before {
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  opacity: 0.6;
+}
+
+.dashboard-sidebar-wrapper .sidebar-profile-card {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.dashboard-sidebar-wrapper .sidebar-profile-name,
+.dashboard-sidebar-wrapper .sidebar-profile-role-badge,
+.dashboard-sidebar-wrapper .sidebar-nav-link {
+  color: #ffffff;
+}
+
+.dashboard-sidebar-wrapper .sidebar-nav-link svg,
+.dashboard-sidebar-wrapper .sidebar-profile-card svg {
+  color: #ffffff;
+  opacity: 0.95;
+}
+
+.dashboard-sidebar-wrapper .sidebar-nav-link:hover {
+  background: rgba(255,255,255,0.03);
+  color: #ffffff !important;
+  border-left-color: rgba(255,255,255,0.08);
+}
+
+.dashboard-sidebar-wrapper .sidebar-nav-link:hover svg {
+  color: #ffffff !important;
+  opacity: 1;
+}
+
+.dashboard-sidebar-wrapper .sidebar-nav-link.active {
+  background: rgba(255,255,255,0.06);
+  color: var(--color-bright);
+  border-left-color: var(--color-bright);
+}
+
+html[data-theme='dark'] .dashboard-sidebar-wrapper { background: linear-gradient(180deg, var(--seller-dark) 0%, rgba(6,25,58,1) 100%); }
 .dashboard-sidebar-wrapper::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
 html[data-theme='dark'] .dashboard-sidebar-wrapper { background: var(--page-surface); border-color: var(--border); }
 html[data-theme='dark'] .sidebar-profile-card { background: var(--page-surface-elevated); border-color: var(--border); }
-html[data-theme='dark'] .sidebar-nav-link:hover { background: var(--page-surface-muted); }
+html[data-theme='dark'] .sidebar-nav-link:hover { background: var(--page-surface-muted); color: #ffffff !important; }
+
+/* Force white typography inside the dashboard sidebar and navbar */
+.dashboard-sidebar-wrapper,
+.dashboard-sidebar-wrapper *,
+.dashboard-sidebar-wrapper a {
+  color: #ffffff !important;
+}
+
+.dashboard-sidebar-wrapper .sidebar-nav-link {
+  color: #ffffff !important;
+}
+
+.dashboard-sidebar-wrapper .sidebar-nav-link.active {
+  color: #ffffff !important;
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* Navbar uses token-based colors (do not force white globally) */
 html[data-theme='dark'] .sidebar-nav-link.active { background: var(--chip-bg); color: var(--chip-text); border-left-color: var(--color-bright); }
 
 
@@ -762,6 +835,8 @@ html[data-theme='dark'] .dashboard-hero { background: var(--page-surface); borde
   padding-right: 240px;
 }
 
+/* Decorative ampersand removed — use plain "and" in headings */
+
 .auctions-hero-action {
   position: absolute;
   top: 22px;
@@ -790,6 +865,35 @@ html[data-theme='dark'] .dashboard-hero { background: var(--page-surface); borde
 
 .auctions-hero-card .btn {
   align-self: auto;
+}
+
+/* Top & bottom accent borders for prominent cards and sections */
+.dashboard-hero,
+.content-card,
+.port-hero-card,
+.portfolio-gem-card,
+.market-card,
+.auction-card {
+  border-top: 3px solid var(--seller-primary);
+  border-bottom: 3px solid var(--seller-primary);
+}
+
+/* Slightly subtler borders for smaller panels */
+.stat-card,
+.port-card,
+.content-panel {
+  border-top: 2px solid rgba(0,0,0,0.04);
+  border-bottom: 2px solid rgba(0,0,0,0.04);
+}
+
+html[data-theme='dark'] .dashboard-hero,
+html[data-theme='dark'] .content-card,
+html[data-theme='dark'] .port-hero-card,
+html[data-theme='dark'] .portfolio-gem-card,
+html[data-theme='dark'] .market-card,
+html[data-theme='dark'] .auction-card {
+  border-top-color: var(--color-bright);
+  border-bottom-color: var(--color-bright);
 }
 
 
@@ -1218,11 +1322,27 @@ html[data-theme='dark'] .gem-status-cancelled{ background: rgba(239, 68, 68, 0.1
 
 /* Manage / Edit button */
 .btn-manage {
-  background: var(--page-surface-muted);
-  color: var(--text-primary);
-  border: 1px solid var(--border) !important;
+  background: rgba(47, 109, 225, 0.12) !important;
+  color: var(--color-primary) !important;
+  border: 1px solid rgba(47, 109, 225, 0.28) !important;
 }
-.btn-manage:hover { background: var(--page-surface-elevated); }
+.btn-manage:hover {
+  background: rgba(47, 109, 225, 0.18) !important;
+  border-color: rgba(47, 109, 225, 0.36) !important;
+  color: var(--color-primary) !important;
+}
+
+.btn-view-details {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309 !important;
+  border: 1px solid rgba(245, 158, 11, 0.28) !important;
+}
+
+.btn-view-details:hover {
+  background: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgba(245, 158, 11, 0.36) !important;
+  color: #b45309 !important;
+}
 
 .btn-status-approved.btn-manage { border-color: rgba(16, 185, 129, 0.2) !important; }
 .btn-status-approved.btn-manage:hover { background: rgba(16, 185, 129, 0.08); }
@@ -1252,10 +1372,10 @@ html[data-theme='dark'] .gem-card-body { background: var(--page-surface-elevated
 html[data-theme='dark'] .gem-image-container { background: var(--page-surface-muted); }
 html[data-theme='dark'] .gem-type,
 html[data-theme='dark'] .gem-details { color: var(--text-primary); }
-html[data-theme='dark'] .btn-manage { background: rgba(15, 23, 42, 0.72); color: #e2e8f0; border-color: var(--border) !important; }
-html[data-theme='dark'] .btn-manage:hover { background: rgba(37, 99, 235, 0.18); border-color: rgba(96, 165, 250, 0.5) !important; color: #dbeafe; }
-html[data-theme='dark'] .btn-view-details { background: rgba(15, 23, 42, 0.72); color: var(--text-primary); border-color: var(--border) !important; }
-html[data-theme='dark'] .btn-view-details:hover { background: rgba(30, 41, 59, 0.92); }
+html[data-theme='dark'] .btn-manage { background: rgba(37, 99, 235, 0.18) !important; color: #dbeafe !important; border-color: rgba(96, 165, 250, 0.42) !important; }
+html[data-theme='dark'] .btn-manage:hover { background: rgba(37, 99, 235, 0.18) !important; border-color: rgba(96, 165, 250, 0.5) !important; color: #dbeafe !important; }
+html[data-theme='dark'] .btn-view-details { background: rgba(245, 158, 11, 0.16) !important; color: #fde68a !important; border-color: rgba(245, 158, 11, 0.38) !important; }
+html[data-theme='dark'] .btn-view-details:hover { background: rgba(245, 158, 11, 0.18) !important; border-color: rgba(245, 158, 11, 0.42) !important; color: #fde68a !important; }
 html[data-theme='dark'] .btn-status-approved.btn-manage { border-color: rgba(16, 185, 129, 0.3) !important; }
 html[data-theme='dark'] .btn-status-approved.btn-manage:hover { background: rgba(16, 185, 129, 0.18); border-color: rgba(110, 231, 183, 0.5) !important; color: #d1fae5; }
 html[data-theme='dark'] .btn-status-pending.btn-manage { border-color: rgba(245, 158, 11, 0.3) !important; }
@@ -1910,6 +2030,73 @@ html[data-theme='dark'] .port-filter-btn:hover:not(.active) { background: var(--
   min-width: 88px;
 }
 
+.portfolio-gem-actions .bdr-btn-ghost {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.28) !important;
+  color: #b45309 !important;
+}
+
+.portfolio-gem-actions .bdr-btn-primary {
+  background: rgba(47, 109, 225, 0.12) !important;
+  border: 1px solid rgba(47, 109, 225, 0.28) !important;
+  color: var(--color-primary) !important;
+}
+
+.portfolio-gem-actions .bdr-btn-danger {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border: 1px solid rgba(239, 68, 68, 0.24) !important;
+  color: #dc2626 !important;
+}
+
+.portfolio-gem-actions .bdr-btn-ghost:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.32);
+  color: #b45309;
+}
+
+.portfolio-gem-actions .bdr-btn-primary:hover:not(:disabled) {
+  background: rgba(47, 109, 225, 0.16);
+  border-color: rgba(47, 109, 225, 0.28);
+  color: var(--color-primary);
+  box-shadow: 0 8px 18px rgba(47, 109, 225, 0.14);
+}
+
+.portfolio-gem-actions .bdr-btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #dc2626;
+}
+
+html[data-theme='dark'] .portfolio-gem-actions .bdr-btn-ghost:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.44);
+  color: #fde68a;
+}
+
+html[data-theme='dark'] .portfolio-gem-actions .bdr-btn-ghost {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-color: rgba(245, 158, 11, 0.34) !important;
+  color: #fde68a !important;
+}
+
+html[data-theme='dark'] .portfolio-gem-actions .bdr-btn-primary {
+  background: rgba(37, 99, 235, 0.18) !important;
+  border-color: rgba(96, 165, 250, 0.42) !important;
+  color: #dbeafe !important;
+}
+
+html[data-theme='dark'] .portfolio-gem-actions .bdr-btn-danger {
+  background: rgba(239, 68, 68, 0.16) !important;
+  border-color: rgba(248, 113, 113, 0.34) !important;
+  color: #fecaca !important;
+}
+
+html[data-theme='dark'] .portfolio-gem-actions .bdr-btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(248, 113, 113, 0.46);
+  color: #fff1f2;
+}
+
 html[data-theme='dark'] .portfolio-gem-card {
   background: var(--page-surface) !important;
   border-color: var(--border) !important;
@@ -2264,14 +2451,18 @@ html[data-theme='dark'] .port-feedback-banner {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
-  border: 1px solid var(--border);
-  background: var(--page-surface-muted);
-  color: var(--text-primary);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
   cursor: pointer;
   transition: all var(--se-tf);
 }
 
-.port-modal-cancel:hover { background: var(--page-surface); border-color: var(--border-strong); }
+.port-modal-cancel:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.36);
+  color: #92400e;
+}
 
 .port-modal-save {
   padding: 9px 22px;
@@ -2279,8 +2470,8 @@ html[data-theme='dark'] .port-feedback-banner {
   font-size: 13px;
   font-weight: 700;
   border: none;
-  background: linear-gradient(100deg, var(--color-primary) 0%, var(--color-bright) 100%);
-  color: #fff;
+  background: rgba(47, 109, 225, 0.12);
+  color: var(--color-primary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -2288,7 +2479,11 @@ html[data-theme='dark'] .port-feedback-banner {
   transition: opacity var(--se-tf), transform var(--se-tf);
 }
 
-.port-modal-save:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.port-modal-save:hover:not(:disabled) {
+  background: rgba(47, 109, 225, 0.18);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
 .port-modal-save:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .port-modal-delete {
@@ -2297,7 +2492,7 @@ html[data-theme='dark'] .port-feedback-banner {
   font-size: 13px;
   font-weight: 700;
   border: none;
-  background: linear-gradient(100deg, #dc2626 0%, #ef4444 100%);
+  background: rgba(239, 68, 68, 0.9);
   color: #fff;
   cursor: pointer;
   display: inline-flex;
@@ -2306,7 +2501,7 @@ html[data-theme='dark'] .port-feedback-banner {
   transition: opacity var(--se-tf), transform var(--se-tf);
 }
 
-.port-modal-delete:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.port-modal-delete:hover:not(:disabled) { background: #dc2626; transform: translateY(-1px); }
 .port-modal-delete:disabled { opacity: 0.65; cursor: not-allowed; }
 
 /* Delete preview card */
@@ -3618,6 +3813,32 @@ html[data-theme='dark'] .auction-card .bdr-btn-danger:hover:not(:disabled) {
   background: rgba(15, 23, 42, 0.04);
   border: 1px solid rgba(148, 163, 184, 0.28);
   color: #334155 !important;
+}
+
+/* Override: remove gradient for modal primary buttons and modal headers */
+.modal .bdr-btn-primary,
+.modal .bdr-btn-primary:hover,
+.modal .bdr-btn-primary:focus,
+.modal .modal-footer .bdr-btn-primary {
+  background: var(--color-primary) !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+
+.modal .bdr-btn-ghost,
+.modal .modal-footer .bdr-btn-ghost {
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Make modal header solid color instead of gradient */
+.modal-header-gradient {
+  background: var(--color-primary) !important;
+  background-image: none !important;
+  color: #fff !important;
 }
 
 .ag-action-row .bdr-btn-ghost:hover:not(:disabled),

@@ -359,10 +359,16 @@ html[data-theme='dark'] .pending-gems-empty-icon{background:rgba(16,185,129,0.18
 .admin-review-checklist-item-label{margin:0 0 0 6px;font-size:13px}
 .admin-review-checklist-item-desc{font-size:12px;color:var(--text-secondary);margin-top:6px}
 .admin-review-decision-actions{display:flex;flex-direction:column;gap:12px;margin-bottom:6px}
-.admin-approve-btn{width:100%;background:#11a36e !important;color:#fff !important;border:none !important;padding:12px 16px !important;border-radius:4px !important;font-weight:800 !important;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 16px rgba(17,163,110,0.18)}
-.admin-approve-btn:hover:not(:disabled){background:#11a36e !important;color:#fff !important;filter:brightness(0.98)}
-.admin-reject-btn{width:100%;background:#fff !important;color:#ef4444 !important;border:1px solid #ef4444 !important;padding:12px 16px !important;border-radius:4px !important;font-weight:800 !important;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 8px 16px rgba(239,68,68,0.04)}
-.admin-reject-btn:hover:not(:disabled){background:#fff !important;color:#ef4444 !important;filter:brightness(0.98)}
+.admin-review-decision-card{background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 10px 22px rgba(15,23,42,0.05)}
+.admin-approve-btn{width:100%;background:#ffffff !important;color:#1f2a37 !important;border:1px solid #d1d5db !important;background-image:none !important;padding:6px 12px !important;border-radius:8px !important;font-weight:700 !important;font-size:12px !important;line-height:1 !important;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:none}
+.admin-approve-btn:hover:not(:disabled){background:#0f9d6a !important;border-color:#0f9d6a !important;color:#fff !important;filter:none}
+.admin-reject-btn{width:100%;background:#ffffff !important;color:#1f2a37 !important;border:1px solid #d1d5db !important;background-image:none !important;padding:6px 12px !important;border-radius:8px !important;font-weight:700 !important;font-size:12px !important;line-height:1 !important;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:none}
+.admin-reject-btn:hover:not(:disabled){background:#e11d48 !important;color:#fff !important;border-color:#e11d48 !important;filter:none}
+.admin-request-btn{width:100%;background:#ffffff !important;color:#1f2a37 !important;border:1px solid #d1d5db !important;background-image:none !important;padding:6px 12px !important;border-radius:8px !important;font-weight:700 !important;font-size:12px !important;line-height:1 !important;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:none}
+.admin-request-btn:hover:not(:disabled){background:#0f172a !important;color:#ffffff !important;border-color:#0f172a !important;filter:none}
+.admin-approve-btn svg,
+.admin-reject-btn svg,
+.admin-request-btn svg{display:block}
 .admin-review-gate-note{margin:0 0 2px;font-size:12px;line-height:1.45;color:var(--text-secondary)}
 .admin-review-gate-note--status{margin-top:4px;padding:10px 12px;border-radius:12px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.12)}
 
@@ -387,10 +393,13 @@ html[data-theme='dark'] .admin-review-download-link{background:rgba(96,165,250,0
 html[data-theme='dark'] .admin-review-download-link:hover{background:rgba(96,165,250,0.2);color:#bfdbfe}
 html[data-theme='dark'] .admin-review-certificate-tile{background:linear-gradient(180deg,rgba(96,165,250,0.10),rgba(15,23,42,0.18))}
 html[data-theme='dark'] .admin-review-certificate-icon{background:rgba(239,68,68,0.14);color:#fca5a5}
-html[data-theme='dark'] .admin-approve-btn{background:rgba(17,163,110,0.18) !important;color:#86efac !important;box-shadow:0 10px 22px rgba(0,0,0,0.24)}
-html[data-theme='dark'] .admin-approve-btn:hover:not(:disabled){background:rgba(17,163,110,0.24) !important;color:#86efac !important}
-html[data-theme='dark'] .admin-reject-btn{background:rgba(239,68,68,0.10) !important;color:#fca5a5 !important;border-color:rgba(239,68,68,0.26) !important;box-shadow:0 10px 22px rgba(0,0,0,0.22)}
-html[data-theme='dark'] .admin-reject-btn:hover:not(:disabled){background:rgba(239,68,68,0.12) !important;color:#fecaca !important}
+html[data-theme='dark'] .admin-review-decision-card{background:#0b1220;border-color:#1f2937}
+html[data-theme='dark'] .admin-approve-btn{background:#0f172a !important;color:#e2e8f0 !important;border-color:#1f2937 !important;box-shadow:none}
+html[data-theme='dark'] .admin-approve-btn:hover:not(:disabled){background:#0f9d6a !important;border-color:#0f9d6a !important;color:#ffffff !important}
+html[data-theme='dark'] .admin-reject-btn{background:#0f172a !important;color:#e2e8f0 !important;border-color:#1f2937 !important;box-shadow:none}
+html[data-theme='dark'] .admin-reject-btn:hover:not(:disabled){background:#e11d48 !important;color:#ffffff !important;border-color:#e11d48 !important}
+html[data-theme='dark'] .admin-request-btn{background:#0f172a !important;color:#e2e8f0 !important;border-color:#1f2937 !important;box-shadow:none}
+html[data-theme='dark'] .admin-request-btn:hover:not(:disabled){background:#0f172a !important;color:#ffffff !important;border-color:#0f172a !important}
 html[data-theme='dark'] .admin-review-gate-note--status{background:rgba(96,165,250,0.10);border-color:rgba(96,165,250,0.16)}
 
 @media (max-width: 1100px){

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Card, Table, Button, Modal, Form, Row, Col, Alert } from 'react-bootstrap';
-import { Check, X, ChevronDown, Scale, Download, ScanSearch, ArrowLeft, Droplets, Eye, Gem as GemIcon, FileDown } from 'lucide-react';
+import { Card, Table, Button, Modal, Form, Alert } from 'react-bootstrap';
+import { Check, CheckCircle, Ban, Mail, ChevronDown, Download, ScanSearch, ArrowLeft, FileDown } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
+import { sendMessage } from '../../api/socket';
 import type { Gem } from '../../types';
 import { AxiosError } from 'axios';
 
@@ -18,6 +19,13 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
   const [feedback, setFeedback] = useState('');
   const [reviewChecklistState, setReviewChecklistState] = useState([false, false, false]);
   const [submitting, setSubmitting] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [actionModal, setActionModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    variant: 'success' as 'success' | 'danger',
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -43,16 +51,30 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     setShowReviewModal(true);
     setReviewStatus('approved');
     setFeedback('');
+    setRejectionReason('');
     setReviewChecklistState([false, false, false]);
     setError('');
     setSuccess('');
   };
 
+  const buildSellerMessage = () => {
+    const trimmedFeedback = feedback.trim();
+    if (reviewStatus !== 'rejected') {
+      return trimmedFeedback;
+    }
+
+    const reasonText = rejectionReason ? `Rejection reason: ${rejectionReason}.` : '';
+    if (reasonText && trimmedFeedback) {
+      return `${reasonText} ${trimmedFeedback}`;
+    }
+    return reasonText || trimmedFeedback;
+  };
+
   const handleSubmitReview = async () => {
     if (!selectedGem) return;
 
-    if (reviewStatus === 'rejected' && !feedback.trim()) {
-      setError('Please provide feedback for rejection');
+    if (reviewStatus === 'rejected' && !feedback.trim() && !rejectionReason) {
+      setError('Please provide a rejection reason or message for the seller');
       return;
     }
 
@@ -65,10 +87,29 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     setError('');
 
     try {
+      const sellerMessage = buildSellerMessage();
+
       await adminAPI.reviewGem({
         gemId: selectedGem._id,
         status: reviewStatus,
-        feedback: feedback.trim() || undefined
+        feedback: sellerMessage || undefined
+      });
+
+      if (reviewStatus === 'rejected' && sellerMessage) {
+        sendMessage(undefined, selectedGem.seller._id, sellerMessage, selectedGem._id);
+        window.dispatchEvent(new Event('chat:refresh-conversations'));
+      }
+
+      const nextTitle = reviewStatus === 'approved' ? 'Approved' : 'Rejected';
+      const nextMessage = reviewStatus === 'approved'
+        ? 'Gem approved successfully.'
+        : 'Gem rejected successfully.';
+
+      setActionModal({
+        show: true,
+        title: nextTitle,
+        message: nextMessage,
+        variant: reviewStatus === 'approved' ? 'success' : 'danger',
       });
 
       setSuccess(`Gem ${reviewStatus} successfully!`);
@@ -85,6 +126,20 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleRequestMoreInfo = () => {
+    if (!selectedGem) return;
+
+    const sellerMessage = buildSellerMessage();
+    if (!sellerMessage) {
+      setError('Please enter a message before requesting more info');
+      return;
+    }
+
+    sendMessage(undefined, selectedGem.seller._id, sellerMessage, selectedGem._id);
+    window.dispatchEvent(new Event('chat:refresh-conversations'));
+    setSuccess('Request sent to seller.');
   };
 
   const formatDate = (dateString: string) => {
@@ -127,14 +182,7 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     }
   };
 
-  const isPdfCertificate = (gem: Gem) => {
-    const normalizedUrl = (gem.certificate?.url || '').toLowerCase();
-    return (
-      gem.certificate?.mimeType === 'application/pdf' ||
-      normalizedUrl.includes('.pdf') ||
-      normalizedUrl.includes('application/pdf')
-    );
-  };
+  
 
   const orderedGems = useMemo(
     () => [...gems].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()),
@@ -166,9 +214,15 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
 
   return (
     <div>
-      <div className="dashboard-title animate-fade-up">
-        <h4 className="fw-bold">Pending Gem Verifications</h4>
-        <p>Review and approve gem listings before they go live</p>
+      <div className="section-card section-card--long animate-fade-up">
+        <div className="dashboard-title">
+          <h4 className="fw-bold">Pending Gem Verifications</h4>
+          <p>Review and approve gem listings before they go live</p>
+        </div>
+        <div className="section-card-badges">
+          <span className="section-card-badge section-card-badge--primary">{gems.length} pending</span>
+          <span className="section-card-badge section-card-badge--muted">{gems.length} total listings</span>
+        </div>
       </div>
 
       <div className="pending-gems-toolbar animate-fade-up delay-1">
@@ -463,23 +517,46 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
 
                   <div className="admin-review-decision-actions">
                     <Button
+                      variant="light"
                       className="admin-approve-btn"
                       onClick={handleSubmitReview}
                       disabled={!canApprove || submitting || reviewStatus === 'rejected'}
                     >
-                      <Check size={16} className="me-2" />
+                      <CheckCircle size={14} className="me-2" />
                       Approve Gem
                     </Button>
                     <Button
+                      variant="light"
                       className="admin-reject-btn"
                       onClick={() => {
                         setReviewStatus('rejected');
                         setFeedback('');
+                        setRejectionReason('');
                       }}
                       disabled={submitting}
                     >
-                      <X size={16} className="me-2" />
+                      <Ban size={14} className="me-2" />
                       Reject Listing
+                    </Button>
+                    {reviewStatus === 'rejected' && (
+                      <Button
+                        variant="light"
+                        className="admin-reject-btn"
+                        onClick={handleSubmitReview}
+                        disabled={submitting || (!rejectionReason && !feedback.trim())}
+                      >
+                        <Ban size={14} className="me-2" />
+                        Confirm Reject
+                      </Button>
+                    )}
+                    <Button
+                      variant="light"
+                      className="admin-request-btn"
+                      onClick={handleRequestMoreInfo}
+                      disabled={submitting}
+                    >
+                      <Mail size={14} className="me-2" />
+                      Request More Info
                     </Button>
                   </div>
 
@@ -489,39 +566,60 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
                     </p>
                   )}
 
-                  {reviewStatus === 'rejected' ? (
-                    <Form.Group>
+                  {reviewStatus === 'rejected' && (
+                    <Form.Group className="mb-3">
                       <Form.Label className="fw-semibold">
                         Rejection Reason <span className="text-danger">*</span>
                       </Form.Label>
-                      <Form.Control
-                        as="textarea"
-                        rows={3}
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        placeholder="Explain what needs to be corrected before this gem can be approved."
-                        required
-                      />
-                      <Form.Text className="text-muted">
-                        This feedback will be sent to the seller.
-                      </Form.Text>
-                    </Form.Group>
-                  ) : (
-                    <Form.Group>
-                      <Form.Label className="fw-semibold">Optional Notes</Form.Label>
-                      <Form.Control
-                        as="textarea"
-                        rows={2}
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        placeholder="Add any additional comments for the seller or audit record."
-                      />
+                      <Form.Select
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                      >
+                        <option value="">Select a reason...</option>
+                        <option value="Certificate details need clarification">Certificate details need clarification</option>
+                        <option value="Listing photos are insufficient">Listing photos are insufficient</option>
+                        <option value="Gem attributes mismatch">Gem attributes mismatch</option>
+                        <option value="Missing supporting documents">Missing supporting documents</option>
+                      </Form.Select>
                     </Form.Group>
                   )}
+
+                  <Form.Group>
+                    <Form.Label className="fw-semibold">Message to Seller</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      placeholder="Share the exact details the seller should update or provide."
+                    />
+                    <Form.Text className="text-muted">
+                      This message will be delivered via chat.
+                    </Form.Text>
+                  </Form.Group>
                 </div>
               </aside>
             </div>
           )}
+        </Modal.Body>
+      </Modal>
+
+      <Modal
+        show={actionModal.show}
+        onHide={() => setActionModal((current) => ({ ...current, show: false }))}
+        centered
+        size="sm"
+      >
+        <Modal.Body>
+          <Alert
+            variant={actionModal.variant}
+            className="mb-0"
+            onClose={() => setActionModal((current) => ({ ...current, show: false }))}
+            dismissible
+          >
+            <strong>{actionModal.title}</strong>
+            <div>{actionModal.message}</div>
+          </Alert>
         </Modal.Body>
       </Modal>
     </div>

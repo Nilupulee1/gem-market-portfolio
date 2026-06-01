@@ -17,7 +17,7 @@ import LiveAuctions from './LiveAuctions';
 import Marketplace from './Marketplace';
 import SellerContactModal from './SellerContactModal';
 import MessagesPage from './MessagesPage';
-import WinningAuctionCard from './WinningAuctionCard';
+// WinningAuctionCard removed — use inline alerts instead
 import ActiveBidsCard from './ActiveBidsCard';
 
 type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist' | 'messages';
@@ -540,23 +540,65 @@ const BuyerDashboard = ({
 
   const renderAuctions = () => (
     <>
-      {wonAuctionsWithoutContact.length > 0 && (
-        <div className="bdr-alert-stack mb-4">
-          {wonAuctionsWithoutContact.map(a => (
-            <WinningAuctionCard key={a._id} auction={a} onContactSeller={openSellerContact} onDismiss={id => setDismissedWinningAuctions(p => [...p, id])} />
-          ))}
-        </div>
-      )}
-
-      <LiveAuctions auctions={liveAuctions} watchlistIds={watchlistIds} nowMs={nowMs}
-        onToggleWatchlist={toggleWatchlist} onOpenDetails={openDetails}
-        formatCurrency={formatCurrency} formatRemaining={formatRemaining} getLeadingBidderName={getLeadingBidderName} />
-
-      <div className="content-card mt-4 animate-fade-up">
+      {/* Live auctions header and two-column layout (filters + cards) */}
+      <section className="content-card animate-fade-up">
         <div className="card-body">
-          <p className="dashboard-eyebrow mb-2">Bid tracking</p>
-          <h5 className="mb-1">My Active Bids</h5>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>Track your active and past auction participation.</p>
+          <div className="bdr-panel-header">
+            <div>
+              <p className="dashboard-eyebrow mb-1">Live auctions</p>
+              <h5 className="mb-0">Currently Live</h5>
+              <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>Participate in the global acquisition of the world's most rare and certified geological wonders.</p>
+            </div>
+            <button className="bdr-link-btn" type="button" onClick={() => setView('marketplace')}>Go to Marketplace</button>
+          </div>
+
+          <div className="auctions-layout">
+            <aside className="auctions-sidebar">
+              <div className="filter-card">
+                <h6 style={{ margin: '0 0 8px' }}>FILTER PORTFOLIO</h6>
+                <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+                  <label><input type="checkbox" defaultChecked /> Closing Soon</label>
+                  <label><input type="checkbox" /> High Value</label>
+                  <label><input type="checkbox" /> No Reserve</label>
+                </div>
+
+                <h6 style={{ margin: '12px 0 8px' }}>STONE CATEGORY</h6>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span className="tag-pill">Ruby</span>
+                  <span className="tag-pill">Emerald</span>
+                  <span className="tag-pill">Diamond</span>
+                  <span className="tag-pill">Tourmaline</span>
+                  <span className="tag-pill">Sapphire</span>
+                </div>
+              </div>
+
+              <div className="concierge-box">
+                <h6>CONCIERGE ASSISTANCE</h6>
+                <p style={{ color: 'var(--text-secondary)' }}>Require private viewing or appraisal records?</p>
+                <button className="bdr-btn-primary" style={{ marginTop: 12 }}>Contact Expert</button>
+              </div>
+            </aside>
+
+            <main className="auctions-main">
+              <LiveAuctions auctions={liveAuctions} watchlistIds={watchlistIds} nowMs={nowMs}
+                onToggleWatchlist={toggleWatchlist} onOpenDetails={openDetails}
+                formatCurrency={formatCurrency} formatRemaining={formatRemaining} getLeadingBidderName={getLeadingBidderName}
+                showHeader={false} />
+            </main>
+          </div>
+        </div>
+      </section>
+
+      {/* My Bids section */}
+      <section className="content-card mt-4 animate-fade-up">
+        <div className="card-body">
+          <div className="bdr-panel-header">
+            <div>
+              <p className="dashboard-eyebrow mb-1">My bids</p>
+              <h5 className="mb-0">Active Bids</h5>
+            </div>
+            <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>View All</button>
+          </div>
 
           {activeBids.length === 0 ? (
             <div className="dashboard-empty-inline">You have no active bids at the moment.</div>
@@ -571,29 +613,33 @@ const BuyerDashboard = ({
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      <div className="content-card mt-4 animate-fade-up delay-1">
+      {/* Winning bids section */}
+      <section className="content-card mt-4 animate-fade-up delay-1">
         <div className="card-body">
-          <p className="dashboard-eyebrow mb-2">Past wins</p>
-          <h5 className="mb-3">Won Auctions</h5>
-          {wonAuctions.length === 0 ? (
-            <div className="dashboard-empty-inline">No won auctions yet.</div>
-          ) : wonAuctions.map(a => (
-            <div key={a._id} className="bdr-won-row">
-              <div>
-                <strong className="bdr-won-name">{a.gem.type}</strong>
-                <span className="bdr-won-meta">Seller: {a.seller.name}</span>
-              </div>
-              <div className="bdr-won-actions">
-                <strong className="bdr-won-price">{formatCurrency(a.currentBid)}</strong>
-                <button className="bdr-btn-ghost" type="button" onClick={() => openDetails(a._id)}>View</button>
-                <button className="bdr-btn-primary" type="button" onClick={() => openSellerContact(a.seller, a.gem.type, a.gem._id)}>Contact</button>
-              </div>
+          <div className="bdr-panel-header">
+            <div>
+              <p className="dashboard-eyebrow mb-1">Winning bids</p>
+              <h5 className="mb-0">You're currently winning</h5>
             </div>
-          ))}
+            <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>Manage</button>
+          </div>
+
+          {activeBids.filter(i => i.isWinning).length === 0 ? (
+            <div className="dashboard-empty-inline">You are not currently the highest bidder on any auctions.</div>
+          ) : (
+            <div className="bdr-market-grid">
+              {activeBids.filter(i => i.isWinning).map(item => (
+                <ActiveBidsCard key={item.auction._id} item={item} nowMs={nowMs}
+                  formatCurrency={formatCurrency} formatRemaining={formatRemaining}
+                  onIncreaseBid={b => { setSelectedAuction(b.auction); setShowBidConfirm(true); }}
+                  onViewDetails={openDetails} />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      </section>
     </>
   );
 
@@ -768,7 +814,6 @@ const BuyerDashboard = ({
         formatCurrency={formatCurrency} formatDateTime={formatDateTime}
         getLeadingBidderName={getLeadingBidderName}
         getCertificateAccessUrl={getCertificateAccessUrl} isPdfCertificate={isPdfCertificate}
-        onOpenSellerContact={openSellerContact}
       />
 
       <AuctionBid

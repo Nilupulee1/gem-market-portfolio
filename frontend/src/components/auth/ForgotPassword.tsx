@@ -34,7 +34,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const response = await authAPI.forgotPassword({ email });
+      await authAPI.forgotPassword({ email });
       setSuccess(
         'If an account exists with this email, a password reset link will be sent shortly.'
       );

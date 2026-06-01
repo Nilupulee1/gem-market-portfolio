@@ -150,8 +150,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
 
             {!selectedConversation && !(initialContact && initialGem) && (
               <div className="empty-chat-state">
-                <div className="empty-chat-card">
-                  <div className="empty-chat-icon">
+                  <div className="empty-chat-card">
+                    <div className="empty-chat-icon">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="26"
@@ -166,8 +166,8 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                   </div>
-                  <h5>No ticket selected</h5>
-                  <p>Choose a ticket from the inbox to view the conversation.</p>
+                  <h5>No chat selected</h5>
+                  <p>Choose a chat from the inbox to view the conversation.</p>
                 </div>
               </div>
             )}
