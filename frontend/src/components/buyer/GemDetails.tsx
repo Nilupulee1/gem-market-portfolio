@@ -194,21 +194,6 @@ const GemDetails = ({
                   <div><span>Certificate No.</span><strong>{gem.certificate?.certificateNumber || 'N/A'}</strong></div>
                 </div>
 
-                {/* Inline preview */}
-                {isPdfCertificate(gem.certificate) ? (
-                  <PdfViewer
-                    url={certificateUrl}
-                    fileName={`${gem.type.replace(/\s+/g, '_').toLowerCase()}-certificate.pdf`}
-                  />
-                ) : (
-                  <div style={{ marginTop: 14 }}>
-                    <img
-                      src={certificateUrl}
-                      alt="Certificate"
-                      style={{ width: '100%', borderRadius: 12, border: '1px solid #e2e8f0' }}
-                    />
-                  </div>
-                )}
               </div>
             )}
           </section>
