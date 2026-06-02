@@ -16,6 +16,7 @@ export type GemStatus = (typeof GemStatus)[keyof typeof GemStatus];
 
 export const AuctionStatus = {
   ACTIVE: 'active',
+  PENDING_PAYMENT: 'pending_payment',
   ENDED: 'ended',
   CANCELLED: 'cancelled',
 } as const;
@@ -84,6 +85,15 @@ export interface Auction {
   startPrice: number;
   currentBid: number;
   minimumBidIncrement: number;
+  listingPlacementFeePercent: number;
+  listingPlacementFee: number;
+  paymentConfirmed: boolean;
+  paymentMethod: string;
+  paymentStatus: 'pending' | 'completed' | 'failed';
+  paymentOrderId?: string;
+  paymentTransactionId?: string;
+  paymentCurrency?: string;
+  paymentAmount?: number;
   startTime: string;
   endTime: string;
   status: AuctionStatus;

@@ -5,6 +5,7 @@ export interface DashboardStats {
   approvedGems: number;
   totalAuctions: number;
   activeAuctions: number;
+  totalRevenue: number;
 }
 
 export interface AdminUser {

@@ -1,27 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
-  Bell,
-  Compass,
-  Gavel,
-  Heart,
-  LayoutDashboard,
-  LogOut,
-  Search,
-  Settings,
-  ShieldCheck,
-  Sparkle,
-  Timer,
-  X,
+  Compass, Gavel, Heart, LayoutDashboard, LogOut,
+  Timer, X, MessageSquare, Moon, Sun,
+  Trophy, Eye, Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { auctionAPI, buyerAPI } from '../../api/axios';
+import { auctionAPI, buyerAPI, gemAPI } from '../../api/axios';
+import axiosInstance from '../../api/axios';
 import { useAuthStore } from '../../store/authStore';
-import type { Auction } from '../../types';
+import type { Auction, Gem } from '../../types';
 import logo from '../../assets/logo.png';
-import './BuyerDashboard.css';
+import { useChatStore } from '../../store/chatStore';
+import AuctionBid from './AuctionBid';
+import GemDetails from './GemDetails';
+import LiveAuctions from './LiveAuctions';
+import Marketplace from './Marketplace';
+import SellerContactModal from './SellerContactModal';
+import MessagesPage from './MessagesPage';
+import ActiveBidsCard from './ActiveBidsCard';
 
-type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist';
+type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist' | 'messages';
+type ThemeMode = 'light' | 'dark';
 
 interface BuyerStats {
   auctionsParticipated: number;
@@ -44,7 +43,20 @@ interface BuyerDashboardPayload {
   recentWins: Auction[];
 }
 
-interface ActiveBidItem {
+interface BidHistoryItem {
+  auctionId: string;
+  gem: Auction['gem'];
+  seller: Auction['seller'];
+  amount: number;
+  timestamp: string;
+  currentBid: number;
+  minimumBidIncrement: number;
+  status: Auction['status'];
+  endTime: string;
+  isWinning: boolean;
+}
+
+export interface ActiveBidItem {
   auction: Auction;
   myHighestBid: number;
   bidsPlacedByMe: number;
@@ -52,560 +64,798 @@ interface ActiveBidItem {
   remainingTimeMs: number;
 }
 
-const watchlistStorageKey = 'buyer-watchlist-auction-ids';
+const watchlistStorageKey    = 'buyer-watchlist-auction-ids';
+const buyerDashboardCacheKey = 'buyer-dashboard-cache';
 
-const formatCurrency = (value: number) => `Rs.${value.toLocaleString()}`;
-
-const formatRemaining = (endTime: string) => {
-  const ms = new Date(endTime).getTime() - Date.now();
-  if (ms <= 0) {
-    return 'Ended';
-  }
-
-  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((ms / (1000 * 60)) % 60);
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  }
-  return `${hours}h ${minutes}m`;
+type BuyerDashboardCache = {
+  allAuctions: Auction[];
+  approvedGems: Gem[];
+  dashboard: BuyerDashboardPayload | null;
+  activeBids: ActiveBidItem[];
+  wonAuctions: Auction[];
+  bidHistory: BidHistoryItem[];
 };
 
-const parseWatchlist = () => {
-  const raw = localStorage.getItem(watchlistStorageKey);
-  if (!raw) {
-    return [] as string[];
-  }
-
+const loadBuyerDashboardCache = (): BuyerDashboardCache | null => {
+  const raw = localStorage.getItem(buyerDashboardCacheKey);
+  if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+    const parsed = JSON.parse(raw) as BuyerDashboardCache;
+    return parsed && Array.isArray(parsed.allAuctions) && Array.isArray(parsed.approvedGems) ? parsed : null;
+  } catch { return null; }
 };
 
-const saveWatchlist = (ids: string[]) => {
-  localStorage.setItem(watchlistStorageKey, JSON.stringify(ids));
-};
+const saveBuyerDashboardCache = (cache: BuyerDashboardCache) =>
+  localStorage.setItem(buyerDashboardCacheKey, JSON.stringify(cache));
 
-const BuyerDashboard = () => {
-  const navigate = useNavigate();
+const formatCurrency  = (v: number) => `Rs.${v.toLocaleString()}`;
+const formatDateTime  = (v: string) =>
+  new Date(v).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const getCertificateAccessUrl = (cert?: { url?: string; accessUrl?: string }) => cert?.accessUrl || cert?.url || '';
+const isPdfCertificate = (cert?: { url?: string; accessUrl?: string; mimeType?: string }) => {
+  const u = (cert?.url || cert?.accessUrl || '').toLowerCase();
+  return cert?.mimeType === 'application/pdf' || u.includes('.pdf') || u.includes('application/pdf');
+};
+const formatRemaining = (endTime: string, nowMs: number) => {
+  const ms = new Date(endTime).getTime() - nowMs;
+  if (ms <= 0) return 'Ended';
+  const d = Math.floor(ms / 86400000);
+  const h = Math.floor((ms / 3600000) % 24);
+  const m = Math.floor((ms / 60000) % 60);
+  const s = Math.floor((ms / 1000) % 60);
+  return [d > 0 ? `${d}d` : null, d > 0 || h > 0 ? `${h}h` : null, d > 0 || h > 0 || m > 0 ? `${m}m` : null, `${s}s`].filter(Boolean).join(' ');
+};
+const parseWatchlist = () => {
+  try { const p = JSON.parse(localStorage.getItem(watchlistStorageKey) || ''); return Array.isArray(p) ? p : []; }
+  catch { return []; }
+};
+const saveWatchlist = (ids: string[]) => localStorage.setItem(watchlistStorageKey, JSON.stringify(ids));
+const getLeadingBidderName = (auction?: Auction | null) => {
+  const latest = auction?.bids?.[auction.bids.length - 1];
+  return latest?.bidder?.name || 'No bids yet';
+};
+const formatShortDate = (value: string) =>
+  new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+const NAV_ITEMS: { view: BuyerView; icon: React.ReactNode; label: string }[] = [
+  { view: 'dashboard',   icon: <LayoutDashboard size={16} />, label: 'Dashboard'   },
+  { view: 'marketplace', icon: <Compass size={16} />,         label: 'Marketplace' },
+  { view: 'auctions',    icon: <Gavel size={16} />,           label: 'Auctions'    },
+  { view: 'watchlist',   icon: <Heart size={16} />,           label: 'Watchlist'   },
+  { view: 'messages',    icon: <MessageSquare size={16} />,   label: 'Messages'    },
+];
+
+const QuickStat = ({
+  icon, label, value, accent, onClick,
+}: { icon: React.ReactNode; label: string; value: string | number; accent?: string; onClick?: () => void }) => (
+  <article
+    className="bdr-quick-stat"
+    role={onClick ? 'button' : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onClick={onClick}
+    onKeyDown={e => e.key === 'Enter' && onClick?.()}
+    style={{ cursor: onClick ? 'pointer' : 'default' }}
+  >
+    <div className="bdr-quick-stat-head">
+      <span className="bdr-quick-stat-label">{label}</span>
+      <div className="bdr-quick-stat-icon" style={accent ? { background: `${accent}18`, color: accent } : {}}>
+        {icon}
+      </div>
+    </div>
+    <strong className="bdr-quick-stat-value">{value}</strong>
+  </article>
+);
+
+/* ── Active bids grid (shared by My Bids + Winning Bids sections) ── */
+const ActiveBidsGrid = ({
+  items,
+  nowMs,
+  onIncreaseBid,
+  onViewDetails,
+}: {
+  items: ActiveBidItem[];
+  nowMs: number;
+  onIncreaseBid: (item: ActiveBidItem) => void;
+  onViewDetails: (id: string) => void;
+}) => (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+      gap: '16px',
+      marginTop: '16px',
+      // Critical: let the grid expand naturally — no fixed height, no overflow clipping
+      overflow: 'visible',
+      alignItems: 'start',
+    }}
+  >
+    {items.map(item => (
+      <ActiveBidsCard
+        key={item.auction._id}
+        item={item}
+        nowMs={nowMs}
+        formatCurrency={formatCurrency}
+        formatRemaining={formatRemaining}
+        onIncreaseBid={onIncreaseBid}
+        onViewDetails={onViewDetails}
+      />
+    ))}
+  </div>
+);
+
+/* ════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   ════════════════════════════════════════════════════════ */
+const BuyerDashboard = ({
+  theme,
+  onToggleTheme,
+}: {
+  theme?: ThemeMode;
+  onToggleTheme?: () => void;
+}) => {
+  const navigate    = useNavigate();
   const { user, logout } = useAuthStore();
+  const unreadCount = useChatStore(s => s.unreadCount);
+  const cached      = loadBuyerDashboardCache();
 
-  const [view, setView] = useState<BuyerView>('dashboard');
-  const [query, setQuery] = useState('');
+  const [view,        setView]       = useState<BuyerView>('dashboard');
+  const [query]                      = useState('');
   const [selectedType, setSelectedType] = useState('all');
-
-  const [loading, setLoading] = useState(true);
+  const [loading,     setLoading]    = useState(!cached);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [placingBid, setPlacingBid] = useState(false);
+  const [placingBid,  setPlacingBid] = useState(false);
+  const [nowMs,       setNowMs]      = useState(() => Date.now());
 
-  const [allAuctions, setAllAuctions] = useState<Auction[]>([]);
-  const [dashboard, setDashboard] = useState<BuyerDashboardPayload | null>(null);
-  const [activeBids, setActiveBids] = useState<ActiveBidItem[]>([]);
-  const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
-
+  const [allAuctions,  setAllAuctions]  = useState<Auction[]>(cached?.allAuctions  || []);
+  const [approvedGems, setApprovedGems] = useState<Gem[]>(cached?.approvedGems || []);
+  const [dashboard,    setDashboard]    = useState<BuyerDashboardPayload | null>(cached?.dashboard || null);
+  const [activeBids,   setActiveBids]   = useState<ActiveBidItem[]>(cached?.activeBids   || []);
+  const [wonAuctions,  setWonAuctions]  = useState<Auction[]>(cached?.wonAuctions  || []);
+  const [bidHistory,   setBidHistory]   = useState<BidHistoryItem[]>(cached?.bidHistory   || []);
   const [watchlistIds, setWatchlistIds] = useState<string[]>(parseWatchlist);
 
-  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
-  const [bidAmount, setBidAmount] = useState('');
+  const [selectedAuction,       setSelectedAuction]       = useState<Auction | null>(null);
+  const [selectedGemDetails,    setSelectedGemDetails]    = useState<Auction['gem'] | null>(null);
+  const [bidAmount,             setBidAmount]             = useState('');
+  const [showBidConfirm,        setShowBidConfirm]        = useState(false);
+  const [bidFeedback,           setBidFeedback]           = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [selectedSeller,        setSelectedSeller]        = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
+  const [selectedGemForContact, setSelectedGemForContact] = useState<{ name: string; id: string; images?: string[] } | null>(null);
+  const [chatInitialContact,    setChatInitialContact]    = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
+  const [chatInitialGem,        setChatInitialGem]        = useState<{ name: string; id: string } | null>(null);
+  const [conversations,         setConversations]         = useState<Array<{ auction?: { _id: string }; gem?: { _id: string } }>>([]);
+  const [dismissedWinningAuctions, setDismissedWinningAuctions] = useState<string[]>([]);
+
   const isBuyerAccount = user?.role === 'buyer';
 
-  const refreshData = async () => {
-    if (!isBuyerAccount) {
-      setLoading(false);
-      return;
-    }
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
+  const refreshData = async (isInitialLoad = false) => {
     try {
-      setLoading(true);
-      const [activeRes, dashboardRes, activeBidsRes, wonRes] = await Promise.all([
+      if (isInitialLoad && !cached) setLoading(true);
+      const [activeRes, dashRes, bidsRes, wonRes] = await Promise.all([
         auctionAPI.getActiveAuctions(),
         buyerAPI.getDashboard(),
         buyerAPI.getActiveBids(),
         buyerAPI.getWonAuctions(),
       ]);
-
+      const histRes = await buyerAPI.getBidHistory();
+      let convData: typeof conversations = [];
+      try { const r = await axiosInstance.get('/chat/conversations'); convData = Array.isArray(r.data) ? r.data : []; }
+      catch { /* silent */ }
+      const gemsRes = await gemAPI.getApprovedGems();
       setAllAuctions(activeRes.data.auctions || []);
-      setDashboard(dashboardRes.data);
-      setActiveBids(activeBidsRes.data.activeBids || []);
+      setApprovedGems(gemsRes.data.gems || []);
+      setDashboard(dashRes.data);
+      setActiveBids(bidsRes.data.activeBids || []);
       setWonAuctions(wonRes.data.wonAuctions || []);
-    } catch (error) {
-      console.error('Failed to load buyer dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
+      setConversations(convData);
+      const nextHist = histRes.data.bidHistory || [];
+      setBidHistory(nextHist);
+      saveBuyerDashboardCache({ allAuctions: activeRes.data.auctions || [], approvedGems: gemsRes.data.gems || [], dashboard: dashRes.data, activeBids: bidsRes.data.activeBids || [], wonAuctions: wonRes.data.wonAuctions || [], bidHistory: nextHist });
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
+  useEffect(() => { refreshData(true); }, []);
+
   useEffect(() => {
-    refreshData();
-  }, [isBuyerAccount]);
+    if (view !== 'dashboard') return;
+    const refresh = async () => {
+      try { const r = await axiosInstance.get('/chat/conversations'); setConversations(Array.isArray(r.data) ? r.data : []); } catch { /* silent */ }
+    };
+    refresh();
+    const id = window.setInterval(refresh, 3000);
+    return () => window.clearInterval(id);
+  }, [view]);
 
   const uniqueTypes = useMemo(() => {
-    const typeSet = new Set(allAuctions.map((item) => item.gem.type));
-    return ['all', ...Array.from(typeSet)];
-  }, [allAuctions]);
+    const s = new Set(allAuctions.map(a => a.gem.type));
+    approvedGems.forEach(g => s.add(g.type));
+    return ['all', ...Array.from(s)];
+  }, [allAuctions, approvedGems]);
 
-  const filteredAuctions = useMemo(() => {
-    return allAuctions.filter((item) => {
-      const queryValue = query.trim().toLowerCase();
-      const matchesQuery =
-        queryValue.length === 0 ||
-        item.gem.type.toLowerCase().includes(queryValue) ||
-        item.gem.origin.toLowerCase().includes(queryValue) ||
-        item.gem.color.toLowerCase().includes(queryValue);
-      const matchesType = selectedType === 'all' || item.gem.type === selectedType;
-      return matchesQuery && matchesType;
-    });
-  }, [allAuctions, query, selectedType]);
+  const filteredAuctions = useMemo(() =>
+    allAuctions.filter(a => {
+      const q = query.trim().toLowerCase();
+      return (q.length === 0 || a.gem.type.toLowerCase().includes(q) || a.gem.origin.toLowerCase().includes(q) || a.gem.color.toLowerCase().includes(q))
+        && (selectedType === 'all' || a.gem.type === selectedType);
+    }), [allAuctions, query, selectedType]);
 
-  const watchedAuctions = useMemo(
-    () => allAuctions.filter((item) => watchlistIds.includes(item._id)),
-    [allAuctions, watchlistIds]
-  );
+  const watchedAuctions = useMemo(() => allAuctions.filter(a => watchlistIds.includes(a._id)), [allAuctions, watchlistIds]);
+  const liveAuctions    = useMemo(() => allAuctions.filter(a => new Date(a.endTime).getTime() > Date.now()), [allAuctions]);
 
-  const toggleWatchlist = (auctionId: string) => {
-    const updated = watchlistIds.includes(auctionId)
-      ? watchlistIds.filter((id) => id !== auctionId)
-      : [...watchlistIds, auctionId];
-    setWatchlistIds(updated);
-    saveWatchlist(updated);
+  const wonAuctionsWithoutContact = useMemo(() => {
+    const ids = new Set(conversations.map(c => c.auction?._id).filter(Boolean));
+    return wonAuctions.filter(a => !ids.has(a._id) && !dismissedWinningAuctions.includes(a._id));
+  }, [wonAuctions, conversations, dismissedWinningAuctions]);
+
+  const toggleWatchlist = (id: string) => {
+    const updated = watchlistIds.includes(id) ? watchlistIds.filter(x => x !== id) : [...watchlistIds, id];
+    setWatchlistIds(updated); saveWatchlist(updated);
   };
 
   const openDetails = async (auctionId: string) => {
     try {
-      setLoadingDetails(true);
-      const response = await auctionAPI.getAuctionById(auctionId);
-      setSelectedAuction(response.data.auction);
-      const minBid = response.data.auction.currentBid + response.data.auction.minimumBidIncrement;
-      setBidAmount(String(minBid));
-    } catch (error) {
-      console.error('Failed to fetch auction details:', error);
-    } finally {
-      setLoadingDetails(false);
-    }
+      setLoadingDetails(true); setBidFeedback(null); setShowBidConfirm(false);
+      const res = await auctionAPI.getAuctionById(auctionId);
+      setSelectedAuction(res.data.auction);
+      setBidAmount(String(res.data.auction.currentBid + res.data.auction.minimumBidIncrement));
+      const gemId = res.data.auction?.gem?._id || res.data.auction?.gem;
+      if (gemId) { const gr = await gemAPI.getGemById(gemId); setSelectedGemDetails(gr.data.gem || gr.data); }
+      else { setSelectedGemDetails(res.data.auction.gem || null); }
+    } catch (e) { console.error(e); }
+    finally { setLoadingDetails(false); }
   };
 
-  const closeDetails = () => {
-    setSelectedAuction(null);
-    setBidAmount('');
+  const openGemDetails = async (gemId: string) => {
+    try {
+      setLoadingDetails(true); setBidFeedback(null); setShowBidConfirm(false); setSelectedAuction(null);
+      const gr = await gemAPI.getGemById(gemId); setSelectedGemDetails(gr.data.gem || gr.data);
+    } catch (e) { console.error(e); }
+    finally { setLoadingDetails(false); }
+  };
+
+  const closeDetails = () => { setSelectedAuction(null); setSelectedGemDetails(null); setBidAmount(''); setShowBidConfirm(false); setBidFeedback(null); };
+
+  const openSellerContact = async (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => {
+    setSelectedSeller(seller);
+    setSelectedGemForContact({ name: gemName, id: gemId, images: [] });
+    try { const gr = await gemAPI.getGemById(gemId); const g = gr.data.gem || gr.data; setSelectedGemForContact({ name: g?.type || gemName, id: gemId, images: g?.images || [] }); }
+    catch { setSelectedGemForContact({ name: gemName, id: gemId }); }
+  };
+
+  const closeSellerContact = () => { setSelectedSeller(null); setSelectedGemForContact(null); };
+
+  const handleStartChatWithSeller = () => {
+    closeDetails();
+    setChatInitialContact(selectedSeller); setChatInitialGem(selectedGemForContact);
+    setView('messages'); closeSellerContact();
+    setTimeout(() => refreshData(), 500);
+  };
+
+  const requestBidConfirmation = () => {
+    if (!selectedAuction) return;
+    const amt  = Number(bidAmount);
+    const minB = selectedAuction.currentBid + selectedAuction.minimumBidIncrement;
+    if (!Number.isFinite(amt) || amt < minB) { setBidFeedback({ type: 'error', message: `Your bid must be at least ${formatCurrency(minB)}.` }); return; }
+    setBidFeedback(null); setShowBidConfirm(true);
   };
 
   const placeBid = async () => {
-    if (!selectedAuction) {
-      return;
-    }
-
-    const amount = Number(bidAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return;
-    }
-
+    if (!selectedAuction) return;
+    const amt  = Number(bidAmount);
+    const minB = selectedAuction.currentBid + selectedAuction.minimumBidIncrement;
+    if (!Number.isFinite(amt) || amt <= 0) return;
+    if (amt < minB) { setBidFeedback({ type: 'error', message: `Your bid must be at least ${formatCurrency(minB)}.` }); setShowBidConfirm(false); return; }
     try {
-      setPlacingBid(true);
-      await auctionAPI.placeBid({ auctionId: selectedAuction._id, amount });
-      await openDetails(selectedAuction._id);
+      setPlacingBid(true); setBidFeedback(null);
+      await auctionAPI.placeBid({ auctionId: selectedAuction._id, amount: amt });
+      const res = await auctionAPI.getAuctionById(selectedAuction._id);
+      const upd = res.data.auction as Auction;
+      setSelectedAuction(upd); setBidAmount(String(upd.currentBid + upd.minimumBidIncrement));
       await refreshData();
-    } catch (error) {
-      console.error('Failed to place bid:', error);
-    } finally {
-      setPlacingBid(false);
-    }
+      setBidFeedback({ type: 'success', message: `Your bid of ${formatCurrency(amt)} has been placed for ${upd.gem.type}.` });
+    } catch (e) { console.error(e); setBidFeedback({ type: 'error', message: 'Bid placement failed. Please review the amount and try again.' }); }
+    finally { setPlacingBid(false); setShowBidConfirm(false); }
   };
 
-  const handleSignOut = () => {
-    logout();
-    navigate('/login');
-  };
+  const handleSignOut = () => { logout(); navigate('/login'); };
 
+  /* ─────────────────────────────────────────────────────
+     renderDashboard  (unchanged)
+  ───────────────────────────────────────────────────── */
   const renderDashboard = () => {
-    const stats = dashboard?.stats;
+    const stats         = dashboard?.stats;
+    const activeBidCards = activeBids.slice(0, 2);
+    const savedAuctions = watchedAuctions.slice(0, 2);
+    const orderHistory  = wonAuctions.slice(0, 5);
+    const winningBids   = activeBids.filter(i => i.isWinning).length;
+    const leadRate      = activeBids.length ? Math.round((winningBids / activeBids.length) * 100) : 0;
+
+    const summaryCards = [
+      { label: 'Active Bids',      value: stats?.activeBids  || 0,       accent: '#0f766e', icon: <Gavel  size={18} /> },
+      { label: 'Completed Orders', value: stats?.wonAuctions || 0,       accent: '#eab308', icon: <Trophy size={18} /> },
+      { label: 'Winning Rate',     value: `${leadRate}%`,                 accent: '#16a34a', icon: <Target size={18} /> },
+      { label: 'Saved Gems',       value: watchlistIds.length,            accent: '#5b7cfa', icon: <Heart  size={18} /> },
+    ];
+
+    return (
+      <div className="bdr-dashboard-page animate-fade-up">
+        <section className="bdr-dashboard-hero">
+          <div className="bdr-dashboard-hero-copy">
+            <p className="dashboard-eyebrow mb-2">Buyer dashboard</p>
+            <h4>Welcome back, {user?.name?.split(' ')[0]}.</h4>
+            <p className="mb-0">Track live bids, saved gems, and completed orders from one focused workspace.</p>
+          </div>
+          <div className="bdr-dashboard-hero-actions">
+            <div className="bdr-dashboard-pill-row">
+              <span className="dashboard-chip">{leadRate}% winning rate</span>
+              <span className="dashboard-chip dashboard-chip-soft">{stats?.totalBidsPlaced || 0} bids placed</span>
+            </div>
+          </div>
+        </section>
+
+        <div className="bdr-stat-grid">
+          {summaryCards.map(card => (
+            <QuickStat key={card.label} icon={card.icon} label={card.label} value={card.value} accent={card.accent}
+              onClick={() => setView(card.label === 'Saved Gems' ? 'watchlist' : 'auctions')} />
+          ))}
+        </div>
+
+        <div className="bdr-dashboard-layout">
+          <section className="content-card bdr-panel bdr-active-bids-panel">
+            <div className="card-body">
+              <div className="bdr-panel-header">
+                <div>
+                  <p className="dashboard-eyebrow mb-1">Active bids</p>
+                  <h5 className="mb-0">Live Auction Floor</h5>
+                </div>
+                <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>View All</button>
+              </div>
+
+              {activeBidCards.length === 0 ? (
+                <div className="bdr-empty-state">You have no active bids at the moment.</div>
+              ) : (
+                <div className="bdr-active-bid-list">
+                  {activeBidCards.map(item => (
+                    <article key={item.auction._id} className="bdr-active-bid-card">
+                      <div className="bdr-active-bid-image-wrap">
+                        <img className="bdr-active-bid-image"
+                          src={item.auction.gem.images?.[0] || 'https://via.placeholder.com/320x240'}
+                          alt={item.auction.gem.type} />
+                        <span className={`bdr-status-pill ${item.isWinning ? 'is-winning' : 'is-outbid'}`}>
+                          {item.isWinning ? 'Winning' : 'Outbid'}
+                        </span>
+                      </div>
+                      <div className="bdr-active-bid-copy">
+                        <div className="bdr-active-bid-topline">
+                          <div>
+                            <h6>{item.auction.gem.type}</h6>
+                            <p>{item.auction.gem.origin} · {item.auction.gem.carat} ct</p>
+                          </div>
+                          <strong className="bdr-active-bid-price">{formatCurrency(item.auction.currentBid)}</strong>
+                        </div>
+                        <div className="bdr-active-bid-meta">
+                          <span><Timer size={12} /> {formatRemaining(item.auction.endTime, nowMs)}</span>
+                          <span>{item.bidsPlacedByMe} bids placed</span>
+                        </div>
+                        <div className="bdr-active-bid-actions">
+                          <button className="bdr-btn-primary" type="button" onClick={() => openDetails(item.auction._id)}>
+                            {item.isWinning ? 'Increase Bid' : 'Rebid Now'}
+                          </button>
+                          <button className="bdr-btn-ghost" type="button" onClick={() => toggleWatchlist(item.auction._id)}>
+                            <Heart size={13} fill={watchlistIds.includes(item.auction._id) ? 'currentColor' : 'none'} />
+                            {watchlistIds.includes(item.auction._id) ? 'Saved' : 'Save'}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="content-card bdr-panel bdr-saved-panel">
+            <div className="card-body">
+              <div className="bdr-panel-header">
+                <div>
+                  <p className="dashboard-eyebrow mb-1">Wishlist</p>
+                  <h5 className="mb-0">{watchlistIds.length} Total</h5>
+                </div>
+                <button className="bdr-link-btn" type="button" onClick={() => setView('watchlist')}>View All Saved</button>
+              </div>
+              {savedAuctions.length === 0 ? (
+                <div className="bdr-empty-state bdr-empty-state--tight">No saved gems yet. Add one from Marketplace.</div>
+              ) : (
+                <div className="bdr-saved-list">
+                  {savedAuctions.map(a => (
+                    <article key={a._id} className="bdr-saved-item">
+                      <img className="bdr-saved-thumb" src={a.gem.images?.[0] || 'https://via.placeholder.com/112x84'} alt={a.gem.type} />
+                      <div className="bdr-saved-copy">
+                        <strong>{a.gem.type}</strong>
+                        <span>{formatCurrency(a.currentBid)}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+
+        <section className="content-card bdr-panel bdr-history-panel">
+          <div className="card-body">
+            <div className="bdr-panel-header bdr-panel-header--table">
+              <div>
+                <p className="dashboard-eyebrow mb-1">Order history</p>
+                <h5 className="mb-0">Completed auctions</h5>
+              </div>
+            </div>
+            {orderHistory.length === 0 ? (
+              <div className="bdr-empty-state">No completed auctions yet.</div>
+            ) : (
+              <div className="bdr-history-table-wrap">
+                <table className="bdr-history-table">
+                  <thead>
+                    <tr>
+                      <th>Order reference</th>
+                      <th>Acquisition</th>
+                      <th>Purchase date</th>
+                      <th>View</th>
+                      <th>Documents</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderHistory.map(auction => {
+                      const certificateUrl = getCertificateAccessUrl(auction.gem.certificate);
+                      return (
+                        <tr key={auction._id}>
+                          <td className="bdr-history-ref">#{auction._id.slice(-7).toUpperCase()}</td>
+                          <td>
+                            <div className="bdr-history-acquisition">
+                              <img src={auction.gem.images?.[0] || 'https://via.placeholder.com/40x40'} alt={auction.gem.type} />
+                              <div>
+                                <strong>{auction.gem.type}</strong>
+                                <span>{auction.gem.origin} · {auction.gem.carat} ct</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{formatShortDate(auction.endTime)}</td>
+                          <td>
+                            <button className="bdr-history-track" type="button" onClick={() => openDetails(auction._id)}>View</button>
+                          </td>
+                          <td>
+                            <div className="bdr-history-docs">
+                              {certificateUrl
+                                ? <a href={certificateUrl} target="_blank" rel="noreferrer">Certificate</a>
+                                : <span className="bdr-history-muted">Certificate</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  };
+
+  /* ─────────────────────────────────────────────────────
+     renderAuctions  — FIXED
+  ───────────────────────────────────────────────────── */
+  const renderAuctions = () => {
+    const winningItems = activeBids.filter(i => i.isWinning);
+
+    const bidGridStyle: React.CSSProperties = {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+      gap: '16px',
+      marginTop: '16px',
+      // These two lines are the critical fix:
+      // overflow must be visible so the card body is not clipped,
+      // and align-items start so cards don't stretch to a ghost height.
+      overflow: 'visible',
+      alignItems: 'start',
+    };
 
     return (
       <>
-        <div className="section-head">
-          <div>
-            <h3>Welcome back, {user?.name?.split(' ')[0]}!</h3>
-            <p className="mb-0 text-secondary">You have {stats?.activeBids || 0} active bids</p>
-          </div>
-        </div>
+        {/* Live auctions */}
+        <section className="content-card animate-fade-up">
+          <div className="card-body">
+            <div className="bdr-panel-header">
+              <div>
+                <p className="dashboard-eyebrow mb-1">Live auctions</p>
+                <h5 className="mb-0">Currently Live</h5>
+                <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
+                  Participate in the global acquisition of the world's most rare and certified geological wonders.
+                </p>
+              </div>
+              <button className="bdr-link-btn" type="button" onClick={() => setView('marketplace')}>
+                Go to Marketplace
+              </button>
+            </div>
 
-        <div className="buyer-grid3">
-          <article className="quick-card">
-            <div className="quick-icon"><Gavel size={18} /></div>
-            <div>View Bids</div>
-            <strong>{stats?.totalBidsPlaced || 0} bids</strong>
-          </article>
-          <article className="quick-card">
-            <div className="quick-icon"><Heart size={18} /></div>
-            <div>My Watchlist</div>
-            <strong>{watchlistIds.length} items</strong>
-          </article>
-          <article className="quick-card">
-            <div className="quick-icon"><Sparkle size={18} /></div>
-            <div>Recent Dealings</div>
-            <strong>{stats?.wonAuctions || 0} wins</strong>
-          </article>
-        </div>
-
-        <section className="block-card">
-          <div className="section-head">
-            <h3>Your Watched Auctions</h3>
-            <button type="button" onClick={() => setView('watchlist')}>View All</button>
-          </div>
-          {watchedAuctions.length === 0 ? (
-            <p className="empty-note">No watched auctions yet. Add some from Marketplace.</p>
-          ) : (
-            watchedAuctions.slice(0, 3).map((auction) => (
-              <div key={auction._id} className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2">
-                <div className="d-flex align-items-center gap-2">
-                  <img src={auction.gem.images[0]} alt={auction.gem.type} width={52} height={42} style={{ objectFit: 'cover', borderRadius: 8 }} />
-                  <div>
-                    <strong>{auction.gem.type}</strong>
-                    <p className="m-0 text-secondary">{auction.gem.carat} ct</p>
+            <div className="auctions-layout">
+              <aside className="auctions-sidebar">
+                <div className="filter-card">
+                  <h6 style={{ margin: '0 0 8px' }}>FILTER PORTFOLIO</h6>
+                  <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+                    <label><input type="checkbox" defaultChecked /> Closing Soon</label>
+                    <label><input type="checkbox" /> High Value</label>
+                    <label><input type="checkbox" /> No Reserve</label>
+                  </div>
+                  <h6 style={{ margin: '12px 0 8px' }}>STONE CATEGORY</h6>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="tag-pill">Ruby</span>
+                    <span className="tag-pill">Emerald</span>
+                    <span className="tag-pill">Diamond</span>
+                    <span className="tag-pill">Tourmaline</span>
+                    <span className="tag-pill">Sapphire</span>
                   </div>
                 </div>
-                <div className="text-end">
-                  <p className="m-0 text-secondary small">Current Bid</p>
-                  <strong>{formatCurrency(auction.currentBid)}</strong>
+                <div className="concierge-box">
+                  <h6>CONCIERGE ASSISTANCE</h6>
+                  <p style={{ color: 'var(--text-secondary)' }}>Require private viewing or appraisal records?</p>
+                  <button className="bdr-btn-primary" style={{ marginTop: 12 }}>Contact Expert</button>
                 </div>
-              </div>
-            ))
-          )}
+              </aside>
+              <main className="auctions-main">
+                <LiveAuctions
+                  auctions={liveAuctions} watchlistIds={watchlistIds} nowMs={nowMs}
+                  onToggleWatchlist={toggleWatchlist} onOpenDetails={openDetails}
+                  formatCurrency={formatCurrency} formatRemaining={formatRemaining}
+                  getLeadingBidderName={getLeadingBidderName} showHeader={false}
+                />
+              </main>
+            </div>
+          </div>
         </section>
 
-        <section className="block-card">
-          <div className="section-head">
-            <h3>Pick Up Where You Left Off</h3>
-            <button type="button" onClick={() => setView('marketplace')}>View All</button>
+        {/* ── My Active Bids ── */}
+        <section
+          className="content-card mt-4 animate-fade-up"
+          style={{ overflow: 'visible' }}   /* prevent parent clipping */
+        >
+          <div className="card-body" style={{ overflow: 'visible' }}>
+            <div className="bdr-panel-header">
+              <div>
+                <p className="dashboard-eyebrow mb-1">My bids</p>
+                <h5 className="mb-0">Active Bids</h5>
+              </div>
+              <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>View All</button>
+            </div>
+
+            {activeBids.length === 0 ? (
+              <div className="dashboard-empty-inline">You have no active bids at the moment.</div>
+            ) : (
+              <div style={bidGridStyle}>
+                <ActiveBidsGrid
+                  items={activeBids}
+                  nowMs={nowMs}
+                  onIncreaseBid={b => { setSelectedAuction(b.auction); setShowBidConfirm(true); }}
+                  onViewDetails={openDetails}
+                />
+              </div>
+            )}
           </div>
-          <div className="market-grid">
-            {filteredAuctions.slice(0, 3).map((auction) => (
-              <article className="market-card" key={auction._id}>
-                <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
-                <div className="market-body">
-                  <strong>{auction.gem.type}</strong>
-                  <p className="market-meta">{auction.gem.origin}</p>
-                  <div className="bid-price">{formatCurrency(auction.currentBid)}</div>
-                </div>
-              </article>
-            ))}
+        </section>
+
+        {/* ── Winning Bids ── */}
+        <section
+          className="content-card mt-4 animate-fade-up delay-1"
+          style={{ overflow: 'visible' }}
+        >
+          <div className="card-body" style={{ overflow: 'visible' }}>
+            <div className="bdr-panel-header">
+              <div>
+                <p className="dashboard-eyebrow mb-1">Winning bids</p>
+                <h5 className="mb-0">You're currently winning</h5>
+              </div>
+              <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>Manage</button>
+            </div>
+
+            {winningItems.length === 0 ? (
+              <div className="dashboard-empty-inline">
+                You are not currently the highest bidder on any auctions.
+              </div>
+            ) : (
+              <div style={bidGridStyle}>
+                <ActiveBidsGrid
+                  items={winningItems}
+                  nowMs={nowMs}
+                  onIncreaseBid={b => { setSelectedAuction(b.auction); setShowBidConfirm(true); }}
+                  onViewDetails={openDetails}
+                />
+              </div>
+            )}
           </div>
         </section>
       </>
     );
   };
 
-  const renderMarketplace = () => (
-    <>
-      <div className="section-head">
-        <div>
-          <h3>Browse Gems</h3>
-          <p className="mb-0 text-secondary">Showing {filteredAuctions.length} gems</p>
-        </div>
-      </div>
-
-      <div className="control-row">
-        <input
-          className="buyer-search"
-          placeholder="Search gems..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)}>
-          {uniqueTypes.map((type) => (
-            <option key={type} value={type}>{type === 'all' ? 'All Types' : type}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="market-grid">
-        {filteredAuctions.map((auction) => {
-          const inWatchlist = watchlistIds.includes(auction._id);
-          return (
-            <motion.article key={auction._id} whileHover={{ y: -5 }} className="market-card">
-              <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
-              <div className="market-body">
-                <strong>{auction.gem.type}</strong>
-                <p className="market-meta">{auction.gem.origin} - {auction.gem.carat} ct</p>
-                <p className="market-meta">{auction.gem.cut} - {auction.gem.color}</p>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="bid-price">{formatCurrency(auction.currentBid)}</span>
-                  <span className="text-secondary small"><Timer size={14} /> {formatRemaining(auction.endTime)}</span>
-                </div>
-                <div className="d-flex gap-2">
-                  <button className="watch-btn" type="button" onClick={() => toggleWatchlist(auction._id)}>
-                    <Heart size={15} fill={inWatchlist ? 'currentColor' : 'none'} /> {inWatchlist ? 'Watched' : 'Watch'}
-                  </button>
-                  <button className="bid-btn" type="button" onClick={() => openDetails(auction._id)}>Open</button>
-                </div>
-              </div>
-            </motion.article>
-          );
-        })}
-      </div>
-    </>
-  );
-
-  const renderAuctions = () => (
-    <>
-      <div className="section-head">
-        <h3>My Auction Activity</h3>
-      </div>
-
-      <section className="block-card">
-        <h5 className="mb-3">Active Bids</h5>
-        {activeBids.length === 0 ? (
-          <p className="empty-note">You have no active bids at the moment.</p>
-        ) : (
-          activeBids.map((item) => (
-            <div key={item.auction._id} className="d-flex justify-content-between border rounded-3 p-2 mb-2">
-              <div>
-                <strong>{item.auction.gem.type}</strong>
-                <p className="m-0 text-secondary">Highest by you: {formatCurrency(item.myHighestBid)}</p>
-                <small className={item.isWinning ? 'text-success' : 'text-danger'}>{item.isWinning ? 'Currently Leading' : 'Outbid'}</small>
-              </div>
-              <div className="text-end">
-                <p className="m-0">{formatCurrency(item.auction.currentBid)}</p>
-                <small className="text-secondary">{formatRemaining(item.auction.endTime)}</small>
-              </div>
-            </div>
-          ))
-        )}
-      </section>
-
-      <section className="block-card">
-        <h5 className="mb-3">Won Auctions</h5>
-        {wonAuctions.length === 0 ? (
-          <p className="empty-note">No won auctions yet.</p>
-        ) : (
-          wonAuctions.map((auction) => (
-            <div key={auction._id} className="d-flex justify-content-between border rounded-3 p-2 mb-2">
-              <div>
-                <strong>{auction.gem.type}</strong>
-                <p className="m-0 text-secondary">Seller: {auction.seller.name}</p>
-              </div>
-              <div className="text-end">
-                <strong>{formatCurrency(auction.currentBid)}</strong>
-              </div>
-            </div>
-          ))
-        )}
-      </section>
-    </>
-  );
-
+  /* ─────────────────────────────────────────────────────
+     renderWatchlist  (unchanged)
+  ───────────────────────────────────────────────────── */
   const renderWatchlist = () => (
-    <>
-      <div className="section-head">
-        <div>
-          <h3>My Watchlist</h3>
-          <p className="mb-0 text-secondary">{watchedAuctions.length} gems in your watchlist</p>
+    <div className="content-card animate-fade-up">
+      <div className="card-body">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <p className="dashboard-eyebrow mb-1">Saved items</p>
+            <h5 className="mb-0">My Watchlist <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: 13 }}>({watchedAuctions.length})</span></h5>
+          </div>
         </div>
+        {watchedAuctions.length === 0 ? (
+          <div className="bdr-market-empty">
+            <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.4 }}>🔍</div>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No items in watchlist. Add some from Marketplace.</p>
+          </div>
+        ) : (
+          <div className="bdr-market-grid">
+            {watchedAuctions.map(a => (
+              <article className="bdr-market-card" key={a._id}>
+                <div className="bdr-market-img-wrap">
+                  <img className="bdr-market-img" src={a.gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={a.gem.type} />
+                  <span className="bdr-market-badge bdr-badge-live">Live Auction</span>
+                </div>
+                <div className="bdr-market-body">
+                  <strong className="bdr-market-name">{a.gem.type}</strong>
+                  <p className="bdr-market-meta">{a.gem.origin} · {a.gem.carat} ct</p>
+                  <span className="bdr-market-price">{formatCurrency(a.currentBid)}</span>
+                  <div className="bdr-market-actions mt-2">
+                    <button className="bdr-btn-danger" type="button" onClick={() => toggleWatchlist(a._id)}>
+                      <X size={13}/> Remove
+                    </button>
+                    <button className="bdr-btn-primary" type="button" onClick={() => openDetails(a._id)}>
+                      <Eye size={13}/> View
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="market-grid">
-        {watchedAuctions.map((auction) => (
-          <article className="market-card" key={auction._id}>
-            <img className="market-image" src={auction.gem.images[0]} alt={auction.gem.type} />
-            <div className="market-body">
-              <strong>{auction.gem.type}</strong>
-              <p className="market-meta">{auction.gem.origin} � {auction.gem.carat} ct</p>
-              <p className="market-meta">Current Bid</p>
-              <div className="bid-price">{formatCurrency(auction.currentBid)}</div>
-              <div className="d-flex gap-2 mt-2">
-                <button className="alert-btn" type="button" onClick={() => toggleWatchlist(auction._id)}>
-                  <X size={15} /> Remove
-                </button>
-                <button className="bid-btn" type="button" onClick={() => openDetails(auction._id)}>
-                  Open
-                </button>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-      {watchedAuctions.length === 0 && <p className="empty-note">No items in watchlist.</p>}
-    </>
+    </div>
   );
 
   const renderBody = () => {
-    if (!isBuyerAccount) {
-      return (
-        <div className="block-card p-4">
-          <h3 className="mb-2">Buyer access required</h3>
-          <p className="text-secondary mb-0">
+    if (!isBuyerAccount) return (
+      <div className="content-card animate-fade-up">
+        <div className="card-body">
+          <h5 className="mb-2">Buyer access required</h5>
+          <p className="mb-0" style={{ color: 'var(--text-secondary)' }}>
             You are currently signed in as <strong>{user?.role || 'unknown'}</strong>. Switch to a buyer account to view dashboard data, active bids, and won auctions.
           </p>
         </div>
-      );
-    }
-
-    if (loading) {
-      return <p className="empty-note">Loading buyer workspace...</p>;
-    }
-
+      </div>
+    );
+    if (loading) return (
+      <div className="content-card animate-fade-up">
+        <div className="card-body" style={{ textAlign: 'center', padding: '60px 24px' }}>
+          <div className="port-spinner" style={{ width: 32, height: 32, margin: '0 auto 16px', borderWidth: 3 }} />
+          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Loading your workspace…</p>
+        </div>
+      </div>
+    );
     switch (view) {
-      case 'marketplace':
-        return renderMarketplace();
-      case 'auctions':
-        return renderAuctions();
-      case 'watchlist':
-        return renderWatchlist();
-      default:
-        return renderDashboard();
+      case 'marketplace': return (
+        <Marketplace auctions={filteredAuctions} approvedGems={approvedGems} query={query}
+          selectedType={selectedType} uniqueTypes={uniqueTypes} watchlistIds={watchlistIds}
+          nowMs={nowMs} onTypeChange={setSelectedType} onToggleWatchlist={toggleWatchlist}
+          onOpenDetails={openDetails} onOpenGemDetails={openGemDetails}
+          onOpenSellerContact={openSellerContact} formatCurrency={formatCurrency}
+          formatRemaining={formatRemaining} getLeadingBidderName={getLeadingBidderName} />
+      );
+      case 'auctions':  return renderAuctions();
+      case 'watchlist': return renderWatchlist();
+      case 'messages':  return <MessagesPage initialContact={chatInitialContact} initialGem={chatInitialGem} />;
+      default:          return renderDashboard();
     }
   };
 
+  const initials = user?.name ? user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'B';
+
   return (
-    <div className="buyer-shell">
-      <aside className="buyer-sidebar">
-        <div className="buyer-brand">
-          <img src={logo} alt="GemFolio" />
-          <h1>GemFolio</h1>
-        </div>
-
-        <div className="buyer-profile">
-          <div className="buyer-avatar">{user?.name?.slice(0, 1).toUpperCase() || 'B'}</div>
-          <div>
-            <strong>{user?.name || 'Buyer'}</strong>
-            <p className="buyer-role">Buyer</p>
-          </div>
-        </div>
-
-        <nav className="buyer-nav">
-          <button type="button" className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>
-            <LayoutDashboard size={16} /> Dashboard
+    <div className="bdr-shell">
+      <header className="bdr-navbar">
+        <div className="bdr-navbar-inner">
+          <button type="button" className="bdr-navbar-brand" onClick={() => setView('dashboard')}>
+            <img src={logo} alt="GemFolio" className="bdr-navbar-logo" />
+            <span>GemFolio</span>
           </button>
-          <button type="button" className={view === 'marketplace' ? 'active' : ''} onClick={() => setView('marketplace')}>
-            <Compass size={16} /> Marketplace
-          </button>
-          <button type="button" className={view === 'auctions' ? 'active' : ''} onClick={() => setView('auctions')}>
-            <Gavel size={16} /> Auctions
-          </button>
-          <button type="button" className={view === 'watchlist' ? 'active' : ''} onClick={() => setView('watchlist')}>
-            <Heart size={16} /> My Watchlist
-          </button>
-        </nav>
-
-        <div className="buyer-sidebar-bottom">
-          <button type="button" className="ghost-btn w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
-            <Settings size={16} /> Settings
-          </button>
-          <button type="button" className="alert-btn w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleSignOut}>
-            <LogOut size={16} /> Sign Out
-          </button>
-        </div>
-      </aside>
-
-      <main className="buyer-content">
-        <div className="buyer-topbar">
-          <input
-            className="buyer-search"
-            placeholder="Search for gems, auctions..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <button className="ghost-btn" type="button"><Search size={16} /></button>
-          <button className="ghost-btn" type="button"><Bell size={16} /></button>
-          <button className="ghost-btn" type="button"><ShieldCheck size={16} /></button>
-        </div>
-
-        {renderBody()}
-      </main>
-
-      {(selectedAuction || loadingDetails) && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-sheet">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <strong>{selectedAuction?.gem.type || 'Loading details...'}</strong>
-              <button className="ghost-btn" type="button" onClick={closeDetails}><X size={15} /></button>
+          <div className="bdr-navbar-actions">
+            <div className="bdr-navbar-user">
+              <span className="bdr-navbar-avatar">{initials}</span>
+              <span>{user?.name?.split(' ')[0]}</span>
             </div>
-
-            {loadingDetails || !selectedAuction ? (
-              <p className="empty-note">Loading auction details...</p>
-            ) : (
-              <div className="modal-grid">
-                <div>
-                  <img className="modal-photo" src={selectedAuction.gem.images[0]} alt={selectedAuction.gem.type} />
-                  <div className="metric-row mt-2">
-                    <div className="metric">
-                      <p>Certified Authentic</p>
-                      <strong>{selectedAuction.gem.certificate.authority}</strong>
-                    </div>
-                    <div className="metric">
-                      <p>Certificate No</p>
-                      <strong>{selectedAuction.gem.certificate.certificateNumber}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="metric-row">
-                    <div className="metric"><p>Carat</p><strong>{selectedAuction.gem.carat} ct</strong></div>
-                    <div className="metric"><p>Cut</p><strong>{selectedAuction.gem.cut}</strong></div>
-                    <div className="metric"><p>Color</p><strong>{selectedAuction.gem.color}</strong></div>
-                    <div className="metric"><p>Origin</p><strong>{selectedAuction.gem.origin}</strong></div>
-                  </div>
-
-                  <p className="text-secondary">{selectedAuction.gem.description}</p>
-
-                  <section className="block-card">
-                    <p className="m-0 text-secondary">Current Bid</p>
-                    <div className="bid-price">{formatCurrency(selectedAuction.currentBid)}</div>
-                    <p className="text-secondary small">
-                      Minimum increment: {formatCurrency(selectedAuction.minimumBidIncrement)}
-                    </p>
-
-                    <div className="d-flex gap-2">
-                      <input
-                        className="buyer-search"
-                        value={bidAmount}
-                        onChange={(event) => setBidAmount(event.target.value)}
-                        type="number"
-                        min={selectedAuction.currentBid + selectedAuction.minimumBidIncrement}
-                      />
-                      <button className="bid-btn" type="button" disabled={placingBid} onClick={placeBid}>
-                        {placingBid ? 'Placing...' : 'Place Bid'}
-                      </button>
-                    </div>
-
-                    <div className="d-flex gap-2 mt-2">
-                      <button
-                        className="ghost-btn flex-fill"
-                        type="button"
-                        onClick={() => setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement))}
-                      >
-                        Min Bid
-                      </button>
-                      <button
-                        className="ghost-btn flex-fill"
-                        type="button"
-                        onClick={() => setBidAmount(String(selectedAuction.currentBid + selectedAuction.minimumBidIncrement * 2))}
-                      >
-                        +2x Increment
-                      </button>
-                    </div>
-                  </section>
-
-                  <section className="block-card">
-                    <h6>Bid History</h6>
-                    {selectedAuction.bids.length === 0 ? (
-                      <p className="text-secondary mb-0">No bids yet.</p>
-                    ) : (
-                      selectedAuction.bids.slice().reverse().slice(0, 5).map((bid, index) => (
-                        <div key={`${bid.timestamp}-${index}`} className="d-flex justify-content-between border-bottom py-2">
-                          <span>{bid.bidder.name}</span>
-                          <strong>{formatCurrency(bid.amount)}</strong>
-                        </div>
-                      ))
-                    )}
-                  </section>
-                </div>
-              </div>
+            {onToggleTheme && (
+              <button type="button" className="seller-navbar-theme-toggle" onClick={onToggleTheme}
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+                {theme === 'dark' ? <Sun size={15}/> : <Moon size={15}/>}
+                <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+              </button>
             )}
           </div>
         </div>
+      </header>
+
+      <div className="bdr-content-wrapper">
+        <aside className="bdr-sidebar">
+          <div className="sidebar-profile-section">
+            <div className="sidebar-profile-card">
+              <div className="sidebar-profile-avatar-container">
+                <div className="sidebar-profile-avatar">
+                  <div className="sidebar-profile-avatar-inner">{initials}</div>
+                </div>
+              </div>
+              <div className="sidebar-profile-info">
+                <div className="sidebar-profile-name" title={user?.name || ''}>{user?.name}</div>
+                <div className="sidebar-profile-role-badge">Verified Buyer</div>
+              </div>
+            </div>
+          </div>
+
+          <nav className="sidebar-nav" aria-label="Buyer navigation">
+            {NAV_ITEMS.map(({ view: v, icon, label }) => (
+              <button key={v} type="button"
+                className={`sidebar-nav-link ${view === v ? 'active' : ''}`}
+                onClick={() => setView(v)}>
+                {icon}
+                <span>{label}</span>
+                {v === 'messages' && unreadCount > 0 && (
+                  <span className="bdr-unread-badge" aria-label={`${unreadCount} unread`}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <div className="sidebar-button-group">
+            <button type="button" className="bdr-signout-btn" onClick={handleSignOut}>
+              <LogOut size={15}/> Sign Out
+            </button>
+          </div>
+        </aside>
+
+        <main className={`bdr-main ${view === 'messages' ? 'bdr-main--messages' : ''}`}>
+          {renderBody()}
+        </main>
+      </div>
+
+      <GemDetails
+        selectedAuction={selectedAuction} selectedGemDetails={selectedGemDetails}
+        loading={loadingDetails} bidAmount={bidAmount} bidFeedback={bidFeedback}
+        placingBid={placingBid} bidHistory={bidHistory} onClose={closeDetails}
+        onBidAmountChange={setBidAmount} onRequestBidConfirmation={requestBidConfirmation}
+        formatCurrency={formatCurrency} formatDateTime={formatDateTime}
+        getLeadingBidderName={getLeadingBidderName}
+        getCertificateAccessUrl={getCertificateAccessUrl} isPdfCertificate={isPdfCertificate}
+      />
+
+      <AuctionBid
+        show={showBidConfirm} selectedAuction={selectedAuction} bidAmount={bidAmount}
+        placingBid={placingBid} onCancel={() => setShowBidConfirm(false)} onConfirm={placeBid}
+        formatCurrency={formatCurrency}
+      />
+
+      {selectedSeller && selectedGemForContact && (
+        <SellerContactModal
+          seller={selectedSeller} gemName={selectedGemForContact.name}
+          onClose={closeSellerContact} onSendMessage={handleStartChatWithSeller}
+        />
       )}
     </div>
   );

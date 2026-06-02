@@ -29,8 +29,8 @@ router.post(
 // Get seller's own gems
 router.get('/my-gems', authenticate, requireRole(UserRole.SELLER), getMyGems);
 
-// Get all approved gems (accessible by all authenticated users)
-router.get('/approved', authenticate, getApprovedGems);
+// Get all approved gems (public for homepage and authenticated views)
+router.get('/approved', getApprovedGems);
 
 // Get specific gem by ID
 router.get('/:id', authenticate, getGemById);

@@ -1,0 +1,375 @@
+/* ═══════════════════════════════════════════════════════════════
+   Gem Details — Shared premium layout
+   Mirrors admin-review-* aesthetic for buyer & seller views
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Modal chrome ── */
+.gd-modal-dialog{max-width:1040px}
+.gd-modal-content{border:1px solid #e2e8f0;border-radius:24px;overflow:hidden;background:linear-gradient(180deg,#fff,#fafbfc);box-shadow:0 24px 56px rgba(15,23,42,.15)}
+.gd-modal-header{padding:14px 18px 0;border-bottom:none;align-items:flex-start;gap:14px;background:transparent}
+.gd-modal-header--compact{padding-bottom:0}
+.gd-back-link{display:inline-flex;align-items:center;gap:8px;border:none;background:transparent;color:#2563eb;font-size:12px;font-weight:700;padding:0;cursor:pointer;text-decoration:none}
+.gd-back-link:hover{color:#1d4ed8}
+.gd-modal-body{padding:10px 18px 20px}
+
+/* ── Two-column grid ── */
+.gd-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:14px;align-items:start}
+
+/* ── Media panel (left) ── */
+.gd-media-panel{display:flex;flex-direction:column;gap:10px}
+.gd-hero{position:relative;min-height:250px;border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#f8fbff 0%,#e8effd 100%);box-shadow:0 14px 32px rgba(15,23,42,.10);display:flex;align-items:center;justify-content:center;padding:12px}
+.gd-hero::after{content:'';position:absolute;inset:auto 0 0 0;height:42%;background:linear-gradient(180deg,transparent,rgba(15,23,42,.08));pointer-events:none}
+.gd-hero-chip{position:absolute;top:14px;left:14px;z-index:1;padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.7);font-size:10px;font-weight:800;letter-spacing:.04em;color:#4b5563;text-transform:uppercase;backdrop-filter:blur(12px)}
+.gd-hero-image{position:relative;z-index:0;width:88%;height:100%;max-height:300px;object-fit:contain;filter:drop-shadow(0 20px 24px rgba(15,23,42,.18))}
+
+/* ── Thumbnail row ── */
+.gd-thumb-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.gd-thumb{min-height:72px;border-radius:14px;border:1px solid #e2e8f0;background:#fff;overflow:hidden;box-shadow:0 8px 18px rgba(15,23,42,.05);padding:0;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.gd-thumb.active{box-shadow:0 0 0 2px rgba(37,99,235,.24),0 10px 20px rgba(15,23,42,.07);border-color:rgba(37,99,235,.32)}
+.gd-thumb:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(15,23,42,.09)}
+.gd-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ── Story card ── */
+.gd-story-card{padding:12px 12px 10px;border-radius:16px;background:linear-gradient(180deg,#fff,#fafbfc);border:1px solid #e2e8f0;box-shadow:0 10px 22px rgba(15,23,42,.05)}
+.gd-section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.gd-section-heading p{margin:0 0 3px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.gd-section-heading h3{margin:0;font-size:15px;line-height:1.2;font-weight:800;letter-spacing:-.03em;color:#1e293b}
+.gd-story-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:rgba(47,109,225,.10);color:#2563eb;font-size:10px;font-weight:800;white-space:nowrap}
+.gd-story-copy{margin:0;font-size:12px;line-height:1.6;color:#64748b}
+.gd-story-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.gd-story-meta>div{padding:10px 10px 9px;border-radius:12px;background:#fff;border:1px solid #e2e8f0}
+.gd-story-meta span{display:block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#64748b;margin-bottom:3px}
+.gd-story-meta strong{display:block;font-size:12px;line-height:1.35;font-weight:800;color:#1e293b}
+
+/* ── Side panel (right) ── */
+.gd-panel{display:flex;flex-direction:column;gap:8px}
+.gd-surface-card{padding:10px;border-radius:14px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 10px 22px rgba(15,23,42,.05)}
+.gd-panel-header-card{padding:12px 12px 10px}
+.gd-panel-kicker-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.gd-panel-kicker{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#2563eb}
+.gd-panel-id{font-size:10px;font-weight:700;color:#64748b}
+.gd-panel-title{margin:0;font-size:20px;line-height:1.1;font-weight:800;letter-spacing:-.04em;color:#1e293b}
+.gd-panel-subtitle{margin:5px 0 0;font-size:11px;line-height:1.4;color:#64748b}
+
+/* ── Metrics grid ── */
+.gd-metrics-list{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e2e8f0;border-radius:10px;overflow:hidden}
+.gd-metric-item{padding:10px 12px;background:#fff;display:flex;flex-direction:column;gap:3px}
+.gd-metric-label{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
+.gd-metric-value{font-size:14px;font-weight:800;color:#1e293b}
+
+/* ── Certificate card ── */
+.gd-cert-tile{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:8px}
+.gd-cert-icon{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.gd-cert-copy{flex:1;min-width:0}
+.gd-cert-copy span{display:block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#64748b;margin-bottom:2px}
+.gd-cert-copy strong{display:block;font-size:12px;font-weight:700;color:#1e293b}
+.gd-download-link{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:rgba(47,109,225,.10);color:#2563eb;border:none;cursor:pointer;transition:background .15s ease;flex-shrink:0;text-decoration:none}
+.gd-download-link:hover{background:rgba(47,109,225,.18);color:#2563eb}
+.gd-download-link:disabled,.gd-download-link.disabled{opacity:.5;cursor:wait}
+.gd-cert-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gd-cert-meta>div{padding:8px 9px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0}
+.gd-cert-meta span{display:block;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#64748b;margin-bottom:3px}
+.gd-cert-meta strong{display:block;font-size:12px;font-weight:700;color:#1e293b}
+
+/* ── Status badges ── */
+.gd-status-approved{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:rgba(16,185,129,.12);color:#059669;font-size:11px;font-weight:800}
+.gd-status-pending{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:rgba(245,158,11,.12);color:#d97706;font-size:11px;font-weight:800}
+.gd-status-rejected{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:rgba(239,68,68,.12);color:#dc2626;font-size:11px;font-weight:800}
+
+/* ── Feedback banner ── */
+.gd-feedback-banner{padding:12px 14px;border-radius:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#92400e;font-size:12px;line-height:1.55}
+.gd-feedback-banner strong{display:block;margin-bottom:4px;color:#78350f}
+
+/* ── PDF viewer ── */
+.gd-pdf-viewer{width:100%;margin-top:14px}
+.gd-pdf-toolbar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-bottom:none;border-radius:12px 12px 0 0}
+.gd-pdf-toolbar-left{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#4b5563}
+.gd-pdf-toolbar-right{display:flex;gap:6px}
+.gd-pdf-open-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#4b5563;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s ease}
+.gd-pdf-open-btn:hover{background:#f3f4f6}
+.gd-pdf-download-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s ease}
+.gd-pdf-download-btn:hover{background:#1d4ed8}
+.gd-pdf-download-btn:disabled{opacity:.6;cursor:wait}
+.gd-pdf-object{width:100%;height:350px;border:1px solid #e2e8f0;border-radius:0 0 12px 12px;background:#fff}
+.gd-pdf-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;height:350px;background:#f8fafc;border-radius:0 0 12px 12px;color:#94a3b8;padding:24px;text-align:center}
+.gd-pdf-fallback p{color:#64748b;font-size:13px;margin:12px 0}
+
+/* ── Buyer overlay (replaces modal-overlay / modal-sheet) ── */
+.gd-overlay{position:fixed;inset:0;z-index:1050;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.4);backdrop-filter:blur(4px);padding:20px}
+.gd-sheet{width:100%;max-width:1180px;max-height:90vh;overflow-y:auto;border-radius:24px;background:linear-gradient(180deg,#fff,#fafbfc);border:1px solid #e2e8f0;box-shadow:0 24px 56px rgba(15,23,42,.15);padding:18px}
+.gd-sheet-header{display:flex;align-items:center;justify-content:space-between;padding:0 0 12px;margin-bottom:12px;border-bottom:1px solid #f1f5f9}
+.gd-sheet-title{font-size:18px;font-weight:800;color:#1e293b;letter-spacing:-.02em}
+.gd-close-btn{width:32px;height:32px;border-radius:10px;border:1px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#64748b;transition:all .15s ease}
+.gd-close-btn:hover{background:#f8fafc;color:#1e293b}
+
+/* ── Bidding area (buyer) ── */
+.gd-bid-card{padding:20px}
+.gd-bid-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#64748b;margin:0 0 6px}
+.gd-bid-price{font-size:28px;font-weight:800;letter-spacing:-.03em;color:#1e293b;line-height:1.1}
+.gd-bid-sub{font-size:13px;color:#64748b;margin:4px 0 16px}
+.gd-countdown{display:flex;gap:12px;align-items:center;justify-content:center;padding:16px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:14px;margin-bottom:16px}
+.gd-countdown-unit{text-align:center}
+.gd-countdown-num{font-size:24px;font-weight:800;color:#d97706;line-height:1}
+.gd-countdown-lbl{font-size:9px;font-weight:800;letter-spacing:.1em;color:#92400e;margin-top:4px}
+.gd-countdown-sep{font-size:20px;color:#d1d5db;font-weight:300}
+.gd-bid-input{width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:12px;font-size:16px;font-weight:700;color:#1e293b;background:#f8fafc;transition:border-color .15s ease,box-shadow .15s ease;margin-bottom:10px;box-sizing:border-box}
+.gd-bid-input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.gd-quick-bids{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.gd-quick-bid-btn{padding:8px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:#2563eb;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s ease}
+.gd-quick-bid-btn:hover{background:rgba(37,99,235,.06);border-color:rgba(37,99,235,.3)}
+.gd-place-bid-btn{width:100%;padding:12px;border:none;border-radius:14px;background:#2563eb;color:#fff;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .15s ease,transform .1s ease}
+.gd-place-bid-btn:hover{opacity:.92}
+.gd-place-bid-btn:active{transform:scale(.98)}
+.gd-place-bid-btn:disabled{opacity:.5;cursor:wait}
+.gd-min-increment{font-size:12px;color:#64748b;margin:8px 0 0;text-align:center}
+
+/* ── History rows ── */
+.gd-history-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f1f5f9;gap:8px}
+.gd-history-row:last-child{border-bottom:none}
+.gd-history-name{font-size:13px;font-weight:700;color:#1e293b}
+.gd-history-date{font-size:11px;color:#94a3b8;margin-top:2px}
+.gd-history-amount{font-size:14px;font-weight:800;color:#1e293b;text-align:right}
+.gd-history-label{font-size:11px;color:#94a3b8;text-align:right;margin-top:2px}
+
+/* ── Contact seller ── */
+.gd-contact-btn{width:100%;padding:12px;border:2px solid #2563eb;border-radius:14px;background:transparent;color:#2563eb;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s ease;text-decoration:none;display:inline-block;text-align:center}
+.gd-contact-btn:hover{background:rgba(37,99,235,.06);color:#2563eb}
+
+/* ── Alert overrides ── */
+.gd-alert{padding:10px 14px;border-radius:12px;font-size:13px;margin-bottom:12px}
+.gd-alert--success{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:#065f46}
+.gd-alert--warning{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#92400e}
+
+html[data-theme='dark'] .gd-modal-content,
+html[data-theme='dark'] .gd-sheet {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(11, 18, 32, 0.98));
+  border-color: rgba(148, 163, 184, 0.14);
+  box-shadow: 0 28px 64px rgba(2, 6, 23, 0.5);
+}
+
+html[data-theme='dark'] .gd-hero,
+html[data-theme='dark'] .gd-story-card,
+html[data-theme='dark'] .gd-surface-card,
+html[data-theme='dark'] .gd-surface-card .gd-pdf-toolbar,
+html[data-theme='dark'] .gd-surface-card .gd-pdf-object,
+html[data-theme='dark'] .gd-surface-card .gd-pdf-fallback,
+html[data-theme='dark'] .gd-story-meta > div,
+html[data-theme='dark'] .gd-metric-item,
+html[data-theme='dark'] .gd-cert-tile,
+html[data-theme='dark'] .gd-cert-meta > div,
+html[data-theme='dark'] .gd-thumb,
+html[data-theme='dark'] .gd-close-btn {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+html[data-theme='dark'] .gd-hero {
+  background: radial-gradient(circle at top, rgba(37, 99, 235, 0.16), rgba(15, 23, 42, 0.96) 58%);
+}
+
+html[data-theme='dark'] .gd-hero::after {
+  background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.34));
+}
+
+html[data-theme='dark'] .gd-hero-chip {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(148, 163, 184, 0.14);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .gd-modal-header .btn-close {
+  filter: invert(1) grayscale(1) brightness(1.25);
+  opacity: 0.9;
+}
+
+html[data-theme='dark'] .gd-modal-header .btn-close:hover {
+  opacity: 1;
+}
+
+html[data-theme='dark'] .gd-section-heading p,
+html[data-theme='dark'] .gd-story-copy,
+html[data-theme='dark'] .gd-panel-id,
+html[data-theme='dark'] .gd-panel-subtitle,
+html[data-theme='dark'] .gd-metric-label,
+html[data-theme='dark'] .gd-cert-copy span,
+html[data-theme='dark'] .gd-cert-meta span,
+html[data-theme='dark'] .gd-pdf-toolbar-left,
+html[data-theme='dark'] .gd-pdf-open-btn,
+html[data-theme='dark'] .gd-pdf-fallback p,
+html[data-theme='dark'] .gd-min-increment,
+html[data-theme='dark'] .gd-history-date,
+html[data-theme='dark'] .gd-history-label,
+html[data-theme='dark'] .gd-bid-label,
+html[data-theme='dark'] .gd-bid-sub {
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] .gd-section-heading h3,
+html[data-theme='dark'] .gd-panel-title,
+html[data-theme='dark'] .gd-metric-value,
+html[data-theme='dark'] .gd-cert-copy strong,
+html[data-theme='dark'] .gd-cert-meta strong,
+html[data-theme='dark'] .gd-history-name,
+html[data-theme='dark'] .gd-history-amount,
+html[data-theme='dark'] .gd-sheet-title,
+html[data-theme='dark'] .gd-bid-price,
+html[data-theme='dark'] .gd-pdf-toolbar-left strong {
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .gd-modal-header,
+html[data-theme='dark'] .gd-modal-body,
+html[data-theme='dark'] .gd-sheet-header {
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
+html[data-theme='dark'] .gd-back-link,
+html[data-theme='dark'] .gd-panel-kicker,
+html[data-theme='dark'] .gd-story-badge,
+html[data-theme='dark'] .gd-download-link,
+html[data-theme='dark'] .gd-pdf-download-btn,
+html[data-theme='dark'] .gd-contact-btn {
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .gd-back-link:hover,
+html[data-theme='dark'] .gd-download-link:hover,
+html[data-theme='dark'] .gd-pdf-open-btn:hover,
+html[data-theme='dark'] .gd-contact-btn:hover {
+  color: #bfdbfe;
+}
+
+html[data-theme='dark'] .gd-story-meta > div {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+html[data-theme='dark'] .gd-story-meta span {
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] .gd-story-meta strong {
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .gd-metrics-list {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+html[data-theme='dark'] .gd-status-approved {
+  background: rgba(16, 185, 129, 0.16);
+  color: #6ee7b7;
+}
+
+html[data-theme='dark'] .gd-status-pending {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+}
+
+html[data-theme='dark'] .gd-status-rejected {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .gd-feedback-banner,
+html[data-theme='dark'] .gd-alert--warning {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.24);
+  color: #fbbf24;
+}
+
+html[data-theme='dark'] .gd-alert--success {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.24);
+  color: #6ee7b7;
+}
+
+html[data-theme='dark'] .gd-pdf-toolbar,
+html[data-theme='dark'] .gd-pdf-fallback,
+html[data-theme='dark'] .gd-pdf-object {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+html[data-theme='dark'] .gd-pdf-open-btn,
+html[data-theme='dark'] .gd-close-btn,
+html[data-theme='dark'] .gd-quick-bid-btn {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+html[data-theme='dark'] .gd-quick-bid-btn {
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .gd-bid-input {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(148, 163, 184, 0.16);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .gd-bid-input::placeholder {
+  color: rgba(148, 163, 184, 0.8);
+}
+
+html[data-theme='dark'] .gd-certificate-image {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+/* ── Responsive ── */
+@media(max-width:991px){
+  .gd-layout{grid-template-columns:1fr}
+  .gd-hero{min-height:300px}
+  .gd-thumb-row{grid-template-columns:repeat(3,1fr)}
+  .gd-story-meta{grid-template-columns:1fr}
+  .gd-sheet{max-height:95vh;padding:14px}
+}
+/* ── Add these rules to gemdetails.css ───────────────────────────────────
+   They cover the new loading state introduced in the fixed PdfViewer.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Loading placeholder — shown while blob is being fetched */
+.gd-pdf-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: #6b7280;
+  font-size: 13px;
+  background: #f8f9fc;
+  border-radius: 10px;
+  border: 1px solid #e8eaf0;
+  margin-top: 12px;
+}
+
+/* Spinning animation for the Loader icon */
+.gd-pdf-spinner {
+  animation: pdfSpin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pdfSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* iframe replaces <object> — same sizing, no extra download side-effect */
+.gd-pdf-object {
+  width: 100%;
+  min-height: 480px;
+  border: none;
+  border-radius: 10px;
+  margin-top: 12px;
+  display: block;
+}
+
+/* Disabled state for toolbar buttons while loading */
+.gd-pdf-open-btn:disabled,
+.gd-pdf-download-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
