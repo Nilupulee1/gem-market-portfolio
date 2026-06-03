@@ -16,10 +16,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 10px;
-  background: linear-gradient(135deg, rgba(31, 79, 130, 0.08), rgba(255, 255, 255, 0.94));
-  border-bottom: 1px solid rgba(0,0,0,0.04);
-  color: var(--text-primary);
+  padding: 12px 18px !important;
+  background: var(--color-navy) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #FFFFFF !important;
 }
 
 .chat-header-main {
@@ -42,14 +42,14 @@
 
 .chat-header h5 {
   margin: 0;
-  color: var(--text-primary);
+  color: #FFFFFF !important;
 }
 
 .chat-header-subtitle {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7) !important;
   font-size: 12px;
   flex-wrap: wrap;
 }
@@ -84,7 +84,7 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  border: 1px solid rgba(230,224,251,0.6);
+  border: 1px solid rgba(230, 224, 251, 0.6);
   background: rgba(255, 255, 255, 0.92);
   color: #6d54d8;
   box-shadow: 0 6px 12px rgba(109, 84, 216, 0.06);
@@ -168,7 +168,7 @@
 .chat-input {
   padding: 8px 8px 8px;
   background: linear-gradient(180deg, rgba(250, 252, 255, 0.96), rgba(241, 246, 251, 0.98));
-  border-top: 1px solid rgba(0,0,0,0.04);
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .chat-composer {
@@ -181,7 +181,7 @@
   flex: 1;
   min-height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   background: var(--page-surface);
   color: var(--text-primary);
   padding: 0 16px;
@@ -233,7 +233,10 @@
 }
 
 @keyframes typingPulse {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: translateY(0);
     opacity: 0.45;
   }
@@ -278,14 +281,14 @@
   justify-content: space-between;
   gap: 16px;
   padding: 18px 18px 14px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-bright) 58%, var(--color-gold));
-  color: var(--surface-text-on-accent);
+  background: var(--color-navy) !important;
+  color: #FFFFFF !important;
   border: 0;
 }
 
 .conversations-header h5,
 .conversations-header small {
-  color: var(--surface-text-on-accent);
+  color: #FFFFFF !important;
 }
 
 .conversations-header h5 {
@@ -361,13 +364,13 @@
 }
 
 .conversation-item {
-  border: 1px solid var(--border) !important;
+  border: 1px solid rgba(207, 168, 110, 0.25) !important;
   border-radius: 10px !important;
   transition: all 0.2s ease;
   padding: 12px !important;
   cursor: pointer;
   margin-bottom: 8px;
-  background: var(--page-surface) !important;
+  background: rgba(207, 168, 110, 0.08) !important;
   box-shadow: 0 2px 6px rgba(17, 37, 62, 0.03);
 }
 
@@ -669,17 +672,20 @@
 
 .messages-shell {
   min-height: calc(100vh - 60px);
-  border-radius: 0; /* removed rounded shell */
+  border-radius: 0;
+  /* removed rounded shell */
   padding: 8px 18px 0;
-  background: transparent; /* removed decorative gradient */
-  box-shadow: none; /* remove outer shadow */
+  background: transparent;
+  /* removed decorative gradient */
+  box-shadow: none;
+  /* remove outer shadow */
 }
 
 /* Strong overrides to ensure no rounded panel or background remains for the inbox/chat pages */
 .messages-page,
 .messages-page .messages-shell,
 .messages-page .messages-header,
-.messages-page .messages-shell > .messages-header,
+.messages-page .messages-shell>.messages-header,
 .messages-shell {
   background: transparent !important;
   border: 0 !important;
@@ -688,7 +694,8 @@
 }
 
 .messages-page .messages-header h4 {
-  color: var(--text-primary) !important; /* ensure header text is visible on transparent background */
+  color: var(--text-primary) !important;
+  /* ensure header text is visible on transparent background */
 }
 
 /* Remove any remaining pale/rounded shell coming from dashboard wrappers */
@@ -755,6 +762,7 @@
 }
 
 @media (max-width: 991px) {
+
   .messages-grid,
   .conversations-column,
   .chat-column {
@@ -1483,6 +1491,7 @@ html[data-theme='dark'] .market-empty-state {
 }
 
 @media (max-width: 900px) {
+
   .buyer-dashboard-hero,
   .buyer-metric-row {
     grid-template-columns: 1fr;

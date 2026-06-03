@@ -21,7 +21,6 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const unreadCount = useChatStore((state) => state.unreadCount);
-  const [liveAuctions, setLiveAuctions] = useState<Auction[]>([]);
   const [activeBids, setActiveBids] = useState<Auction[]>([]);
   const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +37,6 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
   const [bidHistory, setBidHistory] = useState<Array<{ auctionId: string; amount: number; timestamp: string }>>([]);
   const [activeTab, setActiveTab] = useState<'myAuctions' | 'won'>('myAuctions');
   const [currentPage, setCurrentPage] = useState(1);
-  const [watchlistIds, setWatchlistIds] = useState<string[]>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [activeSection, setActiveSection] = useState<SidebarSection>('overview');
 
@@ -47,17 +45,7 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
     return () => clearInterval(t);
   }, []);
 
-  const loadWatchlist = (): string[] => {
-    try {
-      const raw = localStorage.getItem('buyer-watchlist-auction-ids');
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  };
-
   useEffect(() => {
-    setWatchlistIds(loadWatchlist());
     void fetchAll();
   }, []);
 
@@ -65,13 +53,11 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
     try {
       setLoading(true);
       setErrorMessage('');
-      const [liveRes, activeRes, wonRes, histRes] = await Promise.all([
-        auctionAPI.getActiveAuctions(),
+      const [activeRes, wonRes, histRes] = await Promise.all([
         buyerAPI.getActiveBids(),
         buyerAPI.getWonAuctions(),
         buyerAPI.getBidHistory(),
       ]);
-      setLiveAuctions(liveRes.data?.auctions || []);
       setActiveBids(
         (activeRes.data?.activeBids || activeRes.data || []).map((b: any) => b.auction || b)
       );
@@ -83,17 +69,6 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
     } finally {
       setLoading(false);
     }
-  };
-
-  const saveWatchlist = (ids: string[]) =>
-    localStorage.setItem('buyer-watchlist-auction-ids', JSON.stringify(ids));
-
-  const toggleWatchlist = (auctionId: string) => {
-    const updated = watchlistIds.includes(auctionId)
-      ? watchlistIds.filter((id) => id !== auctionId)
-      : [...watchlistIds, auctionId];
-    setWatchlistIds(updated);
-    saveWatchlist(updated);
   };
 
   const toTimestamp = (v?: string) => (v ? Date.parse(v) : 0);
@@ -458,83 +433,6 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
 
         {/* ── Main ── */}
         <main className="bdr-main">
-          {/* Live Auctions section */}
-          <div id="buyer-live-auctions" className="content-card animate-fade-up" style={{ marginBottom: 32 }}>
-            <div className="card-body">
-              <div className="bdr-panel-header" style={{ marginBottom: 20 }}>
-                <div>
-                  <p className="dashboard-eyebrow mb-1">Live Auctions</p>
-                  <h5 className="mb-0">Currently Live ({liveAuctions.length})</h5>
-                </div>
-              </div>
-              {liveAuctions.length === 0 ? (
-                <div className="dashboard-empty-inline">
-                  {loading ? 'Loading live auctions…' : 'No live auctions are active right now. Check back soon!'}
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-                  {liveAuctions.map((auction) => {
-                    const lot = auction._id.slice(-4).toUpperCase();
-                    const remainingMs = new Date(auction.endTime).getTime() - nowMs;
-                    const urgent = remainingMs > 0 && remainingMs <= 1000 * 60 * 60;
-                    const inWatchlist = watchlistIds.includes(auction._id);
-                    return (
-                      <article key={auction._id} className="market-card" style={{ cursor: 'pointer' }}>
-                        <div style={{ position: 'relative' }}>
-                          <img
-                            className="market-image"
-                            src={auction.gem?.images?.[0] || 'https://via.placeholder.com/460x280'}
-                            alt={auction.gem?.type}
-                            style={{ height: 200, objectFit: 'cover', width: '100%', display: 'block' }}
-                          />
-                          <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
-                            LOT #{lot}
-                          </span>
-                          <span style={{ position: 'absolute', top: 8, right: 8, background: urgent ? '#ef4444' : '#10b981', color: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
-                            {urgent ? 'Closing Soon' : 'Live'}
-                          </span>
-                        </div>
-                        <div className="market-body">
-                          <strong style={{ fontSize: 16 }}>{auction.gem?.type}</strong>
-                          <p className="market-meta" style={{ marginTop: 4, marginBottom: 10 }}>
-                            {auction.gem?.origin} · {auction.gem?.carat} ct
-                          </p>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                            <div>
-                              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)' }}>CURRENT BID</p>
-                              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-primary)' }}>{formatCurrency(auction.currentBid)}</div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)' }}>ENDS IN</p>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: urgent ? '#ef4444' : 'var(--text-primary)' }}>{formatRemaining(auction.endTime)}</div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                              className="bid-btn"
-                              type="button"
-                              onClick={() => openDetails(auction._id)}
-                              style={{ flex: 1, padding: '10px', fontWeight: 700, fontSize: 13 }}
-                            >
-                              Bid Now
-                            </button>
-                            <button
-                              className="watch-btn"
-                              type="button"
-                              onClick={() => toggleWatchlist(auction._id)}
-                              style={{ padding: '10px 14px' }}
-                            >
-                              {inWatchlist ? '♥' : '♡'}
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* ── Overview / dashboard ── */}
           <div id="buyer-auctions-overview" style={{ marginTop: 40 }}>

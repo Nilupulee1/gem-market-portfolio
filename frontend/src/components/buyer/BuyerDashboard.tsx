@@ -13,7 +13,6 @@ import logo from '../../assets/logo.png';
 import { useChatStore } from '../../store/chatStore';
 import AuctionBid from './AuctionBid';
 import GemDetails from './GemDetails';
-import LiveAuctions from './LiveAuctions';
 import Marketplace from './Marketplace';
 import SellerContactModal from './SellerContactModal';
 import MessagesPage from './MessagesPage';
@@ -280,7 +279,6 @@ const BuyerDashboard = () => {
     }), [allAuctions, query, selectedType]);
 
   const watchedAuctions = useMemo(() => allAuctions.filter(a => watchlistIds.includes(a._id)), [allAuctions, watchlistIds]);
-  const liveAuctions    = useMemo(() => allAuctions, [allAuctions]);
 
 
   const toggleWatchlist = (id: string) => {
@@ -548,61 +546,9 @@ const BuyerDashboard = () => {
 
     return (
       <>
-        {/* Live auctions */}
-        <section className="content-card animate-fade-up">
-          <div className="card-body">
-            <div className="bdr-panel-header">
-              <div>
-                <p className="dashboard-eyebrow mb-1">Live auctions</p>
-                <h5 className="mb-0">Currently Live</h5>
-                <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
-                  Participate in the global acquisition of the world's most rare and certified geological wonders.
-                </p>
-              </div>
-              <button className="bdr-link-btn" type="button" onClick={() => setView('marketplace')}>
-                Go to Marketplace
-              </button>
-            </div>
-
-            <div className="auctions-layout">
-              <aside className="auctions-sidebar">
-                <div className="filter-card">
-                  <h6 style={{ margin: '0 0 8px' }}>FILTER PORTFOLIO</h6>
-                  <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-                    <label><input type="checkbox" defaultChecked /> Closing Soon</label>
-                    <label><input type="checkbox" /> High Value</label>
-                    <label><input type="checkbox" /> No Reserve</label>
-                  </div>
-                  <h6 style={{ margin: '12px 0 8px' }}>STONE CATEGORY</h6>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span className="tag-pill">Ruby</span>
-                    <span className="tag-pill">Emerald</span>
-                    <span className="tag-pill">Diamond</span>
-                    <span className="tag-pill">Tourmaline</span>
-                    <span className="tag-pill">Sapphire</span>
-                  </div>
-                </div>
-                <div className="concierge-box">
-                  <h6>CONCIERGE ASSISTANCE</h6>
-                  <p style={{ color: 'var(--text-secondary)' }}>Require private viewing or appraisal records?</p>
-                  <button className="bdr-btn-primary" style={{ marginTop: 12 }}>Contact Expert</button>
-                </div>
-              </aside>
-              <main className="auctions-main">
-                <LiveAuctions
-                  auctions={liveAuctions} watchlistIds={watchlistIds} nowMs={nowMs}
-                  onToggleWatchlist={toggleWatchlist} onOpenDetails={openDetails}
-                  formatCurrency={formatCurrency} formatRemaining={formatRemaining}
-                  showHeader={false}
-                />
-              </main>
-            </div>
-          </div>
-        </section>
-
         {/* ── My Active Bids ── */}
         <section
-          className="content-card mt-4 animate-fade-up"
+          className="content-card animate-fade-up"
           style={{ overflow: 'visible' }}   /* prevent parent clipping */
         >
           <div className="card-body" style={{ overflow: 'visible' }}>

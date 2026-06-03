@@ -31,7 +31,6 @@ const featuredGemImage = '/images/diamond-1.jpg';
 
 const stats = [
   { value: '10,000+', label: 'Verified Gems' },
-  { value: '$50M+', label: 'Total Traded' },
   { value: '500+', label: 'Verified Sellers' },
   { value: '99.8%', label: 'Satisfaction Rate' },
 ];
