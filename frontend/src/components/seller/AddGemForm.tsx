@@ -3,9 +3,6 @@ import { Card, Form, Row, Col, Alert } from 'react-bootstrap';
 import { Upload, ArrowRight, ArrowLeft, CheckCircle, Gem } from 'lucide-react';
 import { gemAPI } from '../../api/axios';
 import { AxiosError } from 'axios';
-
-const LISTING_PLACEMENT_FEE_PERCENT = 5; // Kept for potential future use
-
 interface AddGemFormProps {
   onSuccess: () => void;
 }
@@ -105,8 +102,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
       images.forEach(img => fd.append('images', img));
       fd.append('certificate', certificate!);
 
-      const gemRes = await gemAPI.createGem(fd);
-      const createdGem = gemRes.data.gem;
+      await gemAPI.createGem(fd);
       setSuccess('Gem created successfully!');
 
       setTimeout(() => onSuccess(), 1500);

@@ -3,7 +3,8 @@ import { Document, Types } from 'mongoose';
 export enum UserRole {
   SELLER = 'seller',
   BUYER = 'buyer',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+  OPERATIONAL_MANAGER = 'operational_manager'
 }
 
 export enum GemStatus {

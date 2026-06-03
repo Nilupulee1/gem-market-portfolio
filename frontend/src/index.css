@@ -27,12 +27,12 @@ html {
 /* Custom Styles */
 :root {
   /* Page & surfaces */
-  --page-bg: #f3eefc;
-  --page-bg-alt: #eef3fa;
+  --page-bg: #f8f9fa;
+  --page-bg-alt: #f1f3f5;
   --page-surface: #ffffff;
-  --page-surface-elevated: #fbfcff;
-  --page-surface-muted: #f1f3f6;
-  --section-shell-bg: linear-gradient(180deg, rgba(244,246,250,0.7), rgba(243,238,252,0.65));
+  --page-surface-elevated: #ffffff;
+  --page-surface-muted: #f4f6f8;
+  --section-shell-bg: linear-gradient(180deg, #f8f9fa, #f1f3f5);
 
   /* Text */
   --text-primary: #1f2a37;
@@ -78,11 +78,11 @@ html {
   --badge-bg: rgba(0,0,0,0.6);
 
   /* Brand palette (applied across the app) */
-  --color-navy: #0f2340;    /* deep navy */
-  --color-primary: #1f4f82; /* medium brand blue - UI headers, cards */
-  --color-bright: #2f6de1;  /* bright blue - CTAs */
-  --color-gold: #d4a574;    /* brand gold (use on dark backgrounds) */
-  --color-gold-on-light: #816546; /* darker gold to use when placed on light surfaces */
+  --color-navy: #0b1320;    /* deep sophisticated navy */
+  --color-primary: #1e324a; /* refined dark slate blue */
+  --color-bright: #2563eb;  /* sharp vibrant blue for CTAs */
+  --color-gold: #cfa86e;    /* refined elegant gold */
+  --color-gold-on-light: #a37c3f; /* darker gold to use on light surfaces */
 
   /* Backward-compatible mappings used throughout the app */
   --brand-navy: var(--color-navy);

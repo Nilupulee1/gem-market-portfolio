@@ -6,8 +6,6 @@ import {
   LogOut,
   Package,
   ShieldCheck,
-  Moon,
-  Sun,
   TrendingUp,
   Users,
   AlertCircle,
@@ -21,26 +19,18 @@ import UserManagement from './UserManagement';
 import AuctionManagement from './AuctionManagement.tsx';
 import MessagesPage from '../buyer/MessagesPage';
 import type { DashboardStats } from '../../types/admin';
-import type { Gem } from '../../types';
+import { UserRole, type Gem } from '../../types';
 import logo from '../../assets/logo.png';
 
 import '../../styles/admin.css';
 
 type TabType = 'dashboard' | 'pending-gems' | 'users' | 'auctions' | 'messages';
-type ThemeMode = 'light' | 'dark';
 type Tone = 'teal' | 'indigo' | 'amber' | 'rose';
 
-const sidebarItems: Array<{ id: TabType; label: string; icon: any }> = [
-  { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-  { id: 'pending-gems', label: 'Verifications', icon: ShieldCheck },
-  { id: 'users', label: 'Users', icon: Users },
-  { id: 'auctions', label: 'Auctions', icon: Gavel },
-  { id: 'messages', label: 'Messages', icon: MessageSquare },
-  
-];
-
-const formatCompactNumber = (value?: number | null) => {
-  if (value === undefined || value === null || Number.isNaN(Number(value))) return '0';
+const formatCompactNumber = (value?: any) => {
+  if (value === undefined || value === null) return '0';
+  if (typeof value === 'string' && value.includes('$')) return value;
+  if (Number.isNaN(Number(value))) return String(value);
   try {
     return Number(value).toLocaleString();
   } catch {
@@ -48,16 +38,38 @@ const formatCompactNumber = (value?: number | null) => {
   }
 };
 
-const AdminDashboard = ({
-  theme,
-  onToggleTheme,
-}: {
-  theme: ThemeMode;
-  onToggleTheme: () => void;
-}) => {
+const AdminDashboard = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [auctions, setAuctions] = useState<any[]>([]);
+
+  const sidebarItems = useMemo(() => {
+    if (user?.role === UserRole.OPERATIONAL_MANAGER) {
+      return [
+        { id: 'dashboard' as TabType, label: 'Operations Dashboard', icon: TrendingUp },
+        { id: 'pending-gems' as TabType, label: 'Gem & Portfolio', icon: ShieldCheck },
+        { id: 'auctions' as TabType, label: 'Auction Workflows', icon: Gavel },
+        { id: 'messages' as TabType, label: 'Live Chats', icon: MessageSquare },
+      ];
+    }
+    return [
+      { id: 'dashboard' as TabType, label: 'Dashboard', icon: TrendingUp },
+      { id: 'pending-gems' as TabType, label: 'Verifications', icon: ShieldCheck },
+      { id: 'users' as TabType, label: 'Users', icon: Users },
+      { id: 'auctions' as TabType, label: 'Auctions', icon: Gavel },
+      { id: 'messages' as TabType, label: 'Messages', icon: MessageSquare },
+    ];
+  }, [user]);
+
+  const fetchAuctions = async () => {
+    try {
+      const response = await adminAPI.getAllAuctions();
+      setAuctions(response.data.auctions || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalGems: 0,
@@ -78,6 +90,7 @@ const AdminDashboard = ({
     fetchStatistics();
     void fetchVerificationRows();
     void fetchRecentActivity();
+    void fetchAuctions();
 
     try {
       onActivity((payload: any) => {
@@ -137,13 +150,23 @@ const AdminDashboard = ({
   };
 
   const summaryCards = useMemo(
-    () => [
-      { label: 'Pending Verification', value: stats.pendingGems, subtitle: 'awaiting review', icon: AlertCircle, tone: 'amber' as Tone },
-      { label: 'Active Listings', value: stats.activeAuctions, subtitle: 'live on market', icon: Package, tone: 'teal' as Tone },
-      { label: 'New User Registrations', value: Math.max(0, Math.round(stats.totalUsers * 0.018)), subtitle: '24h', icon: Users, tone: 'indigo' as Tone },
-      { label: 'Total Live Listings', value: stats.totalGems, subtitle: 'approved gems', icon: CheckCircle, tone: 'rose' as Tone },
-    ],
-    [stats.activeAuctions, stats.pendingGems, stats.totalGems, stats.totalUsers]
+    () => {
+      if (user?.role === UserRole.OPERATIONAL_MANAGER) {
+        return [
+          { label: 'Active Auction Workflows', value: stats.activeAuctions, subtitle: 'live on market', icon: Package, tone: 'teal' as Tone },
+          { label: 'Total Verified Inventory', value: stats.totalGems, subtitle: 'approved gems', icon: CheckCircle, tone: 'rose' as Tone },
+          { label: 'Cumulative Placement Revenue', value: `Rs.${stats.totalRevenue ? Math.round(stats.totalRevenue).toLocaleString() : '0'}`, subtitle: 'from seller listings', icon: TrendingUp, tone: 'indigo' as Tone },
+          { label: 'Operational Service Volume', value: stats.totalAuctions, subtitle: 'all auctions scheduled', icon: Gavel, tone: 'amber' as Tone },
+        ];
+      }
+      return [
+        { label: 'Pending Verification', value: stats.pendingGems, subtitle: 'awaiting review', icon: AlertCircle, tone: 'amber' as Tone },
+        { label: 'Active Listings', value: stats.activeAuctions, subtitle: 'live on market', icon: Package, tone: 'teal' as Tone },
+        { label: 'New User Registrations', value: Math.max(0, Math.round(stats.totalUsers * 0.018)), subtitle: '24h', icon: Users, tone: 'indigo' as Tone },
+        { label: 'Total Live Listings', value: stats.totalGems, subtitle: 'approved gems', icon: CheckCircle, tone: 'rose' as Tone },
+      ];
+    },
+    [stats.activeAuctions, stats.pendingGems, stats.totalGems, stats.totalUsers, stats.totalRevenue, stats.totalAuctions, user]
   );
 
   const [recentActivity, setRecentActivity] = useState<Array<{ icon: any; title: string; time: string; tone: 'success' | 'info' | 'warning' | 'neutral' }>>([]);
@@ -229,18 +252,22 @@ const AdminDashboard = ({
 
   const renderDashboard = () => (
     <div className="admin-overview">
-      <section className="dashboard-hero hero-premium-mesh admin-dashboard-hero">
+      <section className="dashboard-hero hero-premium-mesh admin-dashboard-hero" style={{
+        background: user?.role === UserRole.OPERATIONAL_MANAGER
+          ? 'linear-gradient(135deg, rgba(75, 132, 248, 0.95), rgba(56, 189, 248, 0.95))'
+          : undefined
+      }}>
         <div>
-          <p className="dashboard-eyebrow">Admin dashboard</p>
-          <h4>Welcome back, {user?.name?.split(' ')[0] || 'Admin'}!</h4>
-          <p>Track approvals, active listings, and recent updates from one place.</p>
+          <p className="dashboard-eyebrow">{user?.role === UserRole.OPERATIONAL_MANAGER ? 'Business Operations Console' : 'Admin dashboard'}</p>
+          <h4>Welcome back, {user?.name?.split(' ')[0] || 'Operational Manager'}!</h4>
+          <p>{user?.role === UserRole.OPERATIONAL_MANAGER ? 'Manage marketplace workflows, live bidding events, and portfolio analytics.' : 'Track approvals, active listings, and recent platform updates.'}</p>
         </div>
 
         <div className="dashboard-chip-stack">
           <span className="dashboard-chip dashboard-chip-soft">
-            {stats.totalGems ? Math.round((stats.approvedGems / Math.max(stats.totalGems, 1)) * 100) : 0}% approval rate
+            {user?.role === UserRole.OPERATIONAL_MANAGER ? 'Core Trading Tier' : `${stats.totalGems ? Math.round((stats.approvedGems / Math.max(stats.totalGems, 1)) * 100) : 0}% approval rate`}
           </span>
-          <span className="dashboard-chip">{formatCompactNumber(stats.totalGems)} total listings</span>
+          <span className="dashboard-chip">{formatCompactNumber(stats.totalGems)} approved inventory</span>
         </div>
       </section>
 
@@ -267,58 +294,109 @@ const AdminDashboard = ({
       </section>
 
       <div className="admin-bottom-grid">
-        <article className="admin-verify-card">
-          <div className="admin-card-header">
-            <div>
-              <p className="admin-card-kicker">Awaiting Verification</p>
-              <h2>Pending gem review queue</h2>
+        {user?.role === UserRole.OPERATIONAL_MANAGER ? (
+          <article className="admin-verify-card">
+            <div className="admin-card-header">
+              <div>
+                <p className="admin-card-kicker">Core Trading Pipeline</p>
+                <h2>Active live auctions</h2>
+              </div>
+              <button type="button" className="admin-subtle-link" onClick={() => setActiveTab('auctions')}>
+                View workflows
+              </button>
             </div>
-            <button type="button" className="admin-subtle-link" onClick={() => setActiveTab('pending-gems')}>
-              View all
-            </button>
-          </div>
 
-          <div className="admin-table-wrap">
-            <table className="admin-verify-table">
-              <thead>
-                <tr>
-                  <th>Gem Name</th>
-                  <th>Seller</th>
-                  <th>Date Submitted</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {verificationLoading ? (
+            <div className="admin-table-wrap">
+              <table className="admin-verify-table">
+                <thead>
                   <tr>
-                    <td colSpan={4}>Loading pending gems...</td>
+                    <th>Gem / Item</th>
+                    <th>Current Bid</th>
+                    <th>Bids Count</th>
+                    <th>Time Left</th>
                   </tr>
-                ) : verificationError ? (
-                  <tr>
-                    <td colSpan={4}>{verificationError}</td>
-                  </tr>
-                ) : verificationRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={4}>No gems awaiting verification</td>
-                  </tr>
-                ) : (
-                  verificationRows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="admin-verify-gem">{row.gem}</td>
-                      <td>{row.seller}</td>
-                      <td>{row.date}</td>
-                      <td className="admin-verify-action-cell">
-                        <button type="button" className="admin-review-button" onClick={() => setActiveTab('pending-gems')}>
-                          {row.action}
-                        </button>
-                      </td>
+                </thead>
+                <tbody>
+                  {auctions.filter(a => a.status === 'active').length === 0 ? (
+                    <tr>
+                      <td colSpan={4}>No active live auctions at this moment</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </article>
+                  ) : (
+                    auctions.filter(a => a.status === 'active').slice(0, 4).map((auc) => {
+                      const diffMs = new Date(auc.endTime).getTime() - Date.now();
+                      const diffHrs = Math.max(0, Math.round(diffMs / (1000 * 60 * 60)));
+                      return (
+                        <tr key={auc._id}>
+                          <td className="admin-verify-gem font-bold">{auc.gem?.type || 'Gem Listing'}</td>
+                          <td>${(auc.currentBid || auc.startingPrice || 0).toLocaleString()}</td>
+                          <td>{auc.bids?.length || 0} bid{auc.bids?.length === 1 ? '' : 's'}</td>
+                          <td>
+                            <span className={`badge ${diffHrs <= 12 ? 'bg-danger' : 'bg-success'} text-white py-1 px-2`} style={{ borderRadius: '20px', fontSize: '10px' }}>
+                              {diffHrs} hrs left
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        ) : (
+          <article className="admin-verify-card">
+            <div className="admin-card-header">
+              <div>
+                <p className="admin-card-kicker">Awaiting Verification</p>
+                <h2>Pending gem review queue</h2>
+              </div>
+              <button type="button" className="admin-subtle-link" onClick={() => setActiveTab('pending-gems')}>
+                View all
+              </button>
+            </div>
+
+            <div className="admin-table-wrap">
+              <table className="admin-verify-table">
+                <thead>
+                  <tr>
+                    <th>Gem Name</th>
+                    <th>Seller</th>
+                    <th>Date Submitted</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {verificationLoading ? (
+                    <tr>
+                      <td colSpan={4}>Loading pending gems...</td>
+                    </tr>
+                  ) : verificationError ? (
+                    <tr>
+                      <td colSpan={4}>{verificationError}</td>
+                    </tr>
+                  ) : verificationRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={4}>No gems awaiting verification</td>
+                    </tr>
+                  ) : (
+                    verificationRows.map((row) => (
+                      <tr key={row.id}>
+                        <td className="admin-verify-gem">{row.gem}</td>
+                        <td>{row.seller}</td>
+                        <td>{row.date}</td>
+                        <td className="admin-verify-action-cell">
+                          <button type="button" className="admin-review-button" onClick={() => setActiveTab('pending-gems')}>
+                            {row.action}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        )}
 
         <article className="admin-activity-feed-card">
           <div className="admin-card-header">
@@ -354,6 +432,9 @@ const AdminDashboard = ({
       case 'pending-gems':
         return <PendingGems onApprove={fetchStatistics} />;
       case 'users':
+        if (user?.role !== UserRole.ADMIN) {
+          return renderDashboard();
+        }
         return <UserManagement />;
       case 'auctions':
         return <AuctionManagement />;
@@ -384,15 +465,6 @@ const AdminDashboard = ({
               <span>{user?.name?.split(' ')[0] || 'Admin'}</span>
             </div>
 
-            <button
-              type="button"
-              onClick={onToggleTheme}
-              className="seller-navbar-theme-toggle"
-              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-            </button>
 
             <button type="button" onClick={handleLogout} className="seller-navbar-theme-toggle">
               <LogOut size={16} />
@@ -420,8 +492,8 @@ const AdminDashboard = ({
                   </div>
                 </div>
                 <div className="sidebar-profile-info">
-                  <div className="sidebar-profile-name">Admin workspace</div>
-                  <div className="sidebar-profile-role-badge">GemFolio control room</div>
+                  <div className="sidebar-profile-name">{user?.role === UserRole.OPERATIONAL_MANAGER ? 'Operations Console' : 'Admin workspace'}</div>
+                  <div className="sidebar-profile-role-badge">{user?.role === UserRole.OPERATIONAL_MANAGER ? 'Core business workflows' : 'GemFolio control room'}</div>
                 </div>
               </button>
             </div>
@@ -440,7 +512,7 @@ const AdminDashboard = ({
                   >
                     <Icon size={18} />
                     <span>{item.label}</span>
-                    {item.id === 'pending-gems' && stats.pendingGems > 0 && (
+                    {item.id === 'pending-gems' && user?.role === UserRole.ADMIN && stats.pendingGems > 0 && (
                       <span className="admin-sidebar-badge">{stats.pendingGems}</span>
                     )}
                   </button>
@@ -457,7 +529,7 @@ const AdminDashboard = ({
           </div>
         </aside>
 
-        <main className="dashboard-main-content admin-main">
+        <main className={`dashboard-main-content admin-main ${activeTab === 'messages' ? 'dashboard-main-content--messages' : ''}`}>
           {loading ? (
             <div className="admin-loading-state">
               <div className="spinner-border text-primary" role="status">
@@ -465,7 +537,7 @@ const AdminDashboard = ({
               </div>
             </div>
           ) : (
-            <div className="admin-content-shell">{renderContent()}</div>
+            <div className={`admin-content-shell ${activeTab === 'messages' ? 'h-100 d-flex flex-column' : ''}`}>{renderContent()}</div>
           )}
         </main>
       </div>

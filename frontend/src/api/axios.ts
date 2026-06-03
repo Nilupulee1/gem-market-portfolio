@@ -94,9 +94,12 @@ export const adminAPI = {
   reviewGem: (data: { gemId: string; status: string; feedback?: string }) =>
     axiosInstance.post('/admin/gems/review', data),
   getAllUsers: () => axiosInstance.get('/admin/users'),
+  createAdminOrManager: (data: { name: string; email: string; password: string; role: string }) =>
+    axiosInstance.post('/admin/users/create', data),
   getStatistics: () => axiosInstance.get('/admin/statistics'),
   getAllAuctions: () => axiosInstance.get('/admin/auctions'),
   getActivity: () => axiosInstance.get('/admin/activity'),
+  getChatPartners: () => axiosInstance.get('/admin/chat-partners'),
 };
 
 export const buyerAPI = {

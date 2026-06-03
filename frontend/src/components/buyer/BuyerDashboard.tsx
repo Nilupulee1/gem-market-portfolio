@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Compass, Gavel, Heart, LayoutDashboard, LogOut,
-  Timer, X, MessageSquare, Moon, Sun,
+  Timer, X, MessageSquare,
   Trophy, Eye, Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -13,14 +13,12 @@ import logo from '../../assets/logo.png';
 import { useChatStore } from '../../store/chatStore';
 import AuctionBid from './AuctionBid';
 import GemDetails from './GemDetails';
-import LiveAuctions from './LiveAuctions';
 import Marketplace from './Marketplace';
 import SellerContactModal from './SellerContactModal';
 import MessagesPage from './MessagesPage';
 import ActiveBidsCard from './ActiveBidsCard';
 
 type BuyerView = 'dashboard' | 'marketplace' | 'auctions' | 'watchlist' | 'messages';
-type ThemeMode = 'light' | 'dark';
 
 interface BuyerStats {
   auctionsParticipated: number;
@@ -152,21 +150,23 @@ const ActiveBidsGrid = ({
   nowMs,
   onIncreaseBid,
   onViewDetails,
+  columns = 3
 }: {
   items: ActiveBidItem[];
   nowMs: number;
   onIncreaseBid: (item: ActiveBidItem) => void;
   onViewDetails: (id: string) => void;
+  columns?: number;
 }) => (
   <div
     style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+      gridTemplateColumns: `repeat(${columns}, 1fr)`,
       gap: '16px',
       marginTop: '16px',
       // Critical: let the grid expand naturally — no fixed height, no overflow clipping
       overflow: 'visible',
-      alignItems: 'start',
+      alignItems: 'stretch',
     }}
   >
     {items.map(item => (
@@ -186,13 +186,7 @@ const ActiveBidsGrid = ({
 /* ════════════════════════════════════════════════════════
    MAIN COMPONENT
    ════════════════════════════════════════════════════════ */
-const BuyerDashboard = ({
-  theme,
-  onToggleTheme,
-}: {
-  theme?: ThemeMode;
-  onToggleTheme?: () => void;
-}) => {
+const BuyerDashboard = () => {
   const navigate    = useNavigate();
   const { user, logout } = useAuthStore();
   const unreadCount = useChatStore(s => s.unreadCount);
@@ -224,7 +218,6 @@ const BuyerDashboard = ({
   const [chatInitialContact,    setChatInitialContact]    = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
   const [chatInitialGem,        setChatInitialGem]        = useState<{ name: string; id: string } | null>(null);
   const [conversations,         setConversations]         = useState<Array<{ auction?: { _id: string }; gem?: { _id: string } }>>([]);
-  const [dismissedWinningAuctions, setDismissedWinningAuctions] = useState<string[]>([]);
 
   const isBuyerAccount = user?.role === 'buyer';
 
@@ -286,12 +279,7 @@ const BuyerDashboard = ({
     }), [allAuctions, query, selectedType]);
 
   const watchedAuctions = useMemo(() => allAuctions.filter(a => watchlistIds.includes(a._id)), [allAuctions, watchlistIds]);
-  const liveAuctions    = useMemo(() => allAuctions.filter(a => new Date(a.endTime).getTime() > Date.now()), [allAuctions]);
 
-  const wonAuctionsWithoutContact = useMemo(() => {
-    const ids = new Set(conversations.map(c => c.auction?._id).filter(Boolean));
-    return wonAuctions.filter(a => !ids.has(a._id) && !dismissedWinningAuctions.includes(a._id));
-  }, [wonAuctions, conversations, dismissedWinningAuctions]);
 
   const toggleWatchlist = (id: string) => {
     const updated = watchlistIds.includes(id) ? watchlistIds.filter(x => x !== id) : [...watchlistIds, id];
@@ -555,75 +543,12 @@ const BuyerDashboard = ({
   const renderAuctions = () => {
     const winningItems = activeBids.filter(i => i.isWinning);
 
-    const bidGridStyle: React.CSSProperties = {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-      gap: '16px',
-      marginTop: '16px',
-      // These two lines are the critical fix:
-      // overflow must be visible so the card body is not clipped,
-      // and align-items start so cards don't stretch to a ghost height.
-      overflow: 'visible',
-      alignItems: 'start',
-    };
 
     return (
       <>
-        {/* Live auctions */}
-        <section className="content-card animate-fade-up">
-          <div className="card-body">
-            <div className="bdr-panel-header">
-              <div>
-                <p className="dashboard-eyebrow mb-1">Live auctions</p>
-                <h5 className="mb-0">Currently Live</h5>
-                <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
-                  Participate in the global acquisition of the world's most rare and certified geological wonders.
-                </p>
-              </div>
-              <button className="bdr-link-btn" type="button" onClick={() => setView('marketplace')}>
-                Go to Marketplace
-              </button>
-            </div>
-
-            <div className="auctions-layout">
-              <aside className="auctions-sidebar">
-                <div className="filter-card">
-                  <h6 style={{ margin: '0 0 8px' }}>FILTER PORTFOLIO</h6>
-                  <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-                    <label><input type="checkbox" defaultChecked /> Closing Soon</label>
-                    <label><input type="checkbox" /> High Value</label>
-                    <label><input type="checkbox" /> No Reserve</label>
-                  </div>
-                  <h6 style={{ margin: '12px 0 8px' }}>STONE CATEGORY</h6>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span className="tag-pill">Ruby</span>
-                    <span className="tag-pill">Emerald</span>
-                    <span className="tag-pill">Diamond</span>
-                    <span className="tag-pill">Tourmaline</span>
-                    <span className="tag-pill">Sapphire</span>
-                  </div>
-                </div>
-                <div className="concierge-box">
-                  <h6>CONCIERGE ASSISTANCE</h6>
-                  <p style={{ color: 'var(--text-secondary)' }}>Require private viewing or appraisal records?</p>
-                  <button className="bdr-btn-primary" style={{ marginTop: 12 }}>Contact Expert</button>
-                </div>
-              </aside>
-              <main className="auctions-main">
-                <LiveAuctions
-                  auctions={liveAuctions} watchlistIds={watchlistIds} nowMs={nowMs}
-                  onToggleWatchlist={toggleWatchlist} onOpenDetails={openDetails}
-                  formatCurrency={formatCurrency} formatRemaining={formatRemaining}
-                  getLeadingBidderName={getLeadingBidderName} showHeader={false}
-                />
-              </main>
-            </div>
-          </div>
-        </section>
-
         {/* ── My Active Bids ── */}
         <section
-          className="content-card mt-4 animate-fade-up"
+          className="content-card animate-fade-up"
           style={{ overflow: 'visible' }}   /* prevent parent clipping */
         >
           <div className="card-body" style={{ overflow: 'visible' }}>
@@ -638,14 +563,17 @@ const BuyerDashboard = ({
             {activeBids.length === 0 ? (
               <div className="dashboard-empty-inline">You have no active bids at the moment.</div>
             ) : (
-              <div style={bidGridStyle}>
-                <ActiveBidsGrid
-                  items={activeBids}
-                  nowMs={nowMs}
-                  onIncreaseBid={b => { setSelectedAuction(b.auction); setShowBidConfirm(true); }}
-                  onViewDetails={openDetails}
-                />
-              </div>
+              <ActiveBidsGrid
+                items={activeBids}
+                nowMs={nowMs}
+                onIncreaseBid={b => {
+                  const minBid = b.auction.currentBid + (b.auction.minimumBidIncrement || 1000);
+                  setBidAmount(String(minBid));
+                  setSelectedAuction(b.auction);
+                  setShowBidConfirm(true);
+                }}
+                onViewDetails={openDetails}
+              />
             )}
           </div>
         </section>
@@ -669,14 +597,18 @@ const BuyerDashboard = ({
                 You are not currently the highest bidder on any auctions.
               </div>
             ) : (
-              <div style={bidGridStyle}>
-                <ActiveBidsGrid
-                  items={winningItems}
-                  nowMs={nowMs}
-                  onIncreaseBid={b => { setSelectedAuction(b.auction); setShowBidConfirm(true); }}
-                  onViewDetails={openDetails}
-                />
-              </div>
+              <ActiveBidsGrid
+                items={winningItems}
+                nowMs={nowMs}
+                onIncreaseBid={b => {
+                  const minBid = b.auction.currentBid + (b.auction.minimumBidIncrement || 1000);
+                  setBidAmount(String(minBid));
+                  setSelectedAuction(b.auction);
+                  setShowBidConfirm(true);
+                }}
+                onViewDetails={openDetails}
+                columns={3}
+              />
             )}
           </div>
         </section>
@@ -775,19 +707,6 @@ const BuyerDashboard = ({
             <img src={logo} alt="GemFolio" className="bdr-navbar-logo" />
             <span>GemFolio</span>
           </button>
-          <div className="bdr-navbar-actions">
-            <div className="bdr-navbar-user">
-              <span className="bdr-navbar-avatar">{initials}</span>
-              <span>{user?.name?.split(' ')[0]}</span>
-            </div>
-            {onToggleTheme && (
-              <button type="button" className="seller-navbar-theme-toggle" onClick={onToggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
-                {theme === 'dark' ? <Sun size={15}/> : <Moon size={15}/>}
-                <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-              </button>
-            )}
-          </div>
         </div>
       </header>
 
@@ -840,6 +759,7 @@ const BuyerDashboard = ({
         loading={loadingDetails} bidAmount={bidAmount} bidFeedback={bidFeedback}
         placingBid={placingBid} bidHistory={bidHistory} onClose={closeDetails}
         onBidAmountChange={setBidAmount} onRequestBidConfirmation={requestBidConfirmation}
+        onContactSeller={openSellerContact}
         formatCurrency={formatCurrency} formatDateTime={formatDateTime}
         getLeadingBidderName={getLeadingBidderName}
         getCertificateAccessUrl={getCertificateAccessUrl} isPdfCertificate={isPdfCertificate}

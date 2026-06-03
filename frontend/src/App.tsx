@@ -28,32 +28,9 @@ import {
 } from 'lucide-react';
 const heroImage = '/images/hero-gems.jpg';
 const featuredGemImage = '/images/diamond-1.jpg';
-const themeStorageKey = 'gemfolio-theme';
-
-type ThemeMode = 'light' | 'dark';
-
-const getInitialTheme = (): ThemeMode => {
-  if (typeof window === 'undefined') {
-    return 'light';
-  }
-
-  const storedTheme = window.localStorage.getItem(themeStorageKey);
-  if (storedTheme === 'light' || storedTheme === 'dark') {
-    return storedTheme;
-  }
-
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-};
-
-const applyTheme = (theme: ThemeMode) => {
-  const root = document.documentElement;
-  root.dataset.theme = theme;
-  root.style.colorScheme = theme;
-};
 
 const stats = [
   { value: '10,000+', label: 'Verified Gems' },
-  { value: '$50M+', label: 'Total Traded' },
   { value: '500+', label: 'Verified Sellers' },
   { value: '99.8%', label: 'Satisfaction Rate' },
 ];
@@ -111,10 +88,15 @@ const HomePage = ({ featuredGems, featuredGemsLoading }: HomePageProps) => {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      const dashboardPath = user.role === UserRole.SELLER ? '/seller' : user.role === UserRole.ADMIN ? '/admin' : '/buyer';
+      const dashboardPath =
+        user.role === UserRole.SELLER
+          ? '/seller'
+          : user.role === UserRole.ADMIN || user.role === UserRole.OPERATIONAL_MANAGER
+          ? '/admin'
+          : '/buyer';
       navigate(dashboardPath, { replace: true });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isAuthenticated) {
     return null;
@@ -327,7 +309,6 @@ function App() {
   const unreadCount = useChatStore((state) => state.unreadCount);
   const initChatState = useChatStore((state) => state.initChatState);
   const incrementUnreadCount = useChatStore((state) => state.incrementUnreadCount);
-  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [featuredGems, setFeaturedGems] = useState<Gem[]>([]);
   const [featuredGemsLoading, setFeaturedGemsLoading] = useState(true);
   const [messageToast, setMessageToast] = useState<{
@@ -337,15 +318,14 @@ function App() {
   } | null>(null);
   const hideToastTimerRef = useRef<number | null>(null);
 
+  const hasInitialized = useRef(false);
   useEffect(() => {
-    applyTheme(theme);
-    window.localStorage.setItem(themeStorageKey, theme);
-  }, [theme]);
-
-  useEffect(() => {
-    initAuth();
-    initChatState();
-  }, [initAuth, initChatState]);
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      initAuth();
+      initChatState();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let isMounted = true;
@@ -443,10 +423,8 @@ function App() {
         messageToast={messageToast}
         unreadCount={unreadCount}
         isAuthenticated={!!token}
-        theme={theme}
         featuredGems={featuredGems}
         featuredGemsLoading={featuredGemsLoading}
-        onToggleTheme={() => setTheme((currentTheme) => (currentTheme === 'dark' ? 'light' : 'dark'))}
       />
     </BrowserRouter>
   );
@@ -456,18 +434,14 @@ const AppLayout = ({
   messageToast,
   unreadCount,
   isAuthenticated,
-  theme,
   featuredGems,
   featuredGemsLoading,
-  onToggleTheme,
 }: {
   messageToast: { senderName?: string; preview: string; unreadCount: number } | null;
   unreadCount: number;
   isAuthenticated: boolean;
-  theme: ThemeMode;
   featuredGems: Gem[];
   featuredGemsLoading: boolean;
-  onToggleTheme: () => void;
 }) => {
   const location = useLocation();
   const isPortalRoute =
@@ -498,7 +472,7 @@ const AppLayout = ({
   return (
     <div className="min-h-screen market-shell">
       {!isPortalRoute && (
-        <Header theme={theme} onToggleTheme={onToggleTheme} />
+        <Header />
       )}
       <Routes>
         <Route path="/" element={<HomePage featuredGems={featuredGems} featuredGemsLoading={featuredGemsLoading} />} />
@@ -511,7 +485,7 @@ const AppLayout = ({
           path="/seller/*"
           element={
             <ProtectedRoute allowedRoles={[UserRole.SELLER]}>
-              <SellerDashboard theme={theme} onToggleTheme={onToggleTheme} />
+              <SellerDashboard />
             </ProtectedRoute>
           }
         />
@@ -520,7 +494,7 @@ const AppLayout = ({
           path="/buyer/*"
           element={
             <ProtectedRoute allowedRoles={[UserRole.BUYER]}>
-              <BuyerDashboard theme={theme} onToggleTheme={onToggleTheme} />
+              <BuyerDashboard />
             </ProtectedRoute>
           }
         />
@@ -528,8 +502,8 @@ const AppLayout = ({
         <Route
           path="/admin/*"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-              <AdminDashboard theme={theme} onToggleTheme={onToggleTheme} />
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.OPERATIONAL_MANAGER]}>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

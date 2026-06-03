@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import Gem from '../models/Gem';
 import Auction from '../models/Auction';
 import User from '../models/User';
-import { AuctionStatus, GemStatus } from '../types';
+import { AuctionStatus, GemStatus, UserRole } from '../types';
 import { emitActivity } from '../config/websocket';
 
 const extractCloudinaryPublicId = (url: string) => {
@@ -210,6 +210,75 @@ export const getRecentActivity = async (req: Request, res: Response) => {
     res.json({ activity: items.slice(0, 12) });
   } catch (error) {
     console.error('Error building recent activity:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const createAdminOrManager = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
+
+    if (!normalizedEmail || !password || !name || !role) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    if (role !== UserRole.ADMIN && role !== UserRole.OPERATIONAL_MANAGER) {
+      return res.status(400).json({ message: 'Invalid administrative role. Must be admin or operational_manager.' });
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    const user = new User({
+      name,
+      email: normalizedEmail,
+      password,
+      role,
+      isVerified: true
+    });
+
+    await user.save();
+
+    try {
+      emitActivity({ type: 'user_registered', title: `${user.name} was created as a new ${user.role} by an administrator`, time: new Date(), tone: 'success' });
+    } catch (err) {
+      console.warn('emitActivity failed for staff creation', err);
+    }
+
+    res.status(201).json({
+      message: 'Administrative user created successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const getChatPartners = async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  try {
+    const currentUserRole = authReq.user?.role;
+    let targetRole = '';
+    
+    if (currentUserRole === UserRole.ADMIN) {
+      targetRole = UserRole.OPERATIONAL_MANAGER;
+    } else if (currentUserRole === UserRole.OPERATIONAL_MANAGER) {
+      targetRole = UserRole.ADMIN;
+    } else {
+      return res.status(403).json({ message: 'Unauthorized role access' });
+    }
+    
+    const partners = await User.find({ role: targetRole }).select('name email role');
+    res.json({ partners });
+  } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
 };

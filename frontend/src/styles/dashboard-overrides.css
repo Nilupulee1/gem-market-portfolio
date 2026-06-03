@@ -2,29 +2,29 @@
 .dashboard-sidebar-wrapper,
 .admin-sidebar-shell {
   background: var(--seller-dark) !important;
-  border-right: 1px solid rgba(255,255,255,0.06) !important;
-  box-shadow: 4px 0 24px rgba(2,6,23,0.35) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 4px 0 24px rgba(2, 6, 23, 0.35) !important;
   color: #ffffff !important;
 }
 
 .bdr-sidebar::before,
 .dashboard-sidebar-wrapper::before {
-  background: rgba(255,255,255,0.04) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
   opacity: 0.6 !important;
 }
 
 .bdr-sidebar .sidebar-profile-card,
 .dashboard-sidebar-wrapper .sidebar-profile-card {
   background: transparent !important;
-  border: 1px solid rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
 .bdr-sidebar .sidebar-profile-avatar-inner,
 .dashboard-sidebar-wrapper .sidebar-profile-avatar-inner {
   background: #ffffff !important;
   color: var(--color-primary) !important;
-  border: 2px solid rgba(47,95,143,0.08) !important;
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.02) inset !important;
+  border: 2px solid rgba(47, 95, 143, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.02) inset !important;
   font-weight: 700 !important;
   font-size: 13px !important;
 }
@@ -74,14 +74,14 @@
 
 .bdr-sidebar .sidebar-nav-link:hover,
 .dashboard-sidebar-wrapper .sidebar-nav-link:hover {
-  background: rgba(255,255,255,0.03) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
   color: #ffffff !important;
-  border-left-color: rgba(255,255,255,0.08) !important;
+  border-left-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .bdr-sidebar .sidebar-nav-link.active,
 .dashboard-sidebar-wrapper .sidebar-nav-link.active {
-  background: rgba(255,255,255,0.06) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
   color: #ffffff !important;
   border-left-color: var(--color-bright) !important;
 }
@@ -261,31 +261,31 @@ html[data-theme='dark'] .bdr-sidebar .sidebar-button-group .seller-navbar-theme-
   font-size: 12px;
   line-height: 1;
   color: var(--text-primary);
-  background: rgba(15,23,42,0.03);
-  border: 1px solid rgba(15,23,42,0.06);
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 .section-card-badge--primary {
-  background: rgba(47,95,255,0.08);
+  background: rgba(47, 95, 255, 0.08);
   color: var(--color-primary);
-  border: 1px solid rgba(47,95,255,0.18);
+  border: 1px solid rgba(47, 95, 255, 0.18);
 }
 
 .section-card-badge--muted {
-  background: rgba(2,6,23,0.02);
+  background: rgba(2, 6, 23, 0.02);
   color: var(--text-secondary);
-  border: 1px solid rgba(2,6,23,0.04);
+  border: 1px solid rgba(2, 6, 23, 0.04);
 }
 
 html[data-theme='dark'] .section-card-badge {
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.02);
   color: var(--text-primary);
-  border-color: rgba(255,255,255,0.03);
+  border-color: rgba(255, 255, 255, 0.03);
 }
 
 html[data-theme='dark'] .section-card-badge--primary {
-  background: rgba(59,130,246,0.08);
-  border-color: rgba(59,130,246,0.18);
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.18);
 }
 
 /* Long / hero-like section card that spans horizontally with more height */
@@ -294,7 +294,8 @@ html[data-theme='dark'] .section-card-badge--primary {
   border-radius: 18px;
   min-height: 140px;
   align-items: center;
-  position: relative; /* ensure absolute children anchor to this container */
+  position: relative;
+  /* ensure absolute children anchor to this container */
 }
 
 /* Position badges as small pills anchored bottom-right inside long cards */
@@ -366,4 +367,3 @@ html[data-theme='dark'] .section-card-badge--primary {
     justify-content: flex-start;
   }
 }
-
