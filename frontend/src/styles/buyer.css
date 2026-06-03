@@ -467,6 +467,15 @@ html[data-theme='dark'] .bdr-main { background: var(--page-bg); }
 .bdr-main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .bdr-main::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
+/* Messages view: no padding, no gap, must not scroll itself — let chat panel scroll internally */
+.bdr-main--messages {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 
 /* ─────────────────────────────────────────────────────
    HERO BANNER

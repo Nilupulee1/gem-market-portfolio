@@ -4,6 +4,7 @@ import ConversationsList from '../common/ConversationsList';
 import AuctionChat from '../common/AuctionChat';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
+import { adminAPI } from '../../api/axios';
 
 interface SelectedConversation {
   _id: string;
@@ -50,10 +51,27 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
   const [selectedConversation, setSelectedConversation] = useState<SelectedConversation | null>(null);
   const [showDirectChat, setShowDirectChat] = useState<boolean>(!!(initialContact && initialGem));
   const [forceFullWidth, setForceFullWidth] = useState<boolean>(!!(initialContact && initialGem));
+  
+  const [directPartner, setDirectPartner] = useState<{ _id: string; name: string } | null>(null);
+  const [partners, setPartners] = useState<Array<{ _id: string; name: string; role: string }>>([]);
 
   useEffect(() => {
     resetUnreadCount();
   }, [resetUnreadCount]);
+
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.role === 'operational_manager')) {
+      const fetchPartners = async () => {
+        try {
+          const res = await adminAPI.getChatPartners();
+          setPartners(res.data.partners || []);
+        } catch (e) {
+          console.error('Failed to fetch chat partners:', e);
+        }
+      };
+      fetchPartners();
+    }
+  }, [user]);
 
   if (!user) {
     return (
@@ -80,7 +98,7 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
         : selectedConversation.seller.name)
     : initialContact?.name || 'Support Inbox';
 
-  const isDirectOpen = showDirectChat && !selectedConversation && !!(initialContact && initialGem);
+  const isDirectOpen = (showDirectChat && !selectedConversation && !!(initialContact && initialGem)) || (!!directPartner && !selectedConversation);
 
   useEffect(() => {
     const hasDirectContext = !!(initialContact && initialGem);
@@ -95,7 +113,10 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
   }, [initialContact, initialGem]);
 
   useEffect(() => {
-    if (selectedConversation) setForceFullWidth(false);
+    if (selectedConversation) {
+      setForceFullWidth(false);
+      setDirectPartner(null);
+    }
   }, [selectedConversation]);
 
   useEffect(() => {
@@ -111,9 +132,40 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
           {/* Conversations column (hidden when opening a direct chat) */}
           {!isDirectOpen && !forceFullWidth && (
             <Col lg={3} md={4} className="conversations-column">
+              {user && (user.role === 'admin' || user.role === 'operational_manager') && partners.length > 0 && (
+                <div className="p-3 mb-2" style={{ background: 'var(--page-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <label className="mb-2 d-block" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                    {user.role === 'admin' ? 'Message Operational Manager' : 'Message Administrator'}
+                  </label>
+                  <select
+                    className="chat-gem-selector w-100"
+                    style={{ padding: '8px 12px', fontSize: '13px' }}
+                    value={directPartner?._id || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) {
+                        setDirectPartner(null);
+                        return;
+                      }
+                      const partner = partners.find(p => p._id === val);
+                      if (partner) {
+                        setSelectedConversation(null);
+                        setDirectPartner(partner);
+                      }
+                    }}
+                  >
+                    <option value="">-- Choose recipient --</option>
+                    {partners.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <ConversationsList
                 onSelectConversation={setSelectedConversation}
-                selectedConversationId={selectedConversation?._id}
+                selectedConversationId={selectedConversation?._id || (directPartner ? 'direct' : null)}
               />
             </Col>
           )}
@@ -134,7 +186,19 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
               />
             )}
 
-            {!selectedConversation && initialContact && initialGem && (
+            {!selectedConversation && directPartner && (
+              <AuctionChat
+                gemId="direct"
+                recipientId={directPartner._id}
+                recipientName={directPartner.name}
+                conversationLabel={`Chat with ${directPartner.name}`}
+                onClose={() => {
+                  setDirectPartner(null);
+                }}
+              />
+            )}
+
+            {!selectedConversation && !directPartner && initialContact && initialGem && (
               <AuctionChat
                 gemId={initialGem.id}
                 recipientId={initialContact._id || ''}
@@ -144,11 +208,10 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
                   setShowDirectChat(false);
                   setForceFullWidth(false);
                 }}
-                scrollOnLoad={!!isDirectOpen}
               />
             )}
 
-            {!selectedConversation && !(initialContact && initialGem) && (
+            {!selectedConversation && !directPartner && !(initialContact && initialGem) && (
               <div className="empty-chat-state">
                   <div className="empty-chat-card">
                     <div className="empty-chat-icon">

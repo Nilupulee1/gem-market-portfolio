@@ -14,16 +14,29 @@ export const sendMessage = async (req: Request, res: Response) => {
     const { auctionId, gemId, recipientId, content } = authReq.body;
     const senderId = authReq.user?.userId;
 
-    if ((!auctionId && !gemId) || !recipientId || !content || !senderId) {
-      return res.status(400).json({ error: 'Missing required fields (requires either auctionId or gemId)' });
-    }
-
     let isSellerOrBuyer = false;
     let sellerId = '';
     let buyerId: string | null = null;
     let messageGemId: string | null = null;
 
-    if (auctionId) {
+    if (!auctionId && (!gemId || gemId === 'direct')) {
+      if (!recipientId || !content || !senderId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      const sender = await User.findById(senderId);
+      const recipient = await User.findById(recipientId);
+      if (!sender || !recipient) {
+        return res.status(404).json({ error: 'Sender or recipient not found' });
+      }
+      const isSenderAdminOrManager = sender.role === 'admin' || sender.role === 'operational_manager';
+      const isRecipientAdminOrManager = recipient.role === 'admin' || recipient.role === 'operational_manager';
+      if (!isSenderAdminOrManager || !isRecipientAdminOrManager) {
+        return res.status(403).json({ error: 'Direct messages are only allowed between admins and operational managers' });
+      }
+      sellerId = sender.role === 'admin' ? senderId : recipientId;
+      buyerId = sender.role === 'operational_manager' ? senderId : recipientId;
+      isSellerOrBuyer = true;
+    } else if (auctionId) {
       // Verify auction exists and user is involved
       const auction = await Auction.findById(auctionId).populate('seller winner gem');
       if (!auction) {
@@ -36,7 +49,7 @@ export const sendMessage = async (req: Request, res: Response) => {
       messageGemId = auction.gem?._id ? auction.gem._id.toString() : auction.gem.toString();
 
       isSellerOrBuyer = sellerId === senderId || (winnerId === senderId) || recipientId === sellerId;
-    } else if (gemId) {
+    } else if (gemId && gemId !== 'direct') {
       const gem = await Gem.findById(gemId);
       if (!gem) {
         return res.status(404).json({ error: 'Gem not found' });
@@ -68,6 +81,10 @@ export const sendMessage = async (req: Request, res: Response) => {
     // Update or create conversation
     const resolvedBuyer = buyerId || (senderId === sellerId ? recipientId : senderId);
     let query: any = { participants: { $all: [sellerId, resolvedBuyer] } };
+    if (!auctionId && (!gemId || gemId === 'direct')) {
+      query.auction = { $exists: false };
+      query.gem = { $exists: false };
+    }
 
     let conversation = await Conversation.findOne(query).sort({ updatedAt: -1 });
     
@@ -143,6 +160,11 @@ export const getGemMessages = async (req: Request, res: Response) => {
     const query: any = recipientId
       ? { participants: { $all: [userId, recipientId] } }
       : { participants: userId };
+    
+    if (gemId === 'direct') {
+      query.auction = { $exists: false };
+      query.gem = { $exists: false };
+    }
     
     const conversation = await Conversation.findOne(query).sort({ updatedAt: -1 });
 
@@ -327,9 +349,15 @@ export const markMessagesAsRead = async (req: Request, res: Response) => {
         auction: auctionId as any,
         participants: { $all: [userId, senderId] }
       } as any);
-    } else if (gemId) {
+    } else if (gemId && gemId !== 'direct') {
       conversation = await Conversation.findOne({
         gem: gemId as any,
+        participants: { $all: [userId, senderId] }
+      } as any);
+    } else if (gemId === 'direct' || (!auctionId && !gemId)) {
+      conversation = await Conversation.findOne({
+        auction: { $exists: false },
+        gem: { $exists: false },
         participants: { $all: [userId, senderId] }
       } as any);
     }

@@ -256,20 +256,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 0; /* removed outer border */
+  border-radius: var(--radius-lg);
+  background: var(--page-surface);
+  border: 0;
 }
 
 .conversations-card {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-radius: 30px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: linear-gradient(180deg, #ffffff, #fbf9ff);
-  border: 0; /* removed outer border */
-  box-shadow: none; /* remove shadow for a flatter look */
+  background: var(--page-surface);
+  border: 0;
+  box-shadow: none;
 }
 
 .conversations-header {
@@ -279,17 +279,18 @@
   gap: 16px;
   padding: 18px 18px 14px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-bright) 58%, var(--color-gold));
-  color: #fff;
+  color: var(--surface-text-on-accent);
   border: 0;
 }
 
 .conversations-header h5,
 .conversations-header small {
-  color: #fff;
+  color: var(--surface-text-on-accent);
 }
 
 .conversations-header h5 {
-  font-size: 24px;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1.1;
 }
 
@@ -303,11 +304,11 @@
 .conversations-header-icon {
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .conversations-count-badge {
@@ -321,21 +322,29 @@
   gap: 12px;
   padding: 16px;
   overflow: hidden;
-  background: linear-gradient(180deg, #ffffff, #fbf9ff);
+  background: var(--page-bg);
 }
 
 .conversation-search {
   width: 100%;
-  border: 1px solid #d7e3f5;
-  background: #fcfbff;
-  color: #2b335c;
-  border-radius: 14px;
-  padding: 12px 14px;
+  border: 1px solid var(--border);
+  background: var(--page-surface-elevated);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 10px 14px;
   outline: none;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.conversation-search:focus {
+  border-color: var(--color-bright);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .conversation-search::placeholder {
-  color: #a4a5bd;
+  color: var(--text-secondary);
+  opacity: 0.8;
 }
 
 .conversation-list-title {
@@ -352,25 +361,27 @@
 }
 
 .conversation-item {
-  border: 1px solid #e5edf7 !important;
-  border-radius: 12px !important;
-  transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
-  padding: 10px 10px;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease;
+  padding: 12px !important;
   cursor: pointer;
   margin-bottom: 8px;
-  background: linear-gradient(180deg, #ffffff, #fcfbff);
-  box-shadow: 0 6px 12px rgba(31, 79, 130, 0.04);
+  background: var(--page-surface) !important;
+  box-shadow: 0 2px 6px rgba(17, 37, 62, 0.03);
 }
 
 .conversation-item:hover {
-  transform: translateY(-2px);
-  border-color: #c5d8ef !important;
-  box-shadow: 0 16px 28px rgba(31, 79, 130, 0.1);
+  transform: translateY(-1px);
+  border-color: var(--border-strong) !important;
+  background: var(--page-surface-muted) !important;
+  box-shadow: var(--shadow-soft);
 }
 
 .conversation-item.selected {
-  background: linear-gradient(135deg, rgba(31, 79, 130, 0.08), rgba(212, 165, 116, 0.08));
-  border-color: #b9cde3 !important;
+  background: rgba(207, 168, 110, 0.08) !important;
+  border-color: var(--color-gold) !important;
+  box-shadow: var(--shadow-soft);
 }
 
 .conversation-item.unread {
@@ -380,10 +391,10 @@
 .conversations-empty {
   padding: 20px;
   text-align: center;
-  border-radius: 16px;
-  background: #f7fbff;
-  color: #6f7596;
-  border: 1px dashed #cbdcf0;
+  border-radius: 12px;
+  background: var(--page-surface-muted);
+  color: var(--text-secondary);
+  border: 1px dashed var(--border);
 }
 
 .conversation-avatar {
@@ -393,7 +404,7 @@
   display: grid;
   place-items: center;
   margin-right: 10px;
-  color: #fff;
+  color: var(--surface-text-on-accent);
   font-weight: 700;
   font-size: 14px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-bright));
@@ -401,50 +412,51 @@
 }
 
 .conversation-info h6 {
-  color: #22244a;
+  color: var(--text-primary);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
   margin-bottom: 2px;
 }
 
 .conversation-meta {
-  color: #2f6de1;
+  color: var(--color-bright);
   font-size: 11px;
 }
 
 .message-preview {
-  color: #7280a3;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.25;
 }
 
 .conversation-time-block {
-  color: #98a1be;
+  color: var(--text-secondary);
   font-size: 11px;
   min-width: 64px;
 }
 
 .conversation-time-block .price {
-  color: #6d54d8;
+  color: var(--color-bright);
   font-weight: 700;
 }
 
 .conversation-time {
-  color: #98a1be;
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-top: 4px;
 }
 
 .conversation-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #e25574, #ef4444);
-  color: #fff;
-  font-size: 11px;
+  background: var(--danger);
+  color: var(--surface-text-on-accent);
+  font-size: 10px;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -453,13 +465,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #d7344f;
+  color: var(--danger);
 }
 
 .conversation-unread-indicator .conversation-badge {
-  min-width: 22px;
-  height: 22px;
-  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 9px;
 }
 
 .chat-message-count {

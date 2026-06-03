@@ -1,17 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, Table, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { Check, CheckCircle, Ban, ChevronDown, Download, ScanSearch, ArrowLeft, FileDown } from 'lucide-react';
+import { Check, CheckCircle, Ban, ScanSearch, ArrowLeft, Download, FileDown } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
 import { sendMessage } from '../../api/socket';
 import type { Gem } from '../../types';
+import { UserRole } from '../../types';
 import { AxiosError } from 'axios';
+import { useAuthStore } from '../../store/authStore';
+import '../../styles/gemdetails.css';
 
 interface PendingGemsProps {
   onApprove: () => void;
 }
 
 const PendingGems = ({ onApprove }: PendingGemsProps) => {
+  const { user } = useAuthStore();
   const [gems, setGems] = useState<Gem[]>([]);
+  const [filterType, setFilterType] = useState('All');
+  const [filterCarat, setFilterCarat] = useState('All');
+  const [sortOrder, setSortOrder] = useState('oldest');
   const [loading, setLoading] = useState(true);
   const [selectedGem, setSelectedGem] = useState<Gem | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -78,7 +85,7 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
       return;
     }
 
-    if (reviewStatus === 'approved' && reviewChecklistState.some((isChecked) => !isChecked)) {
+    if (user?.role === UserRole.OPERATIONAL_MANAGER && reviewStatus === 'approved' && reviewChecklistState.some((isChecked) => !isChecked)) {
       setError('Please confirm all checklist items before approving this gem');
       return;
     }
@@ -137,40 +144,62 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     });
   };
 
-  const getCertificateAccessUrl = (gem: Gem) => {
-    return gem.certificate?.accessUrl || gem.certificate?.url || '';
-  };
 
-  const handleDownloadCertificate = async (certificateUrl: string, fileName: string) => {
+  const uniqueTypes = useMemo(() => Array.from(new Set(gems.map(g => g.type))).sort(), [gems]);
+
+  const orderedGems = useMemo(() => {
+    let filtered = [...gems];
+    
+    if (filterType !== 'All') {
+      filtered = filtered.filter(g => g.type === filterType);
+    }
+    
+    if (filterCarat !== 'All') {
+      filtered = filtered.filter(g => {
+        if (filterCarat === '<1ct') return g.carat < 1;
+        if (filterCarat === '1-3ct') return g.carat >= 1 && g.carat <= 3;
+        if (filterCarat === '>3ct') return g.carat > 3;
+        return true;
+      });
+    }
+
+    return filtered.sort((left, right) => {
+      const diff = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+      return sortOrder === 'oldest' ? diff : -diff;
+    });
+  }, [gems, filterType, filterCarat, sortOrder]);
+
+  const selectedGemImages = selectedGem?.images?.filter(Boolean) ?? [];
+  const mainGemImage = selectedGemImages[0] || 'https://via.placeholder.com/900x700';
+  const certificateUrl = selectedGem?.certificate?.accessUrl || selectedGem?.certificate?.url || '';
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadCertificate = async () => {
+    if (!certificateUrl || !selectedGem) return;
+    setDownloading(true);
     try {
       const response = await fetch(certificateUrl);
       if (!response.ok) throw new Error(`Failed to fetch certificate: ${response.status}`);
-
       const blob = await response.blob();
       const objectUrl = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
-
       anchor.href = objectUrl;
-      anchor.download = fileName;
+      anchor.download = `${selectedGem.type.replace(/\s+/g, '_').toLowerCase()}-certificate.pdf`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-
       window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
     } catch (error) {
       console.error('Failed to download certificate:', error);
       window.open(certificateUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloading(false);
     }
   };
 
-  const orderedGems = useMemo(
-    () => [...gems].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()),
-    [gems]
-  );
-
-  const selectedGemImages = selectedGem?.images?.filter(Boolean) ?? [];
-  const mainGemImage = selectedGemImages[0] || 'https://via.placeholder.com/900x700';
-  const certificateUrl = selectedGem ? getCertificateAccessUrl(selectedGem) : '';
+  const gemStory = selectedGem
+    ? `This ${selectedGem.type.toLowerCase()} arrived from ${selectedGem.origin} as part of a carefully documented submission from ${selectedGem.seller.name}. The stone weighs ${selectedGem.carat} ct and presents with ${selectedGem.clarity} clarity, ${selectedGem.cut} cut, and ${selectedGem.color} color. The seller describes it as ${selectedGem.description}`
+    : '';
 
   const reviewChecklist = [
     { title: 'Authenticity Confirmed', description: 'Visual markers align with the submitted certificate and photos.' },
@@ -178,10 +207,7 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
     { title: 'Document Match', description: 'Certificate number and issuer match the listing metadata.' },
   ];
 
-  const canApprove = reviewChecklistState.every(Boolean);
-  const gemStory = selectedGem
-    ? `This ${selectedGem.type.toLowerCase()} arrived from ${selectedGem.origin} as part of a carefully documented submission from ${selectedGem.seller.name}. The stone weighs ${selectedGem.carat} ct and presents with ${selectedGem.clarity} clarity, ${selectedGem.cut} cut, and ${selectedGem.color} color. The seller describes it as ${selectedGem.description}`
-    : '';
+  const canApprove = user?.role === UserRole.OPERATIONAL_MANAGER ? reviewChecklistState.every(Boolean) : true;
 
   return (
     <div>
@@ -197,16 +223,35 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
       </div>
 
       <div className="pending-gems-toolbar animate-fade-up delay-1">
-        <div className="pending-gems-filters">
-          <button type="button" className="pending-gems-filter">
-            Gem Type <ChevronDown size={14} />
-          </button>
-          <button type="button" className="pending-gems-filter">
-            Price Range <ChevronDown size={14} />
-          </button>
-          <button type="button" className="pending-gems-filter">
-            Sort By: Oldest <ChevronDown size={14} />
-          </button>
+        <div className="pending-gems-filters d-flex gap-2">
+          <select 
+            className="pending-gems-filter custom-select-arrow" 
+            value={filterType} 
+            onChange={(e) => setFilterType(e.target.value)}
+          >
+            <option value="All">All Types</option>
+            {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+
+          <select 
+            className="pending-gems-filter custom-select-arrow" 
+            value={filterCarat} 
+            onChange={(e) => setFilterCarat(e.target.value)}
+          >
+            <option value="All">All Weights</option>
+            <option value="<1ct">Under 1 ct</option>
+            <option value="1-3ct">1 - 3 ct</option>
+            <option value=">3ct">Over 3 ct</option>
+          </select>
+
+          <select 
+            className="pending-gems-filter custom-select-arrow" 
+            value={sortOrder} 
+            onChange={(e) => setSortOrder(e.target.value)}
+          >
+            <option value="oldest">Sort By: Oldest</option>
+            <option value="newest">Sort By: Newest</option>
+          </select>
         </div>
 
         <div className="pending-gems-summary">
@@ -362,50 +407,87 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
                       <span>Submitted</span>
                       <strong>{formatDate(selectedGem.createdAt)}</strong>
                     </div>
-                    <div>
-                      <span>Certificate</span>
-                      <strong>{selectedGem.certificate?.certificateNumber || 'N/A'}</strong>
-                    </div>
-                    <div>
-                      <span>Authority</span>
-                      <strong>{selectedGem.certificate?.authority || 'Unknown'}</strong>
-                    </div>
                   </div>
                 </div>
               </section>
 
               <aside className="admin-review-panel">
-                {/* ... existing header, metrics, certificate cards ... */}
-
-                <div className="admin-review-surface-card admin-review-checklist-card">
-                  <div className="admin-review-section-heading">
-                    <div>
-                      <p>Checklist</p>
-                      <h3>Verification Criteria</h3>
+                <div className="gd-surface-card mb-4">
+                  <div className="gd-cert-tile">
+                    <div className="gd-cert-icon">
+                      <FileDown size={18} />
                     </div>
+                    <div className="gd-cert-copy">
+                      <span>{selectedGem.certificate?.authority || 'Certificate'}</span>
+                      <strong>Verified Digital Copy</strong>
+                    </div>
+                    {certificateUrl && (
+                      <a
+                        href={certificateUrl}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          void handleDownloadCertificate();
+                        }}
+                        className={`gd-download-link ${downloading ? 'disabled' : ''}`}
+                        aria-label="Download certificate"
+                      >
+                        <Download size={16} />
+                      </a>
+                    )}
                   </div>
 
-                  <div className="admin-review-checklist">
-                    {reviewChecklist.map((item, index) => (
-                      <Form.Check key={item.title} className="admin-review-checklist-item-form">
-                        <Form.Check.Input
-                          type="checkbox"
-                          id={`check-${index}`}
-                          checked={reviewChecklistState[index]}
-                          onChange={() => setReviewChecklistState((current) => 
-                            current.map((c, i) => (i === index ? !c : c))
-                          )}
-                        />
-                        <Form.Check.Label htmlFor={`check-${index}`} className="admin-review-checklist-item-label">
-                          <strong>{item.title}</strong>
-                          <div className="admin-review-checklist-item-desc">{item.description}</div>
-                        </Form.Check.Label>
-                      </Form.Check>
-                    ))}
+                  <div className="gd-cert-meta">
+                    <div><span>Authority</span><strong>{selectedGem.certificate?.authority || 'Unknown'}</strong></div>
+                    <div><span>Certificate No.</span><strong>{selectedGem.certificate?.certificateNumber || 'N/A'}</strong></div>
                   </div>
                 </div>
 
+                {user?.role === UserRole.OPERATIONAL_MANAGER && (
+                  <div className="admin-review-surface-card admin-review-checklist-card" style={{ marginBottom: '16px', padding: '16px' }}>
+                    <div className="admin-review-section-heading" style={{ marginBottom: '12px' }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: '11px' }}>Checklist</p>
+                        <h3 style={{ margin: 0, fontSize: '15px' }}>Verification Criteria</h3>
+                      </div>
+                    </div>
+
+                    <div className="admin-review-checklist">
+                      {reviewChecklist.map((item, index) => (
+                        <Form.Check 
+                          key={item.title} 
+                          className="admin-review-checklist-item-form"
+                          style={{ 
+                            padding: '8px 12px', 
+                            margin: '0 0 8px 0', 
+                            border: '1px solid var(--border, #e2e8f0)', 
+                            borderRadius: '8px', 
+                            background: 'var(--page-bg-alt, #f8fafc)',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '8px'
+                          }}
+                        >
+                          <Form.Check.Input
+                            type="checkbox"
+                            id={`check-${index}`}
+                            checked={reviewChecklistState[index]}
+                            onChange={() => setReviewChecklistState((current) => 
+                              current.map((c, i) => (i === index ? !c : c))
+                            )}
+                            style={{ marginTop: '4px' }}
+                          />
+                          <Form.Check.Label htmlFor={`check-${index}`} className="admin-review-checklist-item-label" style={{ margin: 0 }}>
+                            <strong style={{ fontSize: '13px', display: 'block', color: 'var(--text-primary)' }}>{item.title}</strong>
+                            <div className="admin-review-checklist-item-desc" style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: '1.4' }}>{item.description}</div>
+                          </Form.Check.Label>
+                        </Form.Check>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                {/* Decision Card - Smaller & Cleaner Buttons */}
+               {user?.role !== UserRole.ADMIN && (
                 <div className="admin-review-surface-card admin-review-decision-card">
                   <div className="admin-review-section-heading">
                     <div>
@@ -447,8 +529,8 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
                     
                   </div>
 
-                  {!canApprove && reviewStatus === 'approved' && (
-                    <p className="admin-review-gate-note text-center mt-3 small">
+                  {!canApprove && reviewStatus === 'approved' && user?.role === UserRole.OPERATIONAL_MANAGER && (
+                    <p className="admin-review-gate-note text-center mt-2 mb-0 small" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                       Approve is enabled after all checklist items are confirmed.
                     </p>
                   )}
@@ -498,6 +580,7 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
                       </Button>
                     )}
                 </div>
+               )}
               </aside>
             </div>
           )}

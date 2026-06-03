@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Card, Button, Form, Modal, InputGroup, Alert } from 'react-bootstrap';
-import { Search, Clock, Target, Trophy, ChevronLeft, ChevronRight, TrendingUp, LogOut, Moon, Sun } from 'lucide-react';
+import { Row, Col, Card, Button, Form, InputGroup, Alert } from 'react-bootstrap';
+import { Search, Clock, Target, Trophy, ChevronLeft, ChevronRight, TrendingUp, LogOut } from 'lucide-react';
 import type { Auction } from '../../types';
-import { buyerAPI, auctionAPI } from '../../api/axios';
-import LiveAuctions from './LiveAuctions';
+import { buyerAPI, auctionAPI, gemAPI } from '../../api/axios';
+import GemDetails from './GemDetails';
+import AuctionBid from './AuctionBid';
 import logo from '../../assets/logo.png';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -11,14 +12,12 @@ import { useChatStore } from '../../store/chatStore';
 
 interface BuyerAuctionsPageProps {
   onContactSeller?: (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => void;
-  theme?: 'light' | 'dark';
-  onToggleTheme?: () => void;
 }
 
 const ITEMS_PER_PAGE = 6;
 type SidebarSection = 'overview' | 'live' | 'myAuctions' | 'won';
 
-const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, theme, onToggleTheme }) => {
+const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const unreadCount = useChatStore((state) => state.unreadCount);
@@ -26,11 +25,17 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
   const [activeBids, setActiveBids] = useState<Auction[]>([]);
   const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'endDate' | 'startDate' | 'bidAmount'>('endDate');
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
-  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedGemDetails, setSelectedGemDetails] = useState<Auction['gem'] | null>(null);
+  const [bidAmount, setBidAmount] = useState('');
+  const [showBidConfirm, setShowBidConfirm] = useState(false);
+  const [placingBid, setPlacingBid] = useState(false);
+  const [bidFeedback, setBidFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [bidHistory, setBidHistory] = useState<Array<{ auctionId: string; amount: number; timestamp: string }>>([]);
   const [activeTab, setActiveTab] = useState<'myAuctions' | 'won'>('myAuctions');
   const [currentPage, setCurrentPage] = useState(1);
   const [watchlistIds, setWatchlistIds] = useState<string[]>([]);
@@ -60,14 +65,18 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
     try {
       setLoading(true);
       setErrorMessage('');
-      const [liveRes, activeRes, wonRes] = await Promise.all([
+      const [liveRes, activeRes, wonRes, histRes] = await Promise.all([
         auctionAPI.getActiveAuctions(),
         buyerAPI.getActiveBids(),
         buyerAPI.getWonAuctions(),
+        buyerAPI.getBidHistory(),
       ]);
       setLiveAuctions(liveRes.data?.auctions || []);
-      setActiveBids(activeRes.data?.activeBids || activeRes.data || []);
+      setActiveBids(
+        (activeRes.data?.activeBids || activeRes.data || []).map((b: any) => b.auction || b)
+      );
       setWonAuctions(wonRes.data?.wonAuctions || wonRes.data || []);
+      setBidHistory(histRes.data?.bidHistory || []);
     } catch (err) {
       console.error(err);
       setErrorMessage('Failed to load auctions. Please refresh and try again.');
@@ -91,7 +100,7 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
   const getAuctionStatus = (auction: Auction) =>
     toTimestamp(auction.endTime) > Date.now() ? 'active' : 'ended';
 
-  const formatRemaining = (endTime: string) => {
+  const formatRemaining = (endTime: string, _nowMs?: number) => {
     const ms = Date.parse(endTime) - nowMs;
     if (ms <= 0) return 'Ended';
     const d = Math.floor(ms / 86400000);
@@ -170,15 +179,58 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
     document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleViewDetails = (auction: Auction) => {
-    setSelectedAuction(auction);
-    setShowViewModal(true);
+  const openDetails = async (auctionId: string) => {
+    try {
+      setLoadingDetails(true); setBidFeedback(null); setShowBidConfirm(false);
+      const res = await auctionAPI.getAuctionById(auctionId);
+      const auctionData = res.data.auction || res.data;
+      setSelectedAuction(auctionData);
+      const gemId = auctionData?.gem?._id || auctionData?.gem;
+      if (gemId) {
+        const gr = await gemAPI.getGemById(gemId);
+        setSelectedGemDetails(gr.data.gem || gr.data);
+      } else {
+        setSelectedGemDetails(auctionData.gem || null);
+      }
+    } catch (e) { console.error(e); }
+    finally { setLoadingDetails(false); }
   };
 
-  const handleContactSeller = () => {
-    if (selectedAuction && onContactSeller)
-      onContactSeller(selectedAuction.seller, selectedAuction.gem.type, selectedAuction.gem._id);
+  const closeDetails = () => {
+    setSelectedAuction(null); setSelectedGemDetails(null);
+    setBidAmount(''); setShowBidConfirm(false); setBidFeedback(null);
   };
+
+  const requestBidConfirmation = () => {
+    if (!selectedAuction || !bidAmount) return;
+    const parsed = parseFloat(bidAmount);
+    const minBid = selectedAuction.currentBid + selectedAuction.minimumBidIncrement;
+    if (isNaN(parsed) || parsed < minBid) {
+      setBidFeedback({ type: 'error', message: `Minimum bid is ${formatCurrency(minBid)}` });
+      return;
+    }
+    setShowBidConfirm(true);
+  };
+
+  const placeBid = async () => {
+    if (!selectedAuction || !bidAmount) return;
+    try {
+      setPlacingBid(true);
+      await auctionAPI.placeBid({ auctionId: selectedAuction._id, amount: parseFloat(bidAmount) });
+      setBidFeedback({ type: 'success', message: 'Bid placed successfully!' });
+      setShowBidConfirm(false);
+      setBidAmount('');
+      await fetchAll();
+      // Refresh the open auction details
+      await openDetails(selectedAuction._id);
+    } catch (err: any) {
+      setBidFeedback({ type: 'error', message: err?.response?.data?.message || 'Failed to place bid.' });
+      setShowBidConfirm(false);
+    } finally {
+      setPlacingBid(false);
+    }
+  };
+
 
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase()
@@ -312,14 +364,28 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
           </p>
 
           {/* Button pushed to bottom */}
-          <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
-            <Button
-              className="bdr-btn-primary"
+          <div style={{ marginTop: 'auto', paddingTop: '4px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {activeTab === 'myAuctions' && getAuctionStatus(auction) === 'active' && (
+              <button
+                type="button"
+                className="bdr-btn-primary"
+                style={{ width: '100%', fontSize: '13px', padding: '8px', fontWeight: 700 }}
+                onClick={() => {
+                  setBidAmount(String(auction.currentBid + (auction.minimumBidIncrement || 1000)));
+                  openDetails(auction._id);
+                }}
+              >
+                Increase Bid
+              </button>
+            )}
+            <button
+              type="button"
+              className="bdr-btn-ghost"
               style={{ width: '100%', fontSize: '13px', padding: '8px' }}
-              onClick={() => handleViewDetails(auction)}
+              onClick={() => openDetails(auction._id)}
             >
-              {activeTab === 'won' ? 'Contact Seller' : 'View Details'}
-            </Button>
+              {activeTab === 'won' ? 'View Details' : 'View Details'}
+            </button>
           </div>
         </div>
       </article>
@@ -335,23 +401,6 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
             <img src={logo} alt="GemFolio" className="bdr-navbar-logo" />
             <span>GemFolio</span>
           </button>
-          <div className="bdr-navbar-actions">
-            <div className="bdr-navbar-user">
-              <span className="bdr-navbar-avatar">{initials}</span>
-              <span>{user?.name?.split(' ')[0] || 'Buyer'}</span>
-            </div>
-            {onToggleTheme && (
-              <button
-                type="button"
-                className="seller-navbar-theme-toggle"
-                onClick={onToggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              >
-                {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-                <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-              </button>
-            )}
-          </div>
         </div>
       </header>
 
@@ -410,20 +459,81 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
         {/* ── Main ── */}
         <main className="bdr-main">
           {/* Live Auctions section */}
-          <div id="buyer-live-auctions">
-            <LiveAuctions
-              auctions={liveAuctions}
-              watchlistIds={watchlistIds}
-              nowMs={nowMs}
-              onToggleWatchlist={toggleWatchlist}
-              onOpenDetails={(id) => {
-                const a = liveAuctions.find((x) => x._id === id);
-                if (a) handleViewDetails(a);
-              }}
-              formatCurrency={formatCurrency}
-              formatRemaining={formatRemaining}
-              getLeadingBidderName={getLeadingBidderName}
-            />
+          <div id="buyer-live-auctions" className="content-card animate-fade-up" style={{ marginBottom: 32 }}>
+            <div className="card-body">
+              <div className="bdr-panel-header" style={{ marginBottom: 20 }}>
+                <div>
+                  <p className="dashboard-eyebrow mb-1">Live Auctions</p>
+                  <h5 className="mb-0">Currently Live ({liveAuctions.length})</h5>
+                </div>
+              </div>
+              {liveAuctions.length === 0 ? (
+                <div className="dashboard-empty-inline">
+                  {loading ? 'Loading live auctions…' : 'No live auctions are active right now. Check back soon!'}
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                  {liveAuctions.map((auction) => {
+                    const lot = auction._id.slice(-4).toUpperCase();
+                    const remainingMs = new Date(auction.endTime).getTime() - nowMs;
+                    const urgent = remainingMs > 0 && remainingMs <= 1000 * 60 * 60;
+                    const inWatchlist = watchlistIds.includes(auction._id);
+                    return (
+                      <article key={auction._id} className="market-card" style={{ cursor: 'pointer' }}>
+                        <div style={{ position: 'relative' }}>
+                          <img
+                            className="market-image"
+                            src={auction.gem?.images?.[0] || 'https://via.placeholder.com/460x280'}
+                            alt={auction.gem?.type}
+                            style={{ height: 200, objectFit: 'cover', width: '100%', display: 'block' }}
+                          />
+                          <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
+                            LOT #{lot}
+                          </span>
+                          <span style={{ position: 'absolute', top: 8, right: 8, background: urgent ? '#ef4444' : '#10b981', color: '#fff', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
+                            {urgent ? 'Closing Soon' : 'Live'}
+                          </span>
+                        </div>
+                        <div className="market-body">
+                          <strong style={{ fontSize: 16 }}>{auction.gem?.type}</strong>
+                          <p className="market-meta" style={{ marginTop: 4, marginBottom: 10 }}>
+                            {auction.gem?.origin} · {auction.gem?.carat} ct
+                          </p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <div>
+                              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)' }}>CURRENT BID</p>
+                              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-primary)' }}>{formatCurrency(auction.currentBid)}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)' }}>ENDS IN</p>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: urgent ? '#ef4444' : 'var(--text-primary)' }}>{formatRemaining(auction.endTime)}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              className="bid-btn"
+                              type="button"
+                              onClick={() => openDetails(auction._id)}
+                              style={{ flex: 1, padding: '10px', fontWeight: 700, fontSize: 13 }}
+                            >
+                              Bid Now
+                            </button>
+                            <button
+                              className="watch-btn"
+                              type="button"
+                              onClick={() => toggleWatchlist(auction._id)}
+                              style={{ padding: '10px 14px' }}
+                            >
+                              {inWatchlist ? '♥' : '♡'}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── Overview / dashboard ── */}
@@ -627,14 +737,16 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
               </div>
             ) : (
               <>
-                {/* KEY FIX: align-items-stretch so all cards in a row have equal height */}
-                <Row className="g-4 mb-4" style={{ alignItems: 'stretch' }}>
-                  {paginated.map((auction) => (
-                    <Col md={6} lg={4} key={auction._id} style={{ display: 'flex' }}>
-                      {renderAuctionCard(auction)}
-                    </Col>
-                  ))}
-                </Row>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '16px',
+                  marginTop: 8,
+                }}
+              >
+                {paginated.map((auction) => renderAuctionCard(auction))}
+              </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
@@ -668,64 +780,39 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller, 
             )}
           </div>
 
-          {/* ── View Details Modal ── */}
-          <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="lg">
-            <Modal.Header closeButton className="modal-header-gradient">
-              <Modal.Title>{activeTab === 'won' ? 'Won Auction Details' : 'Auction Details'}</Modal.Title>
-            </Modal.Header>
-            <Modal.Body className="p-4">
-              {selectedAuction && (
-                <Row className="g-4">
-                  <Col md={4}>
-                    <img
-                      src={selectedAuction.gem?.images?.[0] || 'https://via.placeholder.com/300'}
-                      alt={selectedAuction.gem?.type}
-                      style={{ width: '100%', borderRadius: 8, objectFit: 'cover', display: 'block' }}
-                    />
-                  </Col>
-                  <Col md={8}>
-                    <h5 style={{ fontWeight: 700, marginBottom: 12 }}>{selectedAuction.gem?.type}</h5>
-                    <Row className="g-2" style={{ fontSize: 13, marginBottom: 16 }}>
-                      <Col xs={6}>
-                        <div style={{ color: '#7c8aa3' }}>Start Price</div>
-                        <div style={{ fontWeight: 700, fontSize: 16 }}>{formatCurrency(selectedAuction.startPrice || 0)}</div>
-                      </Col>
-                      <Col xs={6}>
-                        <div style={{ color: '#7c8aa3' }}>Winning Bid</div>
-                        <div style={{ fontWeight: 700, fontSize: 16 }}>{formatCurrency(selectedAuction.currentBid || 0)}</div>
-                      </Col>
-                      <Col xs={6}>
-                        <div style={{ color: '#7c8aa3' }}>Seller</div>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{selectedAuction.seller?.name}</div>
-                      </Col>
-                      <Col xs={6}>
-                        <div style={{ color: '#7c8aa3' }}>Total Bids</div>
-                        <div style={{ fontWeight: 700, fontSize: 16 }}>{selectedAuction.bids?.length || 0}</div>
-                      </Col>
-                    </Row>
-                    <hr />
-                    <div style={{ fontSize: 13 }}>
-                      <div style={{ color: '#7c8aa3', marginBottom: 4 }}>
-                        {activeTab === 'won' ? 'Ended' : 'End'} Time
-                      </div>
-                      <div style={{ fontWeight: 600 }}>
-                        {new Date(selectedAuction.endTime).toLocaleString('en-US', {
-                          year: 'numeric', month: 'short', day: 'numeric',
-                          hour: '2-digit', minute: '2-digit',
-                        })}
-                      </div>
-                    </div>
-                  </Col>
-                </Row>
-              )}
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="secondary" onClick={() => setShowViewModal(false)}>Close</Button>
-              {activeTab === 'won' && (
-                <Button className="btn-primary" onClick={handleContactSeller}>Contact Seller</Button>
-              )}
-            </Modal.Footer>
-          </Modal>
+          {/* ── GemDetails panel ── */}
+          <GemDetails
+            selectedAuction={selectedAuction}
+            selectedGemDetails={selectedGemDetails}
+            loading={loadingDetails}
+            bidAmount={bidAmount}
+            bidFeedback={bidFeedback}
+            placingBid={placingBid}
+            bidHistory={bidHistory}
+            onClose={closeDetails}
+            onBidAmountChange={setBidAmount}
+            onRequestBidConfirmation={requestBidConfirmation}
+            onContactSeller={onContactSeller ? (seller, gemName, gemId) => {
+              closeDetails();
+              onContactSeller(seller, gemName, gemId);
+            } : undefined}
+            formatCurrency={formatCurrency}
+            formatDateTime={(v) => new Date(v).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            getLeadingBidderName={getLeadingBidderName}
+            getCertificateAccessUrl={(cert) => cert?.accessUrl || cert?.url || ''}
+            isPdfCertificate={(cert) => Boolean(cert?.url?.includes('.pdf') || cert?.mimeType === 'application/pdf')}
+          />
+
+          {/* ── Bid confirmation ── */}
+          <AuctionBid
+            show={showBidConfirm}
+            selectedAuction={selectedAuction}
+            bidAmount={bidAmount}
+            placingBid={placingBid}
+            onCancel={() => setShowBidConfirm(false)}
+            onConfirm={placeBid}
+            formatCurrency={formatCurrency}
+          />
         </main>
       </div>
     </div>

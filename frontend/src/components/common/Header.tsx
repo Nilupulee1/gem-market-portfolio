@@ -4,18 +4,11 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { UserRole } from '../../types';
-import { Home, LogOut, Moon, Sun } from 'lucide-react';
+import { Home, LogOut } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
-type ThemeMode = 'light' | 'dark';
 
-const Header = ({
-  theme,
-  onToggleTheme,
-}: {
-  theme: ThemeMode;
-  onToggleTheme: () => void;
-}) => {
+const Header = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const unreadCount = useChatStore((state) => state.unreadCount);
   const navigate = useNavigate();
@@ -157,15 +150,6 @@ const Header = ({
             </>
           )}
 
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            className="lux-theme-toggle"
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-          </button>
         </div>
       </motion.nav>
     </header>

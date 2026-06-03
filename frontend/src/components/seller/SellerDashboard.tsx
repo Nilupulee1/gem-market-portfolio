@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Nav, Button } from 'react-bootstrap';
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import { gemAPI } from '../../api/axios';
-import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, LogOut, Moon, Sun, Eye, Edit2 } from 'lucide-react';
+import { Gem as GemIcon, TrendingUp, Package, AlertCircle, Plus, MessageSquare, LogOut, Eye, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MyPortfolio from './MyPortfolio';
 import AddGemForm from './AddGemForm';
@@ -15,7 +15,6 @@ import type { Gem } from "../../types";
 
 type TabType = 'dashboard' | 'portfolio' | 'auctions' | 'addGem' | 'messages';
 type ListingFilter = 'all' | 'approved' | 'pending' | 'rejected';
-type ThemeMode = 'light' | 'dark';
 
 type ChatContact = {
   _id?: string;
@@ -59,13 +58,7 @@ const saveSellerDashboardCache = (cache: SellerDashboardCache) => {
   localStorage.setItem(sellerDashboardCacheKey, JSON.stringify(cache));
 };
 
-const SellerDashboard = ({
-  theme,
-  onToggleTheme,
-}: {
-  theme: ThemeMode;
-  onToggleTheme: () => void;
-}) => {
+const SellerDashboard = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -499,21 +492,6 @@ const SellerDashboard = ({
             <img src={logo} alt="GemFolio logo" className="seller-navbar-brand-logo" />
             <span>GemFolio</span>
           </button>
-          <div className="seller-navbar-actions">
-            <div className="seller-navbar-user">
-              <span>👤</span>
-              <span>{user?.name?.split(' ')[0]}</span>
-            </div>
-            <button
-              type="button"
-              onClick={onToggleTheme}
-              className="seller-navbar-theme-toggle"
-              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -618,9 +596,8 @@ const SellerDashboard = ({
           </div>
         </div>
 
-        {/* Main Content */}
         <div className={`dashboard-main-content ${activeTab === 'messages' ? 'dashboard-main-content--messages' : ''}`}>
-          <Container fluid className="p-0">
+          <Container fluid className={activeTab === 'messages' ? 'p-0 h-100' : 'p-0'}>
             {renderContent()}
           </Container>
         </div>

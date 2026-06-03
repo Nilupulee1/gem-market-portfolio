@@ -492,10 +492,10 @@ html[data-theme='dark'] .sidebar-nav-link.active { background: var(--chip-bg); c
 
 .dashboard-main-content--messages {
   overflow: hidden;
-  padding-bottom: 0;
-  padding-top: 12px;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding: 0;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 html[data-theme='dark'] .dashboard-main-content { background: var(--page-bg); }

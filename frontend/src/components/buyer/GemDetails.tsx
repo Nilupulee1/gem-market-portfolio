@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Download, FileDown, ScanSearch } from 'lucide-react';
+import { X, Download, FileDown, ScanSearch, MessageCircle, Mail } from 'lucide-react';
 import type { Auction } from '../../types';
 import '../../styles/gemdetails.css';
 
@@ -18,6 +18,7 @@ interface GemDetailsProps {
   onClose: () => void;
   onBidAmountChange: (value: string) => void;
   onRequestBidConfirmation: () => void;
+  onContactSeller?: (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => void;
   formatCurrency: (value: number) => string;
   formatDateTime: (value: string) => string;
   getLeadingBidderName: (auction?: Auction | null) => string;
@@ -43,6 +44,7 @@ const GemDetails = ({
   onClose,
   onBidAmountChange,
   onRequestBidConfirmation,
+  onContactSeller,
   formatCurrency,
   formatDateTime,
   getLeadingBidderName,
@@ -355,16 +357,36 @@ const GemDetails = ({
                 </div>
               </>
             ) : (
-              /* Direct sale (no auction) */
               <div className="gd-surface-card gd-bid-card">
                 <p className="gd-bid-label">Direct Sale</p>
                 <p className="gd-story-copy">{gem.description || 'Contact the seller for more information.'}</p>
-                <a
-                  className="gd-contact-btn"
-                  href={gem.seller?.email ? `mailto:${gem.seller.email}?subject=Inquiry about ${encodeURIComponent(gem.type)}` : '#'}
-                >
-                  Contact Seller
-                </a>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {onContactSeller && gem.seller ? (
+                    <button
+                      className="gd-contact-btn"
+                      type="button"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                      onClick={() => onContactSeller(
+                        { _id: gem.seller._id, name: gem.seller.name, email: gem.seller.email },
+                        gem.type,
+                        gem._id
+                      )}
+                    >
+                      <MessageCircle size={16} />
+                      Message Seller in Chat
+                    </button>
+                  ) : null}
+                  {gem.seller?.email && (
+                    <a
+                      className="gd-contact-btn"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none', background: 'var(--page-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                      href={`mailto:${gem.seller.email}?subject=Inquiry about ${encodeURIComponent(gem.type)}`}
+                    >
+                      <Mail size={16} />
+                      Quick Email
+                    </a>
+                  )}
+                </div>
               </div>
             )}
           </aside>

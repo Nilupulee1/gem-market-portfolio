@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Heart, Timer } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import type { Auction } from '../../types';
 
 interface LiveAuctionsProps {
@@ -10,7 +10,6 @@ interface LiveAuctionsProps {
   onOpenDetails: (auctionId: string) => void;
   formatCurrency: (value: number) => string;
   formatRemaining: (endTime: string, nowMs: number) => string;
-  getLeadingBidderName: (auction?: Auction | null) => string;
   showHeader?: boolean;
 }
 
@@ -22,7 +21,6 @@ const LiveAuctions = ({
   onOpenDetails,
   formatCurrency,
   formatRemaining,
-  getLeadingBidderName,
   showHeader = true,
 }: LiveAuctionsProps) => {
   return (

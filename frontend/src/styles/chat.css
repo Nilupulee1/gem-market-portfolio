@@ -1,11 +1,13 @@
 /* ─── Support Inbox & Chat UI ───────────────────────────────────────────── */
 
 .messages-page {
-  background: #f5f6fa;
-  height: 100vh;
-  min-height: 100vh;
+  background: var(--page-bg);
+  height: 100% !important;
+  min-height: 0 !important;
   padding: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .messages-page .messages-shell {
@@ -18,6 +20,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .messages-page .messages-header {
@@ -27,15 +30,17 @@
 .messages-page .messages-header h4 {
   font-size: 22px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .conversations-column,
 .chat-column {
   padding: 0;
-  height: auto;
-  min-height: auto;
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex;
+  flex-direction: column;
 }
 
 .messages-grid,
@@ -275,9 +280,10 @@
 
 .auction-chat {
   background: var(--page-surface);
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
+  /* CRITICAL: flex column with fixed height so inner .chat-messages can scroll */
   height: 100%;
   min-height: 0;
   display: flex;
@@ -286,13 +292,14 @@
 }
 
 .chat-header {
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border);
   background: var(--page-surface);
   position: sticky;
   top: 0;
   z-index: 1200;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 1px 0 var(--border);
+  flex-shrink: 0;
 }
 
 .chat-topics-bar {
@@ -322,18 +329,25 @@
 .chat-topic-pill {
   border: 1px solid var(--border);
   background: var(--page-surface);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   border-radius: 999px;
-  padding: 7px 12px;
+  padding: 6px 12px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
+  transition: all 0.15s;
+}
+
+.chat-topic-pill:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .chat-topic-pill-active {
-  border-color: rgba(47, 109, 225, 0.26);
+  border-color: var(--color-primary);
   background: rgba(47, 109, 225, 0.1);
   color: var(--color-primary);
+  font-weight: 700;
 }
 
 .chat-header-main {
@@ -412,14 +426,22 @@
 }
 
 .chat-messages {
-  flex: 1 1 auto;
-  overflow: auto;
-  padding: 16px;
-  background: var(--page-surface-muted);
+  /* CRITICAL: must be flex-shrink and have overflow-y: auto for scroll to work */
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 16px;
+  background: var(--page-bg);
   display: flex;
   flex-direction: column;
   gap: 4px;
+  scroll-behavior: smooth;
 }
+
+.chat-messages::-webkit-scrollbar { width: 5px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.chat-messages::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
 .date-separator {
   display: block;
@@ -520,13 +542,16 @@
 .message-row.sent .message-bubble {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-bright) 100%);
   color: #fff;
-  border-top-right-radius: 3px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 12px;
 }
 
 .message-row.received .message-bubble {
   background: var(--page-surface);
   border: 1px solid var(--border);
-  border-top-left-radius: 3px;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 12px;
+  color: var(--text-primary);
 }
 
 .message-content { white-space: pre-wrap; }
@@ -572,6 +597,7 @@
   padding: 14px 18px;
   background: var(--page-surface);
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .chat-composer {
@@ -586,8 +612,8 @@
 }
 
 .chat-composer:focus-within {
-  border-color: #a5b4fc;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(47, 109, 225, 0.12);
   background: var(--page-surface);
 }
 
@@ -724,18 +750,21 @@
   color: var(--text-secondary);
 }
 
-html[data-theme='dark'] .messages-page { background: #09111f; }
+html[data-theme='dark'] .messages-page { background: var(--page-bg); }
 html[data-theme='dark'] .conversations-list-container,
 html[data-theme='dark'] .auction-chat,
 html[data-theme='dark'] .empty-chat-state { background: var(--page-surface); border-color: var(--border); }
 html[data-theme='dark'] .conversations-header,
 html[data-theme='dark'] .chat-header,
 html[data-theme='dark'] .chat-input { background: var(--page-surface); }
-html[data-theme='dark'] .chat-topics-bar,
-html[data-theme='dark'] .chat-messages { background: var(--page-surface-muted); }
+html[data-theme='dark'] .chat-topics-bar { background: var(--page-surface-muted); }
+html[data-theme='dark'] .chat-messages { background: var(--page-bg); }
+html[data-theme='dark'] .chat-topic-pill { background: var(--page-surface-elevated); color: var(--text-secondary); }
 html[data-theme='dark'] .chat-topic-pill-active { background: rgba(47, 109, 225, 0.18); color: #dbeafe; border-color: rgba(96, 165, 250, 0.34); }
 html[data-theme='dark'] .message-row.received .message-bubble,
 html[data-theme='dark'] .message-gem-card { background: var(--page-surface-elevated); border-color: var(--border); }
 html[data-theme='dark'] .message-row.sent .message-bubble { background: linear-gradient(135deg, rgba(47, 109, 225, 0.95) 0%, rgba(71, 145, 255, 0.95) 100%); }
 html[data-theme='dark'] .chat-gem-selector,
 html[data-theme='dark'] .chat-back-btn { background: var(--page-surface-elevated); color: var(--text-primary); }
+html[data-theme='dark'] .chat-composer { background: var(--page-surface-elevated); border-color: var(--border); }
+html[data-theme='dark'] .chat-composer:focus-within { border-color: var(--color-primary); }

@@ -59,7 +59,6 @@ interface AuctionChatProps {
   recipientName: string;
   conversationLabel?: string;
   onClose?: () => void;
-  scrollOnLoad?: boolean;
 }
 
 const AuctionChat: React.FC<AuctionChatProps> = ({
@@ -70,7 +69,6 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
   recipientName,
   conversationLabel,
   onClose,
-  scrollOnLoad
 }) => {
   const { user, token } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -103,6 +101,10 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
     return Array.from(gemsMap.values());
   }, [messages]);
 
+  const sortMessagesChronologically = (msgs: Message[]) => {
+    return [...msgs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  };
+
   const mergeUniqueMessages = (existingMessages: Message[], incomingMessages: Message[]) => {
     const seenIds = new Set(existingMessages.map((message) => message._id));
     const mergedMessages = [...existingMessages];
@@ -114,12 +116,26 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
       }
     });
 
-    return mergedMessages;
+    return sortMessagesChronologically(mergedMessages);
   };
 
   // Scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
+    const triggerScroll = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior });
+        const container = messagesEndRef.current.parentElement;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+    };
+
+    triggerScroll();
+
+    // Call with small timeouts to ensure it scrolls fully after DOM completes rendering
+    setTimeout(triggerScroll, 50);
+    setTimeout(triggerScroll, 200);
   };
 
   const formatDateLabel = (value: string) => {
@@ -130,14 +146,14 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom('smooth');
   }, [messages]);
 
   useEffect(() => {
-    if (!loading && scrollOnLoad) {
-      scrollToBottom();
+    if (!loading) {
+      scrollToBottom('auto');
     }
-  }, [loading, scrollOnLoad]);
+  }, [loading]);
 
   // Initialize socket and fetch messages
   useEffect(() => {
@@ -198,7 +214,7 @@ const AuctionChat: React.FC<AuctionChatProps> = ({
           return prev;
         }
 
-        return [...prev, newMessage];
+        return sortMessagesChronologically([...prev, newMessage]);
       });
       if (newMessage.sender._id !== user.id && auctionId) {
         markMessagesAsRead(auctionId, newMessage.sender._id);
