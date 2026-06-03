@@ -26,6 +26,44 @@ const auctionSchema = new Schema<IAuction>({
     required: true,
     min: 1
   },
+  listingPlacementFeePercent: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  listingPlacementFee: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  paymentConfirmed: {
+    type: Boolean,
+    default: false
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['payhere-sandbox'],
+    default: 'payhere-sandbox'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending'
+  },
+  paymentOrderId: {
+    type: String
+  },
+  paymentTransactionId: {
+    type: String
+  },
+  paymentCurrency: {
+    type: String,
+    default: 'LKR'
+  },
+  paymentAmount: {
+    type: Number,
+    min: 0
+  },
   startTime: {
     type: Date,
     required: true

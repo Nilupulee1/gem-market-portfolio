@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
+import { useChatStore } from '../../store/chatStore';
 import { UserRole } from '../../types';
-import { Home, LogOut, Menu, X } from 'lucide-react';
+import { Home, LogOut } from 'lucide-react';
 import logo from '../../assets/logo.png';
+
 
 const Header = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
+  const unreadCount = useChatStore((state) => state.unreadCount);
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 12);
@@ -20,6 +23,8 @@ const Header = () => {
   }, []);
 
   const handleLogout = () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     logout();
     navigate('/login');
   };
@@ -43,21 +48,18 @@ const Header = () => {
     navigate(getDashboardLink());
   };
 
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
+
   const handleBrandClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/');
-    setIsMobileMenuOpen(false);
-  };
-
-  const handleNavigate = (path: string) => {
-    navigate(path);
-    setIsMobileMenuOpen(false);
   };
 
   const publicNavLinks = [
-    { label: 'Gemstones', href: '#featured-gems' },
-    { label: 'How It Works', href: '#how-it-works' },
-    { label: 'Featured Gems', href: '#featured-gems' },
+    { label: 'Gemstones', href: '/#featured-gems' },
+    { label: 'How It Works', href: '/#how-it-works' },
   ];
 
   return (
@@ -73,16 +75,7 @@ const Header = () => {
           <span className="lux-brand-text">GemFolio</span>
         </a>
 
-        <button
-          type="button"
-          onClick={() => setIsMobileMenuOpen((value) => !value)}
-          className="lux-mobile-toggle md-hidden"
-          aria-label="Toggle menu"
-        >
-          {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-        </button>
-
-        <div className="lux-nav-actions md-visible">
+        <div className="lux-nav-actions">
           {isAuthenticated ? (
             <>
               <a
@@ -92,6 +85,26 @@ const Header = () => {
               >
                 <Home size={16} />
                 Dashboard
+                {unreadCount > 0 && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        minWidth: 20,
+                        height: 20,
+                        borderRadius: 999,
+                        padding: '0 6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'var(--danger)',
+                        color: 'var(--surface-text-on-accent)',
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {unreadCount}
+                    </span>
+                )}
                 <span className="lux-link-underline" />
               </a>
               <span className="lux-user-chip">
@@ -100,23 +113,25 @@ const Header = () => {
               <button
                 type="button"
                 onClick={handleLogout}
+                disabled={isLoggingOut}
                 className="lux-logout-btn"
+                style={{ opacity: isLoggingOut ? 0.6 : 1, cursor: isLoggingOut ? 'not-allowed' : 'pointer' }}
               >
                 <LogOut size={16} />
-                Logout
+                {isLoggingOut ? 'Signing out...' : 'Logout'}
               </button>
             </>
           ) : (
             <>
               {publicNavLinks.map((link) => (
-                <a
+                <Link
                   key={link.label}
-                  href={link.href}
+                  to={link.href}
                   className="lux-nav-link"
                 >
                   <span>{link.label}</span>
                   <span className="lux-link-underline" />
-                </a>
+                </Link>
               ))}
               <button
                 type="button"
@@ -134,53 +149,9 @@ const Header = () => {
               </button>
             </>
           )}
+
         </div>
       </motion.nav>
-
-      {isMobileMenuOpen && (
-        <div className="lux-mobile-panel md-hidden">
-          {isAuthenticated ? (
-            <div className="lux-mobile-list">
-              <button
-                type="button"
-                onClick={() => handleNavigate(getDashboardLink())}
-                className="lux-mobile-item"
-              >
-                Dashboard
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="lux-mobile-item danger"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <div className="lux-mobile-list">
-              {publicNavLinks.map((link) => (
-                <a key={link.label} href={link.href} className="lux-mobile-item">
-                  {link.label}
-                </a>
-              ))}
-              <button
-                type="button"
-                onClick={() => handleNavigate('/login')}
-                className="lux-mobile-item"
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => handleNavigate('/register')}
-                className="lux-mobile-primary"
-              >
-                Get Started
-              </button>
-            </div>
-          )}
-        </div>
-      )}
     </header>
   );
 };

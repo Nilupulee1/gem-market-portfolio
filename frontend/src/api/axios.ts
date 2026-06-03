@@ -44,6 +44,10 @@ export const authAPI = {
     axiosInstance.post('/auth/register', data),
   login: (data: { email: string; password: string }) =>
     axiosInstance.post('/auth/login', data),
+  forgotPassword: (data: { email: string }) =>
+    axiosInstance.post('/auth/forgot-password', data),
+  resetPassword: (data: { token: string; password: string }) =>
+    axiosInstance.post('/auth/reset-password', data),
 };
 
 export const gemAPI = {
@@ -55,21 +59,27 @@ export const gemAPI = {
   getApprovedGems: (params?: Record<string, string | number>) =>
   axiosInstance.get('/gems/approved', { params }),
   getGemById: (id: string) => axiosInstance.get(`/gems/${id}`),
-  updateGem: (id: string, data: Partial<{
-    type: string;
-    carat: number;
-    cut: string;
-    clarity: string;
-    color: string;
-    origin: string;
-    description: string;
-  }>) => axiosInstance.patch(`/gems/${id}`, data),
+  updateGem: (id: string, data: any) => {
+    if (data instanceof FormData) {
+      return axiosInstance.patch(`/gems/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+    }
+    return axiosInstance.patch(`/gems/${id}`, data);
+  },
   deleteGem: (id: string) => axiosInstance.delete(`/gems/${id}`),
 };
 
 export const auctionAPI = {
   createAuction: (data: Record<string, unknown>) =>
   axiosInstance.post('/auctions', data),
+
+  initiatePayHereCheckout: (data: Record<string, unknown>) =>
+    axiosInstance.post('/auctions/payhere/initiate', data),
+
+  retryPayHereCheckout: (id: string) =>
+    axiosInstance.post(`/auctions/${id}/payhere/retry`),
+
+  updateAuctionStatus: (id: string, data: { status: string }) =>
+    axiosInstance.patch(`/auctions/${id}/status`, data),
 
   placeBid: (data: { auctionId: string; amount: number }) =>
     axiosInstance.post('/auctions/bid', data),
@@ -84,7 +94,12 @@ export const adminAPI = {
   reviewGem: (data: { gemId: string; status: string; feedback?: string }) =>
     axiosInstance.post('/admin/gems/review', data),
   getAllUsers: () => axiosInstance.get('/admin/users'),
+  createAdminOrManager: (data: { name: string; email: string; password: string; role: string }) =>
+    axiosInstance.post('/admin/users/create', data),
   getStatistics: () => axiosInstance.get('/admin/statistics'),
+  getAllAuctions: () => axiosInstance.get('/admin/auctions'),
+  getActivity: () => axiosInstance.get('/admin/activity'),
+  getChatPartners: () => axiosInstance.get('/admin/chat-partners'),
 };
 
 export const buyerAPI = {

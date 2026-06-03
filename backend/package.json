@@ -6,13 +6,15 @@
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "reset-password": "ts-node scripts/resetPassword.ts"
+    "reset-password": "ts-node scripts/resetPassword.ts",
+    "dedupe-conversations": "ts-node scripts/dedupeConversations.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/socket.io": "^3.0.1",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
@@ -23,7 +25,10 @@
     "mongodb": "^7.1.1",
     "mongoose": "^9.1.5",
     "multer": "^2.0.2",
-    "multer-storage-cloudinary": "^4.0.0"
+    "multer-storage-cloudinary": "^4.0.0",
+    "nodemailer": "^6.9.7",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -33,6 +38,7 @@
     "@types/mongoose": "^5.11.97",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.0.9",
+    "@types/nodemailer": "^6.4.14",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

@@ -3,7 +3,8 @@ import { Document, Types } from 'mongoose';
 export enum UserRole {
   SELLER = 'seller',
   BUYER = 'buyer',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+  OPERATIONAL_MANAGER = 'operational_manager'
 }
 
 export enum GemStatus {
@@ -14,8 +15,13 @@ export enum GemStatus {
 
 export enum AuctionStatus {
   ACTIVE = 'active',
+  PENDING_PAYMENT = 'pending_payment',
   ENDED = 'ended',
   CANCELLED = 'cancelled'
+}
+
+export enum PaymentMethod {
+  SANDBOX = 'sandbox'
 }
 
 export interface IUser extends Document {
@@ -25,6 +31,8 @@ export interface IUser extends Document {
   password: string;
   role: UserRole;
   isVerified: boolean;
+  passwordResetToken?: string | null;
+  passwordResetExpiry?: Date | null;
   createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -66,6 +74,15 @@ export interface IAuction extends Document {
   startPrice: number;
   currentBid: number;
   minimumBidIncrement: number;
+  listingPlacementFeePercent: number;
+  listingPlacementFee: number;
+  paymentConfirmed: boolean;
+  paymentMethod: string;
+  paymentStatus: 'pending' | 'completed' | 'failed';
+  paymentOrderId?: string;
+  paymentTransactionId?: string;
+  paymentCurrency?: string;
+  paymentAmount?: number;
   startTime: Date;
   endTime: Date;
   status: AuctionStatus;

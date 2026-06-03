@@ -1,684 +1,470 @@
 import { useState } from 'react';
-import { Card, Form, Button, Row, Col, ProgressBar, Alert } from 'react-bootstrap';
-import { Upload } from 'lucide-react';
-import { gemAPI, auctionAPI } from '../../api/axios';
+import { Card, Form, Row, Col, Alert } from 'react-bootstrap';
+import { Upload, ArrowRight, ArrowLeft, CheckCircle, Gem } from 'lucide-react';
+import { gemAPI } from '../../api/axios';
 import { AxiosError } from 'axios';
-
 interface AddGemFormProps {
   onSuccess: () => void;
 }
+
+const STEP_LABELS = ['Core Attributes', 'Media & Certificates', 'Listing Settings'];
 
 const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
 
-  // Step 1: Core Attributes
   const [formData, setFormData] = useState({
-    gemName: '',
-    type: '',
-    caratWeight: '',
-    cut: '',
-    color: '',
-    origin: '',
-    story: '',
+    gemName: '', type: '', caratWeight: '', cut: '', color: '', origin: '', story: '',
   });
 
-  // Step 2: Media Upload
-  const [images, setImages] = useState<File[]>([]);
-  const [certificate, setCertificate] = useState<File | null>(null);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [images,               setImages]               = useState<File[]>([]);
+  const [certificate,          setCertificate]          = useState<File | null>(null);
+  const [certificateAuthority, setCertificateAuthority] = useState('');
+  const [imagePreviews,        setImagePreviews]        = useState<string[]>([]);
 
-  // Step 3: Listing Type
-  const [listingType, setListingType] = useState<'portfolio' | 'fixed' | 'auction'>('portfolio');
-  const [fixedPrice, setFixedPrice] = useState('');
-  const [auctionStartingBid, setAuctionStartingBid] = useState('');
-  const [minimumBidIncrement, setMinimumBidIncrement] = useState('');
-  const [duration, setDuration] = useState('7');
-  const [startDate, setStartDate] = useState('');
+  const [listingType,      setListingType]      = useState<'portfolio' | 'fixed'>('portfolio');
+  const [fixedPrice,       setFixedPrice]       = useState('');
+  const [duration,         setDuration]         = useState('7');
   const [portfolioDisplay, setPortfolioDisplay] = useState<'public' | 'private'>('public');
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [agreeToTerms,     setAgreeToTerms]     = useState(false);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + images.length > 5) {
-      setError('Maximum 5 images allowed');
-      return;
-    }
-
-    setError('');
-    setImages([...images, ...files]);
-    
+    if (files.length + images.length > 5) { setError('Maximum 5 images allowed'); return; }
+    setError(''); setImages([...images, ...files]);
     files.forEach(file => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result as string]);
-      };
+      reader.onloadend = () => setImagePreviews(p => [...p, reader.result as string]);
       reader.readAsDataURL(file);
     });
   };
 
   const handleCertificateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setCertificate(file);
-      setError('');
-    }
+    if (file) { setCertificate(file); setError(''); }
   };
 
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-    setImagePreviews(imagePreviews.filter((_, i) => i !== index));
+  const removeImage = (i: number) => {
+    setImages(images.filter((_, idx) => idx !== i));
+    setImagePreviews(imagePreviews.filter((_, idx) => idx !== i));
+  };
+
+  const validateStep1 = () => {
+    const { gemName, type, caratWeight, cut, color, origin, story } = formData;
+    if (!gemName.trim() || !type.trim() || !caratWeight.trim() || !cut.trim() || !color.trim() || !origin.trim() || !story.trim()) {
+      setError('Please complete gem name, story, and all core attributes'); return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (images.length === 0)            { setError('Please upload at least one image'); return false; }
+    if (!certificate)                   { setError('Please upload the gem certificate'); return false; }
+    if (!certificateAuthority.trim())   { setError('Please enter the certificate authority'); return false; }
+    return true;
   };
 
   const nextStep = () => {
-    if (currentStep === 1) {
-      // Validate Step 1
-      if (!formData.type || !formData.caratWeight || !formData.cut || !formData.color || !formData.origin) {
-        setError('Please fill all required fields');
-        return;
-      }
-    }
-    
-    if (currentStep === 2) {
-      // Validate Step 2
-      if (images.length === 0) {
-        setError('Please upload at least one image');
-        return;
-      }
-      if (!certificate) {
-        setError('Please upload the gem certificate');
-        return;
-      }
-    }
-
+    if (currentStep === 1 && !validateStep1()) return;
+    if (currentStep === 2 && !validateStep2()) return;
     setError('');
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
+    if (currentStep < totalSteps) setCurrentStep(s => s + 1);
   };
 
-  const prevStep = () => {
-    setError('');
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  const prevStep = () => { setError(''); if (currentStep > 1) setCurrentStep(s => s - 1); };
 
   const handleSubmit = async () => {
-    setError('');
-    setSuccess('');
-
-    if (!agreeToTerms) {
-      setError('Please agree to the terms of services');
-      return;
-    }
-
-    // Validate based on listing type
-    if (listingType === 'auction' && !auctionStartingBid) {
-      setError('Please enter starting bid for auction');
-      return;
-    }
-
-    if (listingType === 'fixed' && !fixedPrice) {
-      setError('Please enter fixed price');
-      return;
-    }
+    setError(''); setSuccess('');
+    if (!agreeToTerms)                            { setError('Please agree to the terms of services'); return; }
+    if (listingType === 'fixed' && !fixedPrice)   { setError('Please enter fixed price'); return; }
+    if (!validateStep1() || !validateStep2()) return;
 
     setLoading(true);
-
     try {
-      // Step 1: Create the gem
-      const formDataToSend = new FormData();
-      
-      formDataToSend.append('type', formData.type);
-      formDataToSend.append('carat', formData.caratWeight);
-      formDataToSend.append('cut', formData.cut);
-      formDataToSend.append('clarity', 'VVS1');
-      formDataToSend.append('color', formData.color);
-      formDataToSend.append('origin', formData.origin);
-      formDataToSend.append('description', formData.story);
-      formDataToSend.append('certificateAuthority', 'GIA');
-      formDataToSend.append('certificateNumber', formData.gemName);
+      const fd = new FormData();
+      fd.append('type', formData.type);
+      fd.append('carat', formData.caratWeight);
+      fd.append('cut', formData.cut);
+      fd.append('clarity', 'VVS1');
+      fd.append('color', formData.color);
+      fd.append('origin', formData.origin);
+      fd.append('description', formData.story);
+      fd.append('certificateAuthority', certificateAuthority);
+      fd.append('certificateNumber', formData.gemName);
+      images.forEach(img => fd.append('images', img));
+      fd.append('certificate', certificate!);
 
-      images.forEach(image => {
-        formDataToSend.append('images', image);
-      });
-
-      formDataToSend.append('certificate', certificate!);
-
-      const gemResponse = await gemAPI.createGem(formDataToSend);
-      const createdGem = gemResponse.data.gem;
-
+      await gemAPI.createGem(fd);
       setSuccess('Gem created successfully!');
 
-      // Step 2: Create auction if listing type is auction
-      if (listingType === 'auction' && createdGem._id) {
-        const startTime = startDate ? new Date(startDate) : new Date();
-        const endTime = new Date(startTime);
-        endTime.setDate(endTime.getDate() + parseInt(duration));
-
-        const auctionData = {
-          gemId: createdGem._id,
-          startPrice: parseFloat(auctionStartingBid),
-          minimumBidIncrement: parseFloat(minimumBidIncrement || '1000'),
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString()
-        };
-
-        await auctionAPI.createAuction(auctionData);
-        setSuccess('Gem and auction created successfully!');
-      }
-
-      setTimeout(() => {
-        onSuccess();
-      }, 1500);
-      
+      setTimeout(() => onSuccess(), 1500);
     } catch (err) {
-      const error = err as AxiosError<{ message: string }>;
-      setError(error.response?.data?.message || 'Failed to add gem');
+      const e = err as AxiosError<{ message: string }>;
+      setError(e.response?.data?.message || 'Failed to add gem');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="animate-fade-up">
-            <h4 className="mb-1 fw-bold">List Your Gem for Verification</h4>
-            <p className="text-muted mb-4">Step 1 of 3: Gem Details</p>
-
-            <div className="step-progress-label">
-              <span className="step-dot active" />
-              <span className="step-dot" />
-              <span className="step-dot" />
-              Core Attributes
-            </div>
-            <ProgressBar now={33} className="mb-4" style={{ height: '8px' }} />
-
-            {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
-
-            <Card className="content-card animate-fade-up delay-1">
-              <Card.Body className="p-4">
-                <div className="mb-4">
-                  <h5 className="fw-bold mb-3">Core Attributes</h5>
-                  <p className="text-muted small">
-                    Provide the key core attributes of your gem. This information is crucial for accurate identification and valuation.
-                  </p>
-
-                  <Row>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Gem Name: *</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="gemName"
-                          value={formData.gemName}
-                          onChange={handleChange}
-                          placeholder="e.g The Azure Ocean Diamond"
-                          className="surface-muted"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Gem Type: *</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="type"
-                          value={formData.type}
-                          onChange={handleChange}
-                          placeholder="Ruby"
-                          className="surface-muted"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Carat/Weight: *</Form.Label>
-                        <Form.Control
-                          type="number"
-                          step="0.01"
-                          name="caratWeight"
-                          value={formData.caratWeight}
-                          onChange={handleChange}
-                          placeholder="e.g 2.5"
-                          className="surface-muted"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Cut: *</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="cut"
-                          value={formData.cut}
-                          onChange={handleChange}
-                          placeholder="Oval"
-                          className="surface-muted"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Color: *</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="color"
-                          value={formData.color}
-                          onChange={handleChange}
-                          placeholder="Red"
-                          className="surface-muted"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Origin: *</Form.Label>
-                        <Form.Control
-                          type="text"
-                          name="origin"
-                          value={formData.origin}
-                          onChange={handleChange}
-                          placeholder="Madagascar"
-                          className="surface-muted"
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                </div>
-
-                <div className="mb-4">
-                  <h5 className="fw-bold mb-3">The story</h5>
-                  <p className="text-muted small">
-                    Share the gem's romantic history, or unique characteristics. The adds significant value and appeal.
-                  </p>
-                  <Form.Control
-                    as="textarea"
-                    rows={4}
-                    name="story"
-                    value={formData.story}
-                    onChange={handleChange}
-                    placeholder="Describe the history, provenance or unique qualities of your gem..."
-                    className="surface-muted"
-                  />
-                </div>
-
-                <div className="d-flex justify-content-between">
-                  <Button variant="outline-secondary" disabled>
-                    Save Draft
-                  </Button>
-                  <Button 
-                    variant="primary" 
-                    onClick={nextStep}
-                    className="px-4"
-                  >
-                    Next Step: Media →
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
+  /* ── Step progress ── */
+  const renderProgress = () => {
+    const pct = currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%';
+    return (
+      <div className="mb-4">
+        <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <div className="port-panel-kicker">Listing wizard</div>
+            <div className="port-panel-title" style={{ fontSize: 16 }}>Step {currentStep} of {totalSteps}</div>
           </div>
-        );
-
-      case 2:
-        return (
-          <div className="animate-fade-up">
-            <h4 className="mb-1 fw-bold">Upload Media & Certificates</h4>
-            <p className="text-muted mb-4">Step 2 of 3: Media Upload</p>
-
-            <div className="step-progress-label">
-              <span className="step-dot active" />
-              <span className="step-dot active" />
-              <span className="step-dot" />
-              Media and Verification Assets
-            </div>
-            <ProgressBar now={66} className="mb-4" style={{ height: '8px' }} />
-
-            {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
-
-            <Card className="content-card animate-fade-up delay-1">
-              <Card.Body className="p-4">
-                <div className="mb-4">
-                  <h5 className="fw-bold mb-3">Gem Visuals</h5>
-                  <p className="text-muted small">
-                    Upload hi-resolution files (e.g., Jds, Jdds, Jtech). Videos are encouraged.
-                  </p>
-
-                  <div className="upload-dropzone p-5 text-center">
-                    <Upload size={48} className="text-muted mb-3 mx-auto d-block" />
-                    <p className="text-muted mb-3">Click to upload or drag and Drop</p>
-                    <Form.Control
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageChange}
-                      className="d-none"
-                      id="imageUpload"
-                    />
-                    <label htmlFor="imageUpload" className="btn btn-outline-primary">
-                      Choose Files
-                    </label>
-                  </div>
-
-                  {imagePreviews.length > 0 && (
-                    <Row className="mt-3 g-2">
-                      {imagePreviews.map((preview, index) => (
-                        <Col xs={4} md={2} key={index}>
-                          <div className="position-relative">
-                            <img 
-                              src={preview} 
-                              alt={`Preview ${index}`} 
-                              className="w-100 rounded"
-                              style={{ height: '100px', objectFit: 'cover' }}
-                            />
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              className="position-absolute top-0 end-0 m-1"
-                              onClick={() => removeImage(index)}
-                              style={{ padding: '2px 6px', fontSize: '12px' }}
-                            >
-                              ×
-                            </Button>
-                          </div>
-                        </Col>
-                      ))}
-                    </Row>
-                  )}
-                </div>
-
-                <div className="mb-4">
-                  <h5 className="fw-bold mb-3">Authenticity Documents</h5>
-                  <p className="text-muted small">
-                    Upload reports from recognized labs (e.g., GIA, GRSI, IGI) or high-res images.
-                  </p>
-
-                  <div className="upload-dropzone p-5 text-center">
-                    <Upload size={48} className="text-muted mb-3 mx-auto d-block" />
-                    <p className="text-muted mb-3">Click to Upload Certificate</p>
-                    <Form.Control
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleCertificateChange}
-                      className="d-none"
-                      id="certificateUpload"
-                    />
-                    <label htmlFor="certificateUpload" className="btn btn-outline-primary">
-                      Choose Certificate
-                    </label>
-                  </div>
-
-                  {certificate && (
-                    <div className="mt-3">
-                      <small className="text-success">✓ {certificate.name}</small>
-                    </div>
-                  )}
-                </div>
-
-                <div className="d-flex justify-content-between">
-                  <Button variant="link" onClick={prevStep} className="text-decoration-none">
-                    ← Back
-                  </Button>
-                  <Button 
-                    variant="primary" 
-                    onClick={nextStep}
-                    className="px-4"
-                  >
-                    Next Step: Finalize Listing →
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
+          <div className="port-step-pill">{STEP_LABELS[currentStep - 1]}</div>
+        </div>
+        <div className="enhanced-step-bar">
+          <div className="enhanced-step-progress" style={{ width: pct }} />
+          <div className={`enhanced-step-node ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
+            {currentStep > 1 ? '✓' : '1'}
           </div>
-        );
+          <div className={`enhanced-step-node ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}>
+            {currentStep > 2 ? '✓' : '2'}
+          </div>
+          <div className={`enhanced-step-node ${currentStep === 3 ? 'active' : ''}`}>3</div>
+        </div>
+        <p className="text-muted small mt-2 mb-0">
+          Follow the steps to publish your gem with consistent formatting and verification fields.
+        </p>
+      </div>
+    );
+  };
 
-      case 3:
-        return (
-          <div className="animate-fade-up">
-            <h4 className="mb-1 fw-bold">Finalize Your Listing</h4>
-            <p className="text-muted mb-4">Step 3 of 3</p>
+  /* ── Step 1 ── */
+  const renderStep1 = () => (
+    <div className="animate-fade-up">
+      <Card className="content-card mb-4">
+        <Card.Body className="p-4">
+          <h4 className="mb-1 fw-bold">List Your Gem for Verification</h4>
+          <p className="text-muted mb-3">Provide core details about your exquisite gem to request verification.</p>
+          {renderProgress()}
+          {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+        </Card.Body>
+      </Card>
 
-            <div className="step-progress-label">
-              <span className="step-dot active" />
-              <span className="step-dot active" />
-              <span className="step-dot active" />
-              Listing and Publication Settings
+      <Card className="content-card animate-fade-up delay-1">
+        <Card.Body className="p-4">
+          {/* Core attributes */}
+          <div className="mb-4">
+            <div className="d-flex align-items-center gap-2 mb-1">
+              <Gem size={16} style={{ color: 'var(--ag-primary)' }} />
+              <h5 className="fw-bold mb-0">Core Attributes</h5>
             </div>
-            <ProgressBar now={100} className="mb-4" style={{ height: '8px' }} />
+            <p className="text-muted small mb-3">
+              Provide the key attributes of your gem — crucial for accurate identification and valuation.
+            </p>
+            <Row className="g-3">
+              {[
+                { label: 'Gem Name', name: 'gemName', placeholder: 'e.g. The Azure Ocean Diamond' },
+                { label: 'Gem Type', name: 'type',    placeholder: 'Ruby' },
+                { label: 'Carat / Weight', name: 'caratWeight', placeholder: '2.5', type: 'number' },
+                { label: 'Cut',    name: 'cut',    placeholder: 'Oval'       },
+                { label: 'Color',  name: 'color',  placeholder: 'Red'        },
+                { label: 'Origin', name: 'origin', placeholder: 'Madagascar' },
+              ].map(({ label, name, placeholder, type }) => (
+                <Col md={6} key={name}>
+                  <Form.Group>
+                    <Form.Label className="port-form-label">{label} *</Form.Label>
+                    <Form.Control
+                      type={type || 'text'}
+                      step={type === 'number' ? '0.01' : undefined}
+                      name={name}
+                      value={formData[name as keyof typeof formData]}
+                      onChange={handleChange}
+                      placeholder={placeholder}
+                      className="port-form-control"
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+              ))}
+            </Row>
+          </div>
 
-            {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
-            {success && <Alert variant="success">{success}</Alert>}
+          {/* Story */}
+          <div className="mb-4">
+            <h5 className="fw-bold mb-1">The Story</h5>
+            <p className="text-muted small mb-3">
+              Share the gem's history or unique characteristics. This adds significant value and appeal.
+            </p>
+            <Form.Control
+              as="textarea"
+              rows={4}
+              name="story"
+              value={formData.story}
+              onChange={handleChange}
+              placeholder="Describe the history, provenance or unique qualities of your gem..."
+              className="port-form-control"
+            />
+          </div>
 
-            <Card className="content-card animate-fade-up delay-1">
-              <Card.Body className="p-4">
-                <div className="mb-4">
-                  <h5 className="fw-bold mb-3">Listing Type</h5>
-                  
-                  <Row className="g-3">
-                    <Col md={4}>
-                      <div
-                        className={`p-4 text-center choice-card ${
-                          listingType === 'portfolio' ? 'active' : ''
-                        }`}
-                        onClick={() => setListingType('portfolio')}
-                      >
-                        <h6 className="fw-bold mb-2">Portfolio</h6>
-                        <small className="text-muted">
-                          Display in your collection only, not for sale
-                        </small>
-                      </div>
-                    </Col>
-                    <Col md={4}>
-                      <div
-                        className={`p-4 text-center choice-card ${
-                          listingType === 'fixed' ? 'active' : ''
-                        }`}
-                        onClick={() => setListingType('fixed')}
-                      >
-                        <h6 className="fw-bold mb-2">Fixed Price</h6>
-                        <small className="text-muted">
-                          Set a "Buy Now" price (Opt to list later)
-                        </small>
-                      </div>
-                    </Col>
-                    <Col md={4}>
-                      <div
-                        className={`p-4 text-center choice-card ${
-                          listingType === 'auction' ? 'active' : ''
-                        }`}
-                        onClick={() => setListingType('auction')}
-                      >
-                        <h6 className="fw-bold mb-2">Auction</h6>
-                        <small className="text-muted">
-                          Maximize value with competitive bidding
-                        </small>
-                      </div>
-                    </Col>
-                  </Row>
-                </div>
+          <div className="ag-action-row">
+            <button className="bdr-btn-ghost" type="button" disabled>Save Draft</button>
+            <button className="bdr-btn-primary" type="button" onClick={nextStep}>
+              Next: Media <ArrowRight size={15} />
+            </button>
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
+  );
 
-                {/* Portfolio Settings */}
-                {listingType === 'portfolio' && (
-                  <div className="mb-4">
-                    <h5 className="fw-bold mb-3">Portfolio Settings</h5>
-                    
-                    <div
-                      className={`p-3 mb-2 choice-card ${
-                        portfolioDisplay === 'public' ? 'active' : ''
-                      }`}
-                      onClick={() => setPortfolioDisplay('public')}
-                    >
-                      <h6 className="fw-bold mb-1">Public Display</h6>
-                      <small className="text-muted">
-                        This item will be visible in your public profile and search results, so ids will be listed for Sale. You can manage specific visibility settings in your Dashboard after listing.
-                      </small>
-                    </div>
+  /* ── Step 2 ── */
+  const renderStep2 = () => (
+    <div className="animate-fade-up">
+      <h4 className="mb-1 fw-bold">Upload Media & Certificates</h4>
+      <p className="text-muted mb-4">Upload visual assets and laboratory authentication reports to verify your gem.</p>
 
-                    <div
-                      className={`p-3 choice-card ${
-                        portfolioDisplay === 'private' ? 'active' : ''
-                      }`}
-                      onClick={() => setPortfolioDisplay('private')}
-                    >
-                      <h6 className="fw-bold mb-1">Private Display</h6>
-                      <small className="text-muted">
-                        This item will be visible in your profile only.
-                      </small>
-                    </div>
+      {renderProgress()}
+      {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+
+      <Card className="content-card animate-fade-up delay-1">
+        <Card.Body className="p-4">
+          {/* Images */}
+          <div className="mb-4">
+            <div className="d-flex align-items-center gap-2 mb-1">
+              <Upload size={16} style={{ color: 'var(--ag-primary)' }} />
+              <h5 className="fw-bold mb-0">Gem Visuals</h5>
+            </div>
+            <p className="text-muted small mb-3">
+              Upload high-resolution images (PNG, JPG). Multiple angles increase bid conversion.
+            </p>
+
+            <div className="upload-dropzone p-5 text-center">
+              <Upload size={44} className="upload-icon-anim mx-auto d-block mb-3" />
+              <p className="fw-semibold mb-2" style={{ color: 'var(--ag-text-sub)' }}>
+                Click to upload or drag and drop
+              </p>
+              <p className="text-muted small mb-3">PNG, JPG· up to 5 images</p>
+              <Form.Control
+                type="file" accept="image/*" multiple
+                onChange={handleImageChange} className="d-none" id="imageUpload"
+              />
+              <label htmlFor="imageUpload" className="bdr-btn-ghost" style={{ cursor: 'pointer' }}>
+                Choose Files
+              </label>
+            </div>
+
+            {imagePreviews.length > 0 && (
+              <div className="ag-preview-grid">
+                {imagePreviews.map((src, i) => (
+                  <div className="ag-preview-item" key={i}>
+                    <img src={src} alt={`Preview ${i + 1}`} />
+                    <button
+                      type="button"
+                      className="ag-preview-remove"
+                      onClick={() => removeImage(i)}
+                      aria-label="Remove image"
+                    >×</button>
                   </div>
-                )}
+                ))}
+              </div>
+            )}
+          </div>
 
-                {/* Fixed Price Details */}
-                {listingType === 'fixed' && (
-                  <div className="mb-4">
-                    <h5 className="fw-bold mb-3">Fixed Price Details</h5>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold">Fixed Price (Rs) *</Form.Label>
-                      <Form.Control
-                        type="number"
-                        value={fixedPrice}
-                        onChange={(e) => setFixedPrice(e.target.value)}
-                        placeholder="Rs 5,000"
-                        className="surface-muted"
-                        size="lg"
-                        required
-                      />
+          {/* Certificate */}
+          <div className="mb-4">
+            <h5 className="fw-bold mb-1">Authenticity Documents</h5>
+            <p className="text-muted small mb-3">
+              Upload certificates from recognized labs (GIA, IGI, GRSI, etc.) in PDF or image format.
+            </p>
+
+            <div className="upload-dropzone p-5 text-center">
+              <Upload size={44} className="upload-icon-anim mx-auto d-block mb-3" />
+              <p className="fw-semibold mb-2" style={{ color: 'var(--ag-text-sub)' }}>
+                Click to upload gem certificate
+              </p>
+              <p className="text-muted small mb-3">PDF, JPG, PNG accepted</p>
+              <Form.Control
+                type="file" accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleCertificateChange} className="d-none" id="certificateUpload"
+              />
+              <label htmlFor="certificateUpload" className="bdr-btn-ghost" style={{ cursor: 'pointer' }}>
+                Choose Certificate
+              </label>
+            </div>
+
+            {certificate && (
+              <div className="ag-cert-success">
+                <div className="ag-cert-success-icon">✓</div>
+                <span>{certificate.name}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Certificate authority */}
+          <div className="mb-2">
+            <h5 className="fw-bold mb-1">Certificate Authority / Lab Name</h5>
+            <p className="text-muted small mb-3">
+              Enter the certifying laboratory exactly as shown on the report.
+            </p>
+            <Form.Control
+              type="text"
+              value={certificateAuthority}
+              onChange={e => setCertificateAuthority(e.target.value)}
+              placeholder="e.g. GIA (Gemological Institute of America)"
+              className="port-form-control"
+              autoComplete="organization"
+              required
+            />
+          </div>
+
+          <div className="ag-action-row">
+            <button className="bdr-btn-ghost" type="button" onClick={prevStep}>
+              <ArrowLeft size={15} /> Back
+            </button>
+            <button className="bdr-btn-primary" type="button" onClick={nextStep}>
+              Next: Publication <ArrowRight size={15} />
+            </button>
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
+  );
+
+  /* ── Step 3 ── */
+  const renderStep3 = () => (
+    <div className="animate-fade-up">
+      <h4 className="mb-1 fw-bold">Finalize Your Listing</h4>
+      <p className="text-muted mb-4">Configure how you wish to showcase or monetize your premium gem.</p>
+
+      {renderProgress()}
+      {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+
+      {success ? (
+        <Card className="content-card animate-fade-up">
+          <Card.Body className="ag-success-card">
+            <div className="success-checkmark">✓</div>
+            <h4 className="fw-bold">Gem Listing Submitted!</h4>
+            <p>{success}</p>
+          </Card.Body>
+        </Card>
+      ) : (
+        <Card className="content-card animate-fade-up delay-1">
+          <Card.Body className="p-4">
+
+            {/* Listing type - Auction removed */}
+            <div className="mb-4">
+              <h5 className="fw-bold mb-3">Listing Type</h5>
+              <Row className="g-3">
+                {([
+                  { key: 'portfolio', title: 'Portfolio Only',   desc: 'Display in your collection only, not open for public sale' },
+                  { key: 'fixed',     title: 'Fixed Price',      desc: 'Set a premium "Buy Now" price for instant buyers' },
+                ] as const).map(({ key, title, desc }) => (
+                  <Col md={6} key={key}>
+                    <div
+                      className={`p-4 text-center choice-card h-100 ${listingType === key ? 'active' : ''}`}
+                      onClick={() => setListingType(key)}
+                      role="button" tabIndex={0}
+                      onKeyDown={e => e.key === 'Enter' && setListingType(key)}
+                    >
+                      <h6 className="fw-bold mb-2">{title}</h6>
+                      <small>{desc}</small>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </div>
+
+            {/* Portfolio settings */}
+            {listingType === 'portfolio' && (
+              <div className="mb-4 animate-fade-up">
+                <h5 className="fw-bold mb-3">Portfolio Settings</h5>
+                {([
+                  { key: 'public',  title: 'Public Display',  desc: 'Visible to public search engines and users browsing portfolios.' },
+                  { key: 'private', title: 'Private Display', desc: 'Only visible in your private secure workspace vault.' },
+                ] as const).map(({ key, title, desc }, i) => (
+                  <div
+                    key={key}
+                    className={`p-3 choice-card ${i === 0 ? 'mb-2' : ''} ${portfolioDisplay === key ? 'active' : ''}`}
+                    onClick={() => setPortfolioDisplay(key)}
+                    role="button" tabIndex={0}
+                    onKeyDown={e => e.key === 'Enter' && setPortfolioDisplay(key)}
+                  >
+                    <h6 className="fw-bold mb-1">{title}</h6>
+                    <small>{desc}</small>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Fixed price */}
+            {listingType === 'fixed' && (
+              <div className="mb-4 animate-fade-up">
+                <h5 className="fw-bold mb-3">Fixed Price Details</h5>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="port-form-label">Fixed Price (Rs) *</Form.Label>
+                      <Form.Control type="number" value={fixedPrice}
+                        onChange={e => setFixedPrice(e.target.value)}
+                        placeholder="50000" className="surface-muted" required />
                     </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold">Duration</Form.Label>
-                      <Form.Select
-                        value={duration}
-                        onChange={(e) => setDuration(e.target.value)}
-                        className="surface-muted"
-                        size="lg"
-                      >
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="port-form-label">Listing Duration</Form.Label>
+                      <Form.Select value={duration} onChange={e => setDuration(e.target.value)} className="surface-muted">
                         <option value="7">7 Days</option>
                         <option value="14">14 Days</option>
                         <option value="30">30 Days</option>
                       </Form.Select>
                     </Form.Group>
-                  </div>
+                  </Col>
+                </Row>
+              </div>
+            )}
+
+            {/* Terms */}
+            <Form.Check
+              type="checkbox" id="terms"
+              label="I certify all laboratory certificates, sizes, and declarations are 100% accurate and agree to marketplace seller terms."
+              checked={agreeToTerms}
+              onChange={e => setAgreeToTerms(e.target.checked)}
+              className="mb-4"
+            />
+
+            <div className="ag-action-row">
+              <button className="bdr-btn-ghost" type="button" onClick={prevStep}>
+                <ArrowLeft size={15} /> Back
+              </button>
+              <button
+                className="bdr-btn-primary" type="button"
+                onClick={handleSubmit} disabled={loading || !agreeToTerms}
+              >
+                {loading ? (
+                  <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" /> Submitting…</>
+                ) : (
+                  <>List Gemstone <CheckCircle size={15} /></>
                 )}
+              </button>
+            </div>
+          </Card.Body>
+        </Card>
+      )}
+    </div>
+  );
 
-                {/* Auction Details */}
-                {listingType === 'auction' && (
-                  <div className="mb-4">
-                    <h5 className="fw-bold mb-3">Auction Details</h5>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold">Starting Bid (Rs) *</Form.Label>
-                      <Form.Control
-                        type="number"
-                        value={auctionStartingBid}
-                        onChange={(e) => setAuctionStartingBid(e.target.value)}
-                        placeholder="Rs 50,000"
-                        className="surface-muted"
-                        size="lg"
-                        required
-                      />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold">Minimum Bid Increment (Rs) *</Form.Label>
-                      <Form.Control
-                        type="number"
-                        value={minimumBidIncrement}
-                        onChange={(e) => setMinimumBidIncrement(e.target.value)}
-                        placeholder="Rs 5,000"
-                        className="surface-muted"
-                        size="lg"
-                        required
-                      />
-                    </Form.Group>
-
-                    <Row>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label className="fw-semibold">Duration:</Form.Label>
-                          <Form.Select
-                            value={duration}
-                            onChange={(e) => setDuration(e.target.value)}
-                            className="surface-muted"
-                            size="lg"
-                          >
-                            <option value="3">3 days</option>
-                            <option value="5">5 days</option>
-                            <option value="7">7 days</option>
-                            <option value="14">14 days</option>
-                            <option value="30">30 days</option>
-                          </Form.Select>
-                        </Form.Group>
-                      </Col>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label className="fw-semibold">Start Date:</Form.Label>
-                          <Form.Control
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            placeholder="mm/dd/yyyy"
-                            className="surface-muted"
-                            size="lg"
-                            min={new Date().toISOString().split('T')[0]}
-                          />
-                        </Form.Group>
-                      </Col>
-                    </Row>
-                  </div>
-                )}
-
-                <Form.Check
-                  type="checkbox"
-                  id="terms"
-                  label="I agree to the terms of Services"
-                  checked={agreeToTerms}
-                  onChange={(e) => setAgreeToTerms(e.target.checked)}
-                  className="mb-4"
-                />
-
-                <div className="d-flex justify-content-between">
-                  <Button variant="link" onClick={prevStep} className="text-decoration-none">
-                    ← Back to Media
-                  </Button>
-                  <Button 
-                    variant="primary" 
-                    onClick={handleSubmit}
-                    disabled={loading || !agreeToTerms}
-                    className="px-4"
-                  >
-                    {loading ? 'Submitting...' : 'Submit'}
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return <div>{renderStep()}</div>;
+  return (
+    <div className="ag-root">
+      {currentStep === 1 && renderStep1()}
+      {currentStep === 2 && renderStep2()}
+      {currentStep === 3 && renderStep3()}
+    </div>
+  );
 };
 
 export default AddGemForm;

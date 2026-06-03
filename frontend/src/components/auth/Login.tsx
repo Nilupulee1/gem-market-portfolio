@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { authAPI } from '../../api/axios';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { AxiosError } from 'axios';
+import { Eye, EyeOff } from 'lucide-react';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
-import logo from '../../assets/logo.png';
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,6 +48,8 @@ const Login = () => {
     }
   };
 
+
+
   return (
     <Container fluid className="auth-container p-0">
       <Row className="g-0 min-vh-100">
@@ -68,17 +70,10 @@ const Login = () => {
 
         <Col lg={6} className="d-flex align-items-center justify-content-center auth-form-col">
           <div className="auth-form-wrap">
-            <div className="auth-mobile-brand d-lg-none mb-4">
-              <Link to="/" className="auth-brand-link">
-                <img src={logo} alt="GemFolio" className="auth-brand-logo" />
-                <span className="auth-brand-name">GemFolio</span>
-              </Link>
-            </div>
-
             <div className="auth-card p-4 p-md-5">
               <div className="text-center mb-4">
-                <h1 className="h2 fw-bold mt-2 mb-2" style={{ color: '#1c2a3b' }}>Sign In</h1>
-                <p className="mb-0" style={{ color: '#687585' }}>
+                <h1 className="h2 fw-bold mt-2 mb-2" style={{ color: 'var(--text-primary)' }}>Sign In</h1>
+                <p className="mb-0" style={{ color: 'var(--text-secondary)' }}>
                   Enter your credentials to access your account.
                 </p>
               </div>
@@ -91,9 +86,8 @@ const Login = () => {
 
               <Form onSubmit={handleSubmit} className="auth-form-stack">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Email Address</Form.Label>
+                  <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>Email Address</Form.Label>
                   <div className="auth-input-wrap">
-                    <Mail size={16} className="auth-input-icon" />
                     <Form.Control
                       type="email"
                       value={email}
@@ -106,9 +100,8 @@ const Login = () => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold" style={{ color: '#2f3d4f' }}>Password</Form.Label>
+                  <Form.Label className="fw-semibold" style={{ color: 'var(--text-primary)' }}>Password</Form.Label>
                   <div className="position-relative">
-                    <Lock className="auth-password-icon" size={16} />
                     <Form.Control
                       type={showPassword ? 'text' : 'password'}
                       value={password}
@@ -138,7 +131,14 @@ const Login = () => {
                     onChange={(event) => setRememberMe(event.target.checked)}
                     className="auth-remember-check"
                   />
-                  <Link to="/register" className="auth-mini-link">Create account</Link>
+                  <Button
+                    variant="link"
+                    className="auth-mini-btn p-0"
+                    onClick={() => navigate('/forgot-password')}
+                    style={{ color: 'var(--primary-color)', textDecoration: 'none', fontSize: '0.875rem' }}
+                  >
+                    Forgot password?
+                  </Button>
                 </div>
 
                 <Button
@@ -152,7 +152,9 @@ const Login = () => {
                 </Button>
               </Form>
 
-              <p className="text-center mt-4 mb-0" style={{ color: '#647182' }}>
+
+
+              <p className="text-center mt-4 mb-0" style={{ color: 'var(--text-secondary)' }}>
                 Don't have an account?{' '}
                 <Link to="/register" className="fw-semibold text-decoration-none">
                   Sign Up
