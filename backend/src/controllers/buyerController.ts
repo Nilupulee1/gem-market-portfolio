@@ -1,4 +1,5 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
 import Auction from '../models/Auction';
 import { AuctionStatus } from '../types';
@@ -8,9 +9,10 @@ const isAuctionRunning = (startTime: Date, endTime: Date, status: AuctionStatus)
   return status === AuctionStatus.ACTIVE && now >= startTime && now <= endTime;
 };
 
-export const getBuyerDashboard = async (req: AuthRequest, res: Response) => {
+export const getBuyerDashboard = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const authReq = req as AuthRequest;
+    const userId = new Types.ObjectId(authReq.user!.userId);
 
     const [myBidAuctions, wonAuctions] = await Promise.all([
       Auction.find({ 'bids.bidder': userId })
@@ -35,11 +37,11 @@ export const getBuyerDashboard = async (req: AuthRequest, res: Response) => {
     }> = [];
 
     myBidAuctions.forEach((auction) => {
-      const myBids = auction.bids.filter((bid) => bid.bidder.toString() === userId);
+      const myBids = auction.bids.filter((bid) => bid.bidder.toString() === userId.toString());
       totalBidsPlaced += myBids.length;
 
       const latestBid = auction.bids[auction.bids.length - 1];
-      const isWinning = !!latestBid && latestBid.bidder.toString() === userId;
+      const isWinning = !!latestBid && latestBid.bidder.toString() === userId.toString();
 
       myBids.forEach((bid) => {
         recentBidEntries.push({
@@ -79,9 +81,10 @@ export const getBuyerDashboard = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getMyBidHistory = async (req: AuthRequest, res: Response) => {
+export const getMyBidHistory = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const authReq = req as AuthRequest;
+    const userId = new Types.ObjectId(authReq.user!.userId);
 
     const auctions = await Auction.find({ 'bids.bidder': userId })
       .populate('gem')
@@ -103,10 +106,10 @@ export const getMyBidHistory = async (req: AuthRequest, res: Response) => {
 
     auctions.forEach((auction) => {
       const latestBid = auction.bids[auction.bids.length - 1];
-      const isWinning = !!latestBid && latestBid.bidder.toString() === userId;
+      const isWinning = !!latestBid && latestBid.bidder.toString() === userId.toString();
 
       auction.bids
-        .filter((bid) => bid.bidder.toString() === userId)
+        .filter((bid) => bid.bidder.toString() === userId.toString())
         .forEach((bid) => {
           bidHistory.push({
             auctionId: auction._id.toString(),
@@ -135,9 +138,10 @@ export const getMyBidHistory = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getMyActiveBids = async (req: AuthRequest, res: Response) => {
+export const getMyActiveBids = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const authReq = req as AuthRequest;
+    const userId = new Types.ObjectId(authReq.user!.userId);
 
     const auctions = await Auction.find({
       'bids.bidder': userId,
@@ -150,10 +154,10 @@ export const getMyActiveBids = async (req: AuthRequest, res: Response) => {
     const activeBids = auctions
       .filter((auction) => isAuctionRunning(auction.startTime, auction.endTime, auction.status))
       .map((auction) => {
-        const myBids = auction.bids.filter((bid) => bid.bidder.toString() === userId);
+        const myBids = auction.bids.filter((bid) => bid.bidder.toString() === userId.toString());
         const myHighestBid = myBids.reduce((max, bid) => Math.max(max, bid.amount), 0);
         const latestBid = auction.bids[auction.bids.length - 1];
-        const isWinning = !!latestBid && latestBid.bidder.toString() === userId;
+        const isWinning = !!latestBid && latestBid.bidder.toString() === userId.toString();
 
         return {
           auction,
@@ -174,9 +178,10 @@ export const getMyActiveBids = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getWonAuctions = async (req: AuthRequest, res: Response) => {
+export const getWonAuctions = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const authReq = req as AuthRequest;
+    const userId = new Types.ObjectId(authReq.user!.userId);
 
     const wonAuctions = await Auction.find({
       winner: userId,

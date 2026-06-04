@@ -4,6 +4,9 @@ import { requireRole } from '../middleware/roleAuth';
 import { UserRole } from '../types';
 import {
   createAuction,
+  createPayHereCheckout,
+  retryPayHereCheckout,
+  payHereNotify,
   placeBid,
   getActiveAuctions,
   getMyAuctions,
@@ -13,6 +16,15 @@ import {
 } from '../controllers/auctionController';
 
 const router = express.Router();
+
+// PayHere sandbox callback
+router.post('/payhere/notify', payHereNotify);
+
+// Create PayHere checkout session (seller only)
+router.post('/payhere/initiate', authenticate, requireRole(UserRole.SELLER), createPayHereCheckout);
+
+// Retry PayHere checkout for an existing pending auction (seller only)
+router.post('/:id/payhere/retry', authenticate, requireRole(UserRole.SELLER), retryPayHereCheckout);
 
 // Create auction (seller only)
 router.post('/', authenticate, requireRole(UserRole.SELLER), createAuction);

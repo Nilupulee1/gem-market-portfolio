@@ -29,6 +29,14 @@ const userSchema = new Schema<IUser>({
     type: Boolean,
     default: true
   },
+  passwordResetToken: {
+    type: String,
+    default: null
+  },
+  passwordResetExpiry: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -1,28 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Avatar,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Chip,
-  Input,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Select,
-  SelectItem,
-  Spinner,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
-} from '@nextui-org/react';
-import { Search, UserX, UserCheck, Users } from 'lucide-react';
+import { Button, Modal, Spinner, Badge } from 'react-bootstrap';
+import { Search, UserX, UserCheck, Users, CircleDot } from 'lucide-react';
 import { adminAPI } from '../../api/axios';
 import type { AdminUser } from '../../types/admin';
 
@@ -31,8 +9,19 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // New staff creation states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createRole, setCreateRole] = useState('operational_manager');
+  const [createError, setCreateError] = useState('');
+  const [createSuccess, setCreateSuccess] = useState('');
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -50,32 +39,76 @@ const UserManagement = () => {
     }
   };
 
-  const handleViewUser = (user: AdminUser) => {
-    setSelectedUser(user);
-    setShowDetailsModal(true);
+  const handleCreateStaff = async () => {
+    if (!createName.trim() || !createEmail.trim() || !createPassword.trim() || !createRole) {
+      setCreateError('All fields are required');
+      return;
+    }
+
+    if (createPassword.length < 6) {
+      setCreateError('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      setCreateError('');
+      setCreateSuccess('');
+
+      await adminAPI.createAdminOrManager({
+        name: createName,
+        email: createEmail,
+        password: createPassword,
+        role: createRole
+      });
+
+      setCreateSuccess('Staff account created successfully!');
+      void fetchUsers();
+      
+      // Clear form
+      setCreateName('');
+      setCreateEmail('');
+      setCreatePassword('');
+      setCreateRole('operational_manager');
+
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setCreateSuccess('');
+      }, 1500);
+    } catch (err: any) {
+      console.error('Error creating staff account:', err);
+      setCreateError(err.response?.data?.message || 'Failed to create staff account');
+    } finally {
+      setCreating(false);
+    }
   };
+
+  
 
   const getRoleChip = (role: string) => {
     switch (role) {
       case 'admin':
-        return <Chip color="danger" variant="flat" size="sm">Admin</Chip>;
+        return <Badge bg="danger">Admin</Badge>;
+      case 'operational_manager':
+        return <Badge bg="warning" text="dark">Operational Manager</Badge>;
       case 'seller':
-        return <Chip color="primary" variant="flat" size="sm">Seller</Chip>;
+        return <Badge bg="primary">Seller</Badge>;
       case 'buyer':
-        return <Chip color="success" variant="flat" size="sm">Buyer</Chip>;
+        return <Badge bg="success">Buyer</Badge>;
       default:
-        return <Chip variant="flat" size="sm" className="capitalize">{role}</Chip>;
+        return <Badge bg="secondary" className="capitalize">{role.replace('_', ' ')}</Badge>;
     }
   };
 
   const getStatusChip = (isVerified: boolean) => {
-    return isVerified ? <Chip color="success" variant="dot" size="sm">Verified</Chip> : <Chip color="warning" variant="dot" size="sm">Unverified</Chip>;
+    return isVerified ? <Badge bg="success">Verified</Badge> : <Badge bg="warning" text="dark">Unverified</Badge>;
   };
 
   const stats = useMemo(() => ({
     sellers: users.filter((user) => user.role === 'seller').length,
     buyers: users.filter((user) => user.role === 'buyer').length,
     admins: users.filter((user) => user.role === 'admin').length,
+    managers: users.filter((user) => user.role === 'operational_manager').length,
   }), [users]);
 
   const formatDate = (dateString: string) => {
@@ -91,198 +124,372 @@ const UserManagement = () => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === 'all' || user.role === filterRole;
-    return matchesSearch && matchesRole;
+    const matchesStatus = filterStatus === 'all' || (filterStatus === 'verified' ? user.isVerified : !user.isVerified);
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterRole('all');
+    setFilterStatus('all');
+  };
+
+  const statusLabel = (isVerified: boolean) => (isVerified ? 'Verified' : 'Unverified');
+
+  const statusTone = (isVerified: boolean) => (isVerified ? 'success' : 'warning');
+
   return (
-    <div className="space-y-6">
-      <div className="dashboard-title animate-fade-up">
-        <h4 className="fw-bold">User Management</h4>
-        <p>Manage all registered users on the platform</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3 animate-fade-up delay-1">
-        <Card className="content-card">
-          <CardBody className="flex items-center gap-3 p-4">
-            <div className="rounded-2xl bg-primary/10 p-3 text-primary">
-              <Users size={20} />
-            </div>
-            <div>
-              <p className="mb-1 text-sm text-muted-foreground">Total Users</p>
-              <h5 className="mb-0 fw-bold">{users.length}</h5>
-            </div>
-          </CardBody>
-        </Card>
-        <Card className="content-card">
-          <CardBody className="flex items-center gap-3 p-4">
-            <div className="rounded-2xl bg-success/10 p-3 text-success">
-              <UserCheck size={20} />
-            </div>
-            <div>
-              <p className="mb-1 text-sm text-muted-foreground">Verified</p>
-              <h5 className="mb-0 fw-bold">{users.filter((user) => user.isVerified).length}</h5>
-            </div>
-          </CardBody>
-        </Card>
-        <Card className="content-card">
-          <CardBody className="flex items-center gap-3 p-4">
-            <div className="rounded-2xl bg-warning/10 p-3 text-warning-600">
-              <UserX size={20} />
-            </div>
-            <div>
-              <p className="mb-1 text-sm text-muted-foreground">Pending Verification</p>
-              <h5 className="mb-0 fw-bold">{users.filter((user) => !user.isVerified).length}</h5>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card className="content-card animate-fade-up delay-2">
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between p-4 pb-0">
+    <div className="user-management-page">
+      <div className="user-management-header animate-fade-up">
+        <section className="dashboard-hero hero-premium-mesh admin-dashboard-hero section-card--long">
           <div>
-            <p className="mb-1 text-sm text-muted-foreground">Directory</p>
-            <h5 className="mb-0 fw-bold">Registered accounts</h5>
+            <p className="dashboard-eyebrow">User Management</p>
+            <h4>Manage all registered users on the platform</h4>
+            <p>Keep track of accounts, verifications, and roles.</p>
           </div>
-          <div className="flex flex-col gap-3 md:flex-row md:items-center w-full md:w-auto">
-            <Input
-              aria-label="Search users"
-              placeholder="Search by name or email"
-              value={searchTerm}
-              onValueChange={setSearchTerm}
-              startContent={<Search size={16} className="text-muted-foreground" />}
-              className="md:min-w-[280px]"
-              variant="bordered"
-            />
-            <Select
-              aria-label="Filter users by role"
-              selectedKeys={[filterRole]}
-              onSelectionChange={(keys) => setFilterRole(String(Array.from(keys)[0] ?? 'all'))}
-              className="md:w-48"
-              variant="bordered"
-              defaultSelectedKeys={["all"]}
-            >
-              <SelectItem key="all">All Roles</SelectItem>
-              <SelectItem key="admin">Admin</SelectItem>
-              <SelectItem key="seller">Seller</SelectItem>
-              <SelectItem key="buyer">Buyer</SelectItem>
-            </Select>
-          </div>
-        </CardHeader>
 
-        <CardBody className="p-4 pt-2">
+          <div className="dashboard-chip-stack">
+            <span className="dashboard-chip dashboard-chip-soft">{users.length} total users</span>
+            <span className="dashboard-chip">{users.filter(u => u.isVerified).length} verified</span>
+          </div>
+        </section>
+      </div>
+
+      <div className="dashboard-metric-grid user-management-stats animate-fade-up delay-1">
+        <article className="dashboard-metric-card user-management-stat-card">
+          <div className="user-management-stat-icon user-management-stat-icon--blue">
+            <Users size={20} />
+          </div>
+          <div>
+            <span>Total Users</span>
+            <strong>{users.length}</strong>
+          </div>
+        </article>
+        <article className="dashboard-metric-card user-management-stat-card">
+          <div className="user-management-stat-icon user-management-stat-icon--green">
+            <UserCheck size={20} />
+          </div>
+          <div>
+            <span>Verified</span>
+            <strong>{users.filter((user) => user.isVerified).length}</strong>
+          </div>
+        </article>
+        <article className="dashboard-metric-card user-management-stat-card">
+          <div className="user-management-stat-icon user-management-stat-icon--muted">
+            <UserX size={20} />
+          </div>
+          <div>
+            <span>Pending Verification</span>
+            <strong>{users.filter((user) => !user.isVerified).length}</strong>
+          </div>
+        </article>
+      </div>
+
+      <div className="content-card user-management-panel animate-fade-up delay-2">
+        <div className="user-management-panel-header flex flex-col gap-3">
+          <div className="flex flex-row justify-between items-center w-full flex-wrap gap-3">
+            <div>
+              <p className="user-management-kicker">Directory</p>
+              <h5>Registered accounts</h5>
+            </div>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="font-semibold shadow-lg text-white border-0"
+              style={{
+                background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                borderRadius: '12px',
+                padding: '8px 16px',
+              }}
+            >
+              ➕ Create Staff Account
+            </Button>
+          </div>
+          <div className="user-management-toolbar">
+            <label className="user-management-search-field" aria-label="Search users">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Search by name, email, or user ID..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </label>
+
+            <select
+              aria-label="Filter users by role"
+              className="user-management-filter-select"
+              value={filterRole}
+              onChange={(event) => setFilterRole(event.target.value)}
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="operational_manager">Operational Manager</option>
+              <option value="seller">Seller</option>
+              <option value="buyer">Buyer</option>
+            </select>
+
+            <select
+              aria-label="Filter users by status"
+              className="user-management-filter-select"
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              <option value="verified">Verified</option>
+              <option value="unverified">Unverified</option>
+            </select>
+
+            <button type="button" className="user-management-clear-button" onClick={clearFilters}>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <div className="user-management-table-wrap">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Spinner color="primary" size="lg" label="Loading users" />
+            <div className="user-management-empty-state">
+              <Spinner animation="border" variant="primary" role="status">
+                <span className="visually-hidden">Loading users...</span>
+              </Spinner>
             </div>
           ) : filteredUsers.length === 0 ? (
-            <div className="py-16 text-center text-muted-foreground">
+            <div className="user-management-empty-state">
               No users found
             </div>
           ) : (
-            <Table
-              aria-label="Registered users"
-              removeWrapper
-              classNames={{ th: 'bg-default-100 text-foreground font-semibold' }}
-            >
-              <TableHeader>
-                <TableColumn>USER</TableColumn>
-                <TableColumn>EMAIL</TableColumn>
-                <TableColumn>ROLE</TableColumn>
-                <TableColumn>STATUS</TableColumn>
-                <TableColumn>JOINED</TableColumn>
-                <TableColumn className="text-center">ACTIONS</TableColumn>
-              </TableHeader>
-              <TableBody items={filteredUsers} emptyContent="No users found">
-                {(user) => (
-                  <TableRow key={user._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar name={user.name} size="sm" className="flex-shrink-0" />
+            <table className="user-management-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Date Joined</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user, index) => (
+                  <tr
+                    key={user._id}
+                    className={`${index % 2 === 1 ? 'is-alt' : ''} clickable-row`}
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setShowDetailsModal(true);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td>
+                      <div className="user-management-user-cell d-flex align-items-center">
+                        <div 
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            backgroundColor: '#1f4f82',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            marginRight: '10px'
+                          }}
+                        >
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
                         <div>
-                          <p className="mb-0 fw-semibold">{user.name}</p>
-                          <p className="mb-0 text-xs text-muted-foreground">{user._id}</p>
+                          <p className="user-management-name">{user.name}</p>
+                          <p className="user-management-id">{user._id}</p>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{getRoleChip(user.role)}</TableCell>
-                    <TableCell>{getStatusChip(user.isVerified)}</TableCell>
-                    <TableCell>{formatDate(user.createdAt)}</TableCell>
-                    <TableCell>
-                      <div className="flex justify-center">
-                        <Button color="primary" variant="flat" size="sm" onPress={() => handleViewUser(user)}>
-                          View details
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    </td>
+                    <td className="user-management-email">{user.email}</td>
+                    <td>
+                      <span className={`user-management-role-pill role-${user.role}`}>
+                        {user.role === 'operational_manager' ? 'Operational Manager' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
+                    </td>
+                    <td className="user-management-date">{formatDate(user.createdAt)}</td>
+                    <td>
+                      <span className={`user-management-status-pill status-${statusTone(user.isVerified)}`}>
+                        <CircleDot size={10} />
+                        {statusLabel(user.isVerified)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
 
-          <div className="mt-4 flex flex-col gap-3 border-t pt-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-            <span>
+          <div className="user-management-footer">
+            <span className="user-management-summary-text">
               Showing {filteredUsers.length} of {users.length} users
             </span>
-            <div className="flex flex-wrap gap-2">
-              <Chip variant="flat" color="primary">Sellers: {stats.sellers}</Chip>
-              <Chip variant="flat" color="success">Buyers: {stats.buyers}</Chip>
-              <Chip variant="flat" color="danger">Admins: {stats.admins}</Chip>
+            <div className="user-management-footer-chips flex gap-2">
+              <Badge bg="primary">Sellers: {stats.sellers}</Badge>
+              <Badge bg="success">Buyers: {stats.buyers}</Badge>
+              <Badge bg="danger">Admins: {stats.admins}</Badge>
+              <Badge bg="warning" text="dark">Managers: {stats.managers}</Badge>
             </div>
           </div>
-        </CardBody>
-      </Card>
 
-      <Modal isOpen={showDetailsModal} onOpenChange={setShowDetailsModal} placement="center">
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">User Details</ModalHeader>
-              <ModalBody>
-                {selectedUser && (
-                  <div className="space-y-4">
-                    <div className="flex flex-col items-center gap-3 text-center">
-                      <Avatar name={selectedUser.name} size="lg" className="h-20 w-20 text-xl" />
-                      <div>
-                        <h5 className="mb-1 fw-bold">{selectedUser.name}</h5>
-                        <p className="mb-2 text-muted-foreground">{selectedUser.email}</p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                          {getRoleChip(selectedUser.role)}
-                          {getStatusChip(selectedUser.isVerified)}
-                        </div>
-                      </div>
-                    </div>
+        </div>
+      </div>
 
-                    <div className="grid gap-3 rounded-2xl border bg-default-50 p-4 text-sm">
-                      <div>
-                        <p className="mb-1 text-muted-foreground">User ID</p>
-                        <p className="mb-0 break-all">{selectedUser._id}</p>
-                      </div>
-                      <div>
-                        <p className="mb-1 text-muted-foreground">Joined</p>
-                        <p className="mb-0">{formatDate(selectedUser.createdAt)}</p>
-                      </div>
-                      <div>
-                        <p className="mb-1 text-muted-foreground">Account Type</p>
-                        <p className="mb-0 capitalize">{selectedUser.role}</p>
-                      </div>
-                      <div>
-                        <p className="mb-1 text-muted-foreground">Verification Status</p>
-                        <p className="mb-0">{selectedUser.isVerified ? 'Verified Account' : 'Unverified Account'}</p>
-                      </div>
-                    </div>
+      <Modal
+        show={showDetailsModal}
+        onHide={() => {
+          setShowDetailsModal(false);
+          setSelectedUser(null);
+        }}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title className="text-dark">User Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedUser && (
+            <div className="space-y-4 text-dark">
+              <div className="flex flex-col items-center gap-3 text-center mb-4">
+                <div 
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    backgroundColor: '#1f4f82',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '24px',
+                    margin: '0 auto 10px'
+                  }}
+                >
+                  {selectedUser.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h5 className="mb-1 font-bold">{selectedUser.name}</h5>
+                  <p className="mb-2 text-muted-foreground">{selectedUser.email}</p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {getRoleChip(selectedUser.role)}
+                    {getStatusChip(selectedUser.isVerified)}
                   </div>
-                )}
-              </ModalBody>
-              <ModalFooter>
-                <Button color="primary" variant="flat" onPress={onClose}>
-                  Close
-                </Button>
-              </ModalFooter>
-            </>
+                </div>
+              </div>
+
+              <div className="grid gap-3 rounded-2xl border bg-default-50 p-3 text-sm">
+                <div className="mb-2">
+                  <p className="mb-1 text-muted-foreground font-semibold">User ID</p>
+                  <p className="mb-0 break-all">{selectedUser._id}</p>
+                </div>
+                <div className="mb-2">
+                  <p className="mb-1 text-muted-foreground font-semibold">Joined</p>
+                  <p className="mb-0">{formatDate(selectedUser.createdAt)}</p>
+                </div>
+                <div className="mb-2">
+                  <p className="mb-1 text-muted-foreground font-semibold">Account Type</p>
+                  <p className="mb-0 capitalize">{selectedUser.role}</p>
+                </div>
+                <div className="mb-2">
+                  <p className="mb-1 text-muted-foreground font-semibold">Verification Status</p>
+                  <p className="mb-0">{selectedUser.isVerified ? 'Verified Account' : 'Unverified Account'}</p>
+                </div>
+              </div>
+            </div>
           )}
-        </ModalContent>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Staff Creation Modal */}
+      <Modal
+        show={showCreateModal}
+        onHide={() => {
+          setShowCreateModal(false);
+          setCreateError('');
+          setCreateSuccess('');
+        }}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title className="text-xl font-bold text-dark">Create Administrative User</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="space-y-4 text-dark">
+          {createError && (
+            <div className="p-3 bg-danger-50 text-danger rounded-xl text-sm font-semibold mb-3">
+              ⚠️ {createError}
+            </div>
+          )}
+          {createSuccess && (
+            <div className="p-3 bg-success-50 text-success rounded-xl text-sm font-semibold mb-3">
+              ✓ {createSuccess}
+            </div>
+          )}
+
+          <div className="space-y-2 mb-3">
+            <label className="text-sm font-semibold text-muted-foreground d-block">Full Name</label>
+            <input
+              type="text"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder="Enter full name"
+              className="w-full p-3 rounded-xl border bg-default-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div className="space-y-2 mb-3">
+            <label className="text-sm font-semibold text-muted-foreground d-block">Email Address</label>
+            <input
+              type="email"
+              value={createEmail}
+              onChange={(e) => setCreateEmail(e.target.value)}
+              placeholder="Enter email address"
+              className="w-full p-3 rounded-xl border bg-default-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div className="space-y-2 mb-3">
+            <label className="text-sm font-semibold text-muted-foreground d-block">Password</label>
+            <input
+              type="password"
+              value={createPassword}
+              onChange={(e) => setCreatePassword(e.target.value)}
+              placeholder="Min 6 characters"
+              className="w-full p-3 rounded-xl border bg-default-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div className="space-y-2 mb-3">
+            <label className="text-sm font-semibold text-muted-foreground d-block">Administrative Role</label>
+            <select
+              value={createRole}
+              onChange={(e) => setCreateRole(e.target.value)}
+              className="w-full p-3 rounded-xl border bg-default-50 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="operational_manager">Operational Manager (Business Logic Tier)</option>
+              <option value="admin">System Administrator (Governance Tier)</option>
+            </select>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCreateModal(false)} disabled={creating}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            disabled={creating}
+            onClick={handleCreateStaff}
+            style={{ background: 'linear-gradient(135deg, #0ea5e9, #2563eb)', color: '#fff', fontWeight: 600, border: 'none' }}
+          >
+            {creating ? 'Creating...' : 'Create Account'}
+          </Button>
+        </Modal.Footer>
       </Modal>
     </div>
   );

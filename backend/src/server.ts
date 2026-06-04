@@ -1,18 +1,31 @@
-import 'dotenv/config';
+import './config/env';
 import express from 'express';
 import cors from 'cors';
+import http from 'http';
 import { connectDatabase } from './config/database';
+import { setupWebSocket } from './config/websocket';
 import authRoutes from './routes/authRoutes';
 import gemRoutes from './routes/gemRoutes';
 import auctionRoutes from './routes/auctionRoutes';
 import adminRoutes from './routes/adminRoutes';
 import buyerRoutes from './routes/buyerRoutes';
+import chatRoutes from './routes/chatRoutes';
 
 const app = express();
 
+const isLocalDevOrigin = (origin: string) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
 // CORS Configuration
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || isLocalDevOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked origin: ${origin}`));
+  },
   credentials: true
 }));
 
@@ -25,6 +38,7 @@ app.use('/api/gems', gemRoutes);
 app.use('/api/auctions', auctionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/buyer', buyerRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -58,11 +72,34 @@ const startServer = async () => {
     
     await connectDatabase();
     
-    app.listen(PORT, () => {
+    // Create HTTP server for WebSocket support
+    const httpServer = http.createServer(app);
+    
+    // Setup WebSocket
+    setupWebSocket(httpServer);
+    
+    httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📍 API: http://localhost:${PORT}/api`);
       console.log(`💚 Health: http://localhost:${PORT}/health`);
       console.log(`☁️  Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME}`);
+      console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
+    });
+
+    // Error handlers
+    httpServer.on('error', (error: any) => {
+      console.error('💥 HTTP Server Error:', error.message);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+      }
+    });
+
+    process.on('unhandledRejection', (reason: any) => {
+      console.error('❌ Unhandled Rejection:', reason);
+    });
+
+    process.on('uncaughtException', (error: any) => {
+      console.error('❌ Uncaught Exception:', error);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

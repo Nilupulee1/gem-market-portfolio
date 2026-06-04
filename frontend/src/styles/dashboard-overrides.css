@@ -1,0 +1,369 @@
+.bdr-sidebar,
+.dashboard-sidebar-wrapper,
+.admin-sidebar-shell {
+  background: var(--seller-dark) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 4px 0 24px rgba(2, 6, 23, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.bdr-sidebar::before,
+.dashboard-sidebar-wrapper::before {
+  background: rgba(255, 255, 255, 0.04) !important;
+  opacity: 0.6 !important;
+}
+
+.bdr-sidebar .sidebar-profile-card,
+.dashboard-sidebar-wrapper .sidebar-profile-card {
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.bdr-sidebar .sidebar-profile-avatar-inner,
+.dashboard-sidebar-wrapper .sidebar-profile-avatar-inner {
+  background: #ffffff !important;
+  color: var(--color-primary) !important;
+  border: 2px solid rgba(47, 95, 143, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.02) inset !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+}
+
+.bdr-sidebar .sidebar-profile-name,
+.dashboard-sidebar-wrapper .sidebar-profile-name {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Ensure all sidebar fonts are white for dashboard variants */
+.bdr-sidebar,
+.dashboard-sidebar-wrapper,
+.admin-sidebar-shell {
+  color: #ffffff !important;
+}
+
+/* Force white text for sidebar elements on all pages */
+.bdr-sidebar .sidebar-nav-link,
+.dashboard-sidebar-wrapper .sidebar-nav-link,
+.admin-sidebar-shell .sidebar-nav-link,
+.bdr-sidebar .sidebar-nav-link svg,
+.dashboard-sidebar-wrapper .sidebar-nav-link svg,
+.admin-sidebar-shell .sidebar-nav-link svg,
+.bdr-sidebar .sidebar-profile-name,
+.dashboard-sidebar-wrapper .sidebar-profile-name,
+.admin-sidebar-shell .sidebar-profile-name,
+.bdr-sidebar .sidebar-profile-role-badge,
+.dashboard-sidebar-wrapper .sidebar-profile-role-badge,
+.admin-sidebar-shell .sidebar-profile-role-badge,
+.bdr-sidebar .sidebar-profile-card,
+.dashboard-sidebar-wrapper .sidebar-profile-card,
+.admin-sidebar-shell .sidebar-profile-card {
+  color: #ffffff !important;
+}
+
+.bdr-sidebar .sidebar-nav-link,
+.dashboard-sidebar-wrapper .sidebar-nav-link {
+  color: #ffffff !important;
+}
+
+.bdr-sidebar .sidebar-nav-link svg,
+.dashboard-sidebar-wrapper .sidebar-nav-link svg {
+  color: #ffffff !important;
+  opacity: 0.95 !important;
+}
+
+.bdr-sidebar .sidebar-nav-link:hover,
+.dashboard-sidebar-wrapper .sidebar-nav-link:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #ffffff !important;
+  border-left-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.bdr-sidebar .sidebar-nav-link.active,
+.dashboard-sidebar-wrapper .sidebar-nav-link.active {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+  border-left-color: var(--color-bright) !important;
+}
+
+/* Make admin sign-out button use seller signout styles */
+.admin-logout-button {
+  width: 100% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(239, 68, 68, 0.28) !important;
+  background: transparent !important;
+  color: #ef4444 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.admin-logout-button:hover {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #ef4444 !important;
+}
+
+html[data-theme='dark'] .admin-logout-button {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #fca5a5 !important;
+}
+
+html[data-theme='dark'] .admin-logout-button:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+/* Ensure any seller-navbar-theme-toggle used as the sidebar logout uses signout styling */
+.dashboard-sidebar-wrapper .sidebar-button-group .seller-navbar-theme-toggle,
+.admin-sidebar-shell .sidebar-button-group .seller-navbar-theme-toggle,
+.bdr-sidebar .sidebar-button-group .seller-navbar-theme-toggle {
+  width: 100% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(239, 68, 68, 0.28) !important;
+  background: transparent !important;
+  color: #ef4444 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.dashboard-sidebar-wrapper .sidebar-button-group .seller-navbar-theme-toggle:hover,
+.admin-sidebar-shell .sidebar-button-group .seller-navbar-theme-toggle:hover,
+.bdr-sidebar .sidebar-button-group .seller-navbar-theme-toggle:hover {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #ef4444 !important;
+}
+
+html[data-theme='dark'] .dashboard-sidebar-wrapper .sidebar-button-group .seller-navbar-theme-toggle,
+html[data-theme='dark'] .admin-sidebar-shell .sidebar-button-group .seller-navbar-theme-toggle,
+html[data-theme='dark'] .bdr-sidebar .sidebar-button-group .seller-navbar-theme-toggle {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #fca5a5 !important;
+}
+
+html[data-theme='dark'] .dashboard-sidebar-wrapper .sidebar-button-group .seller-navbar-theme-toggle:hover,
+html[data-theme='dark'] .admin-sidebar-shell .sidebar-button-group .seller-navbar-theme-toggle:hover,
+html[data-theme='dark'] .bdr-sidebar .sidebar-button-group .seller-navbar-theme-toggle:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+/* Override hero/card borders to white for dashboard/admin views */
+.dashboard-hero,
+.hero-premium-mesh,
+.port-hero-card,
+.content-card,
+.admin-dashboard-hero,
+.admin-dashboard-hero.animate-fade-up {
+  border-color: #ffffff !important;
+}
+
+/* Make top/bottom accent borders white */
+.dashboard-hero,
+.content-card,
+.port-hero-card,
+.portfolio-gem-card,
+.market-card,
+.auction-card {
+  border-top-color: #ffffff !important;
+  border-bottom-color: #ffffff !important;
+}
+
+/* Section card: reuse dashboard hero card styling for other page headers */
+.section-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius: var(--se-r-card);
+  border: 1px solid var(--border) !important;
+  background: var(--page-surface) !important;
+  margin-bottom: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.section-card .dashboard-title h4,
+.section-card h4 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+}
+
+.section-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+}
+
+/* Align admin section typography with dashboard defaults */
+.admin-main h4,
+.admin-main h3,
+.dashboard-title h4,
+.dashboard-hero h4,
+.section-card h4 {
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+}
+
+.admin-main p,
+.dashboard-title p,
+.section-card p {
+  font-size: 13.5px !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Chip / small UI text sizing consistent with dashboard */
+.dashboard-chip,
+.dashboard-chip-soft,
+.dashboard-chip-stack span,
+.dashboard-chip-stack .dashboard-chip {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+/* Badges shown in section headers (pills) */
+.section-card-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 0;
+  /* default flow for small screens */
+}
+
+.section-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-primary);
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.section-card-badge--primary {
+  background: rgba(47, 95, 255, 0.08);
+  color: var(--color-primary);
+  border: 1px solid rgba(47, 95, 255, 0.18);
+}
+
+.section-card-badge--muted {
+  background: rgba(2, 6, 23, 0.02);
+  color: var(--text-secondary);
+  border: 1px solid rgba(2, 6, 23, 0.04);
+}
+
+html[data-theme='dark'] .section-card-badge {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.03);
+}
+
+html[data-theme='dark'] .section-card-badge--primary {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.18);
+}
+
+/* Long / hero-like section card that spans horizontally with more height */
+.section-card--long {
+  padding: 40px 40px;
+  border-radius: 18px;
+  min-height: 140px;
+  align-items: center;
+  position: relative;
+  /* ensure absolute children anchor to this container */
+}
+
+/* Position badges as small pills anchored bottom-right inside long cards */
+.section-card--long .section-card-badges {
+  position: absolute;
+  right: 24px;
+  bottom: 18px;
+  margin-left: 0;
+}
+
+/* Anchor the dashboard chip stack (used in dashboard-hero variant) to bottom-right */
+.section-card--long .dashboard-chip-stack {
+  position: absolute;
+  right: 24px;
+  bottom: 18px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* If the long card is also a dashboard-hero, keep the chip stack inline and vertically centered like the main dashboard */
+.section-card--long.dashboard-hero .dashboard-chip-stack,
+.section-card--long.admin-dashboard-hero .dashboard-chip-stack {
+  position: static;
+  right: auto;
+  bottom: auto;
+  margin-left: auto;
+}
+
+/* Likewise allow section-card-badges to flow inline for hero variants */
+.section-card--long.dashboard-hero .section-card-badges,
+.section-card--long.admin-dashboard-hero .section-card-badges {
+  position: static;
+  right: auto;
+  bottom: auto;
+  margin-left: auto;
+}
+
+/* Ensure badges size and weight for hero display */
+.section-card--long .section-card-badge {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Slightly enlarge dashboard chips inside hero */
+.section-card--long .dashboard-chip,
+.section-card--long .dashboard-chip-soft {
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+}
+
+/* Responsive: stack chips/badges on narrow screens */
+@media (max-width: 720px) {
+  .section-card--long {
+    padding: 20px 18px;
+    min-height: auto;
+    align-items: flex-start;
+  }
+
+  .section-card--long .section-card-badges,
+  .section-card--long .dashboard-chip-stack {
+    position: static;
+    margin-top: 12px;
+    gap: 8px;
+  }
+
+  .section-card--long .section-card-badges {
+    justify-content: flex-start;
+  }
+}
