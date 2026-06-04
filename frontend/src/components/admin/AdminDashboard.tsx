@@ -29,7 +29,7 @@ type Tone = 'teal' | 'indigo' | 'amber' | 'rose';
 
 const formatCompactNumber = (value?: any) => {
   if (value === undefined || value === null) return '0';
-  if (typeof value === 'string' && value.includes('$')) return value;
+  if (typeof value === 'string' && value.includes('Rs.')) return value;
   if (Number.isNaN(Number(value))) return String(value);
   try {
     return Number(value).toLocaleString();
@@ -328,7 +328,7 @@ const AdminDashboard = () => {
                       return (
                         <tr key={auc._id}>
                           <td className="admin-verify-gem font-bold">{auc.gem?.type || 'Gem Listing'}</td>
-                          <td>${(auc.currentBid || auc.startingPrice || 0).toLocaleString()}</td>
+                          <td>Rs.{(auc.currentBid || auc.startingPrice || 0).toLocaleString()}</td>
                           <td>{auc.bids?.length || 0} bid{auc.bids?.length === 1 ? '' : 's'}</td>
                           <td>
                             <span className={`badge ${diffHrs <= 12 ? 'bg-danger' : 'bg-success'} text-white py-1 px-2`} style={{ borderRadius: '20px', fontSize: '10px' }}>
