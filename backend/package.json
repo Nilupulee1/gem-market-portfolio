@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "nodemon src/server.ts",
     "build": "tsc",
+    "build:full": "cd ../frontend && npm install && npm run build && cd ../backend && npm install && tsc",
     "start": "node dist/server.js",
     "reset-password": "ts-node scripts/resetPassword.ts",
     "dedupe-conversations": "ts-node scripts/dedupeConversations.ts"

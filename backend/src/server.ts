@@ -2,6 +2,7 @@ import './config/env';
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
+import path from 'path';
 import { connectDatabase } from './config/database';
 import { setupWebSocket } from './config/websocket';
 import authRoutes from './routes/authRoutes';
@@ -54,6 +55,16 @@ app.get('/health', (req, res) => {
     }
   });
 });
+
+// Serve React frontend in production
+if (process.env.NODE_ENV === 'production') {
+  const publicPath = path.join(__dirname, '../public');
+  app.use(express.static(publicPath));
+  // Catch-all: send React's index.html for any non-API route
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(publicPath, 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
