@@ -19,10 +19,13 @@ const isLocalDevOrigin = (origin: string) =>
 // CORS Configuration
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || isLocalDevOrigin(origin)) {
-      callback(null, true);
-      return;
-    }
+    // Allow requests with no origin (e.g. mobile apps, curl)
+    if (!origin) { callback(null, true); return; }
+    // Allow localhost in development
+    if (isLocalDevOrigin(origin)) { callback(null, true); return; }
+    // Allow the deployed frontend URL from env
+    const allowedOrigin = process.env.FRONTEND_URL;
+    if (allowedOrigin && origin === allowedOrigin) { callback(null, true); return; }
 
     callback(new Error(`CORS blocked origin: ${origin}`));
   },
