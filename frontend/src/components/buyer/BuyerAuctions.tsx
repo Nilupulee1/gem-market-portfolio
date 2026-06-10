@@ -231,74 +231,48 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
         ? 'Bidding'
         : 'Outbid';
 
-    const statusColor =
-      activeTab === 'won' || isWinning
-        ? 'var(--success, #10b981)'
-        : status === 'active'
-        ? 'var(--warning, #f59e0b)'
-        : 'var(--danger, #ef4444)';
-
     return (
       <article
         key={auction._id}
-        className="market-card"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          backgroundColor: 'var(--surface, #fff)',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-        }}
+        className="portfolio-gem-card h-100 d-flex flex-column"
       >
         {/* Image */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div className="portfolio-gem-img-wrap">
           <img
             src={gemImage}
             alt={auction.gem?.type}
-            style={{
-              width: '100%',
-              height: '200px',
-              objectFit: 'cover',
-              display: 'block',
-              backgroundColor: 'var(--page-surface-muted)',
-            }}
+            className="portfolio-gem-img"
+            onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
           />
           {/* Lot badge */}
           <div style={{
-            position: 'absolute', top: 10, left: 10,
-            backgroundColor: 'var(--badge-bg, #1a202c)',
+            position: 'absolute', top: 12, left: 12,
+            backgroundColor: 'var(--badge-bg, rgba(0,0,0,0.6))',
             color: 'var(--surface-text-on-accent, #fff)',
             padding: '4px 10px', borderRadius: '4px',
             fontSize: '12px', fontWeight: 600,
+            zIndex: 2,
           }}>
             Lot #{lotNumber}
           </div>
           {/* Status badge */}
-          <div style={{
-            position: 'absolute', top: 10, right: 10,
-            backgroundColor: statusColor,
-            color: 'var(--surface-text-on-accent, #fff)',
-            padding: '5px 12px', borderRadius: '20px',
-            fontSize: '12px', fontWeight: 600,
-          }}>
+          <span className={`portfolio-gem-badge ${
+            activeTab === 'won' || isWinning
+              ? 'portfolio-gem-badge--approved'
+              : status === 'active'
+              ? 'portfolio-gem-badge--pending'
+              : 'portfolio-gem-badge--rejected'
+          }`}>
             {statusLabel}
-          </div>
+          </span>
         </div>
 
         {/* Body */}
-        <div style={{
-          padding: '14px 16px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1,
-          gap: '8px',
-        }}>
-          <h6 style={{ fontWeight: 700, fontSize: '15px', margin: 0, color: 'var(--text-primary)' }}>
+        <div className="portfolio-gem-body d-flex flex-column flex-grow-1" style={{ gap: '8px' }}>
+          <strong className="portfolio-gem-name">
             {auction.gem?.type}
-          </h6>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+          </strong>
+          <p className="portfolio-gem-meta">
             Seller: {auction.seller?.name || 'Unknown'}
           </p>
 
@@ -334,12 +308,12 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
             )}
           </div>
 
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+          <p className="portfolio-gem-meta mb-0">
             {auction.bids?.length || 0} bids placed
           </p>
 
           {/* Button pushed to bottom */}
-          <div style={{ marginTop: 'auto', paddingTop: '4px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="portfolio-gem-actions mt-auto pt-2">
             {activeTab === 'myAuctions' && getAuctionStatus(auction) === 'active' && (
               <button
                 type="button"
@@ -350,7 +324,7 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
                   openDetails(auction._id);
                 }}
               >
-                Increase Bid
+                Bid Now
               </button>
             )}
             <button

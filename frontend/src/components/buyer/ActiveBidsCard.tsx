@@ -26,73 +26,46 @@ export default function ActiveBidsCard({
 
   return (
     <article
-      className="market-card"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-        backgroundColor: 'var(--surface, #fff)',
-        height: '100%',         // fill the Col height so cards in a row align
-      }}
+      className="portfolio-gem-card h-100 d-flex flex-column"
     >
       {/* ── Image ── */}
-      <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div className="portfolio-gem-img-wrap">
         <img
           src={gemImage}
           alt={gem.type}
-          style={{
-            width: '100%',
-            height: '180px',
-            objectFit: 'cover',
-            display: 'block',   // kills the 4px gap under inline images
-            backgroundColor: 'var(--page-surface-muted)',
-          }}
+          className="portfolio-gem-img"
         />
 
         {/* Lot badge */}
         <div style={{
-          position: 'absolute', top: 10, left: 10,
-          backgroundColor: 'var(--badge-bg, #1a202c)',
+          position: 'absolute', top: 12, left: 12,
+          backgroundColor: 'var(--badge-bg, rgba(0,0,0,0.6))',
           color: 'var(--surface-text-on-accent, #fff)',
-          padding: '4px 10px', borderRadius: '6px',
+          padding: '4px 10px', borderRadius: '4px',
           fontSize: '12px', fontWeight: 600,
+          zIndex: 2,
         }}>
           Lot #{lotNumber}
         </div>
 
         {/* Status badge */}
-        <div style={{
-          position: 'absolute', top: 10, right: 10,
-          backgroundColor: isWinning ? 'var(--success, #10b981)' : 'var(--danger, #ef4444)',
-          color: 'var(--surface-text-on-accent, #fff)',
-          padding: '4px 10px', borderRadius: '6px',
-          fontSize: '11px', fontWeight: 700,
-          display: 'flex', alignItems: 'center', gap: '4px',
-        }}>
+        <span className={`portfolio-gem-badge ${isWinning ? 'portfolio-gem-badge--approved' : 'portfolio-gem-badge--rejected'}`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {isWinning && <TrendingUp size={12} />}
           {isWinning ? 'Winning' : 'Outbid'}
-        </div>
+        </span>
       </div>
 
       {/* ── Body ── */}
-      <div style={{
-        padding: '14px 16px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        flex: 1,
-        gap: '10px',
-      }}>
+      <div className="portfolio-gem-body d-flex flex-column flex-grow-1" style={{ gap: '10px' }}>
         {/* Name */}
-        <strong style={{ fontSize: '15px', color: 'var(--text-primary, #1a202c)', lineHeight: 1.3 }}>
+        <strong className="portfolio-gem-name">
           {gem.type}
         </strong>
 
         {/* Origin / carat */}
         {gem.origin && (
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary, #718096)', margin: 0 }}>
-            {gem.origin}{gem.carat ? ` • ${gem.carat} ct` : ''}
+          <p className="portfolio-gem-meta">
+            {gem.origin}{gem.carat ? ` · ${gem.carat} ct` : ''}
           </p>
         )}
 

@@ -266,17 +266,23 @@ export const getChatPartners = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
     const currentUserRole = authReq.user?.role;
-    let targetRole = '';
+    const currentUserId = authReq.user?.userId;
+    
+    let targetRoles: string[] = [];
     
     if (currentUserRole === UserRole.ADMIN) {
-      targetRole = UserRole.OPERATIONAL_MANAGER;
+      targetRoles = [UserRole.OPERATIONAL_MANAGER];
     } else if (currentUserRole === UserRole.OPERATIONAL_MANAGER) {
-      targetRole = UserRole.ADMIN;
+      targetRoles = [UserRole.ADMIN, UserRole.OPERATIONAL_MANAGER];
     } else {
       return res.status(403).json({ message: 'Unauthorized role access' });
     }
     
-    const partners = await User.find({ role: targetRole }).select('name email role');
+    const partners = await User.find({ 
+      role: { $in: targetRoles },
+      _id: { $ne: currentUserId }
+    }).select('name email role');
+    
     res.json({ partners });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });

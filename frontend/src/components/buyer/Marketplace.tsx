@@ -7,10 +7,8 @@ interface MarketplaceProps {
   approvedGems: Gem[];
   query: string;
   selectedType: string;
-  uniqueTypes: string[];
   watchlistIds: string[];
   nowMs: number;
-  onTypeChange: (value: string) => void;
   onToggleWatchlist: (auctionId: string) => void;
   onOpenDetails: (auctionId: string) => void;
   onOpenGemDetails: (gemId: string) => void;
@@ -25,10 +23,8 @@ const Marketplace = ({
   approvedGems,
   query,
   selectedType,
-  uniqueTypes,
   watchlistIds,
   nowMs,
-  onTypeChange,
   onToggleWatchlist,
   onOpenDetails,
   onOpenGemDetails,
@@ -52,26 +48,11 @@ const Marketplace = ({
 
   return (
     <>
-      <div className="bdr-dashboard-hero bdr-market-hero-card">
-        <div className="bdr-dashboard-hero-copy bdr-market-hero-copy">
-          <p className="dashboard-eyebrow bdr-market-hero-kicker">Marketplace</p>
-          <h4 className="bdr-market-hero-title">Masterpiece Collection</h4>
-          <p className="bdr-market-hero-subtitle">Showing {totalVisible} exquisite specimens curated for investment.</p>
-        </div>
-
-        <div className="bdr-dashboard-hero-actions bdr-market-hero-controls" aria-label="Marketplace filters">
-          <span className="bdr-market-hero-label">Sort by</span>
-          <select
-            className="bdr-market-hero-select"
-            value={selectedType}
-            onChange={(event) => onTypeChange(event.target.value)}
-          >
-            {uniqueTypes.map((type) => (
-              <option key={type} value={type}>
-                {type === 'all' ? 'All Types' : type}
-              </option>
-            ))}
-          </select>
+      <div className="dashboard-hero hero-premium-mesh mb-4 port-hero-card">
+        <div>
+          <p className="dashboard-eyebrow mb-2">Marketplace</p>
+          <h4>Masterpiece Collection</h4>
+          <p className="mb-0">Showing {totalVisible} exquisite specimens curated for investment.</p>
         </div>
       </div>
 
@@ -84,34 +65,41 @@ const Marketplace = ({
         )}
 
         {filteredGems.map((gem) => (
-          <motion.article key={`gem-${gem._id}`} whileHover={{ y: -5 }} className="market-card">
-            <img className="market-image" src={gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={gem.type} />
-            <div className="market-body">
-              <strong>{gem.type}</strong>
-              <p className="market-meta">
-                {gem.origin} - {gem.carat} ct
+          <motion.article key={`gem-${gem._id}`} whileHover={{ y: -3 }} className="portfolio-gem-card h-100 d-flex flex-column">
+            <div className="portfolio-gem-img-wrap">
+              <img
+                className="portfolio-gem-img"
+                src={gem.images?.[0] || 'https://via.placeholder.com/460x280'}
+                alt={gem.type}
+                onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
+              />
+              <span className="portfolio-gem-badge portfolio-gem-badge--approved">
+                Direct Sale
+              </span>
+            </div>
+            <div className="portfolio-gem-body d-flex flex-column flex-grow-1">
+              <strong className="portfolio-gem-name">{gem.type}</strong>
+              <p className="portfolio-gem-meta">
+                {gem.origin} · {gem.carat} ct
               </p>
-              <p className="market-meta">
-                {gem.cut} - {gem.color}
+              <p className="portfolio-gem-meta">
+                {gem.cut} · {gem.color}
               </p>
               <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="bid-price">Contact Seller</span>
-                <span className="market-sale-badge">
-                  Direct Sale
-                </span>
+                <span className="bid-price" style={{ fontSize: '15px', fontWeight: 700 }}>Direct Sale</span>
               </div>
-              <p className="market-meta mb-0">
+              <p className="portfolio-gem-meta mb-0">
                 Seller: <strong>{gem.seller.name}</strong>
               </p>
-              <div className="market-actions">
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="ghost-btn" type="button" onClick={() => onOpenGemDetails(gem._id)}>
+              <div className="portfolio-gem-actions mt-auto pt-2">
+                <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                  <button className="ghost-btn" type="button" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={() => onOpenGemDetails(gem._id)}>
                     View Details
                   </button>
                   <button
                     className="bid-btn"
                     type="button"
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }}
                     onClick={() => onOpenSellerContact(gem.seller, gem.type, gem._id)}
                   >
                     Contact Seller
@@ -125,31 +113,41 @@ const Marketplace = ({
         {auctions.map((auction) => {
           const inWatchlist = watchlistIds.includes(auction._id);
           return (
-            <motion.article key={auction._id} whileHover={{ y: -5 }} className="market-card">
-              <img className="market-image" src={auction.gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={auction.gem.type} />
-              <div className="market-body">
-                <strong>{auction.gem.type}</strong>
-                <p className="market-meta">
-                  {auction.gem.origin} - {auction.gem.carat} ct
+            <motion.article key={auction._id} whileHover={{ y: -3 }} className="portfolio-gem-card h-100 d-flex flex-column">
+              <div className="portfolio-gem-img-wrap">
+                <img
+                  className="portfolio-gem-img"
+                  src={auction.gem.images?.[0] || 'https://via.placeholder.com/460x280'}
+                  alt={auction.gem.type}
+                  onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
+                />
+                <span className="portfolio-gem-badge portfolio-gem-badge--pending">
+                  Live Auction
+                </span>
+              </div>
+              <div className="portfolio-gem-body d-flex flex-column flex-grow-1">
+                <strong className="portfolio-gem-name">{auction.gem.type}</strong>
+                <p className="portfolio-gem-meta">
+                  {auction.gem.origin} · {auction.gem.carat} ct
                 </p>
-                <p className="market-meta">
-                  {auction.gem.cut} - {auction.gem.color}
+                <p className="portfolio-gem-meta">
+                  {auction.gem.cut} · {auction.gem.color}
                 </p>
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <span className="bid-price">{formatCurrency(auction.currentBid)}</span>
-                  <span className="auction-timer">
+                  <span className="bid-price" style={{ fontSize: '16px', fontWeight: 800 }}>{formatCurrency(auction.currentBid)}</span>
+                  <span className="auction-timer" style={{ fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <Timer size={14} /> {formatRemaining(auction.endTime, nowMs)}
                   </span>
                 </div>
-                <p className="market-meta mb-0">
+                <p className="portfolio-gem-meta mb-0">
                   Current leader: <strong>{getLeadingBidderName(auction)}</strong>
                 </p>
-                <div className="market-actions">
-                  <button className="watch-btn" type="button" onClick={() => onToggleWatchlist(auction._id)}>
+                <div className="portfolio-gem-actions mt-auto pt-2">
+                  <button className="watch-btn" type="button" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={() => onToggleWatchlist(auction._id)}>
                     <Heart size={15} fill={inWatchlist ? 'currentColor' : 'none'} />
                     {inWatchlist ? 'Watched' : 'Watch'}
                   </button>
-                  <button className="bid-btn" type="button" onClick={() => onOpenDetails(auction._id)}>
+                  <button className="bid-btn" type="button" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={() => onOpenDetails(auction._id)}>
                     View Details
                   </button>
                 </div>

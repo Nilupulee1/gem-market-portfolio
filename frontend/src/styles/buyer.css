@@ -776,15 +776,37 @@ html[data-theme='dark'] .bdr-quick-stat {
   display: grid;
   grid-template-columns: minmax(168px, 180px) minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--page-surface);
+  border: 1px solid var(--border) !important;
+  border-radius: var(--se-r-card) !important;
+  background: var(--page-surface) !important;
+  box-shadow: var(--se-sh-card) !important;
+  position: relative;
+  transition: transform var(--se-ts), box-shadow var(--se-ts), border-color var(--se-ts) !important;
+}
+
+.bdr-active-bid-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-bright));
+  opacity: 0.95;
+  z-index: 2;
+}
+
+.bdr-active-bid-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--se-sh-hover) !important;
+  border-color: var(--border-strong) !important;
 }
 
 .bdr-active-bid-image-wrap {
   position: relative;
   min-height: 100%;
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.1));
+  overflow: hidden;
 }
 
 .bdr-active-bid-image {
@@ -792,6 +814,11 @@ html[data-theme='dark'] .bdr-quick-stat {
   height: 100%;
   object-fit: cover;
   min-height: 180px;
+  transition: transform var(--se-ts) !important;
+}
+
+.bdr-active-bid-card:hover .bdr-active-bid-image {
+  transform: scale(1.04);
 }
 
 .bdr-status-pill {

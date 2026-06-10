@@ -211,16 +211,17 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
 
   return (
     <div>
-      <div className="section-card section-card--long animate-fade-up">
-        <div className="dashboard-title">
-          <h4 className="fw-bold">Pending Gem Verifications</h4>
+      <section className="dashboard-hero hero-premium-mesh admin-dashboard-hero section-card--long animate-fade-up">
+        <div>
+          <p className="dashboard-eyebrow">Verifications</p>
+          <h4>Pending Gem Verifications</h4>
           <p>Review and approve gem listings before they go live</p>
         </div>
-        <div className="section-card-badges">
-          <span className="section-card-badge section-card-badge--primary">{gems.length} pending</span>
-          <span className="section-card-badge section-card-badge--muted">{gems.length} total listings</span>
+        <div className="dashboard-chip-stack">
+          <span className="dashboard-chip dashboard-chip-soft">{gems.length} pending</span>
+          <span className="dashboard-chip">{gems.length} total listings</span>
         </div>
-      </div>
+      </section>
 
       <div className="pending-gems-toolbar animate-fade-up delay-1">
         <div className="pending-gems-filters d-flex gap-2">

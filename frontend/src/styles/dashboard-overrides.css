@@ -121,6 +121,11 @@ html[data-theme='dark'] .admin-logout-button:hover {
   color: #fca5a5 !important;
 }
 
+/* Ensure all elements inside the seller sign-out button inherit the button's text color in all states */
+.dashboard-sidebar-wrapper .bdr-signout-btn * {
+  color: inherit !important;
+}
+
 /* Ensure any seller-navbar-theme-toggle used as the sidebar logout uses signout styling */
 .dashboard-sidebar-wrapper .sidebar-button-group .seller-navbar-theme-toggle,
 .admin-sidebar-shell .sidebar-button-group .seller-navbar-theme-toggle,
@@ -365,5 +370,96 @@ html[data-theme='dark'] .section-card-badge--primary {
 
   .section-card--long .section-card-badges {
     justify-content: flex-start;
+  }
+}
+
+/* Styling for the premium dark mesh hero banner */
+.hero-premium-mesh {
+  background:
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.22) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(207, 168, 110, 0.18) 0px, transparent 50%),
+    linear-gradient(135deg, #0b1320 0%, #1e324a 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 10px 30px rgba(11, 19, 32, 0.22) !important;
+}
+
+.hero-premium-mesh,
+.hero-premium-mesh h4,
+.hero-premium-mesh h5,
+.hero-premium-mesh .dashboard-title h4,
+.hero-premium-mesh .dashboard-eyebrow {
+  color: #ffffff !important;
+}
+
+.hero-premium-mesh p {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Premium pills inside the dark hero banner */
+.hero-premium-mesh .dashboard-chip {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.hero-premium-mesh .dashboard-chip-soft {
+  background: rgba(37, 99, 235, 0.15) !important;
+  border: 1px solid rgba(37, 99, 235, 0.3) !important;
+  color: #93c5fd !important;
+}
+
+/* Make primary action buttons inside the dark hero banner pop out and look like premium buttons */
+.hero-premium-mesh .auctions-hero-action.btn-primary.bdr-btn-primary,
+html[data-theme='dark'] .hero-premium-mesh .auctions-hero-action.btn-primary.bdr-btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.hero-premium-mesh .auctions-hero-action.btn-primary.bdr-btn-primary:hover,
+html[data-theme='dark'] .hero-premium-mesh .auctions-hero-action.btn-primary.bdr-btn-primary:hover,
+.hero-premium-mesh .auctions-hero-action.btn-primary.bdr-btn-primary:focus,
+html[data-theme='dark'] .hero-premium-mesh .auctions-hero-action.btn-primary.bdr-btn-primary:focus,
+.hero-premium-mesh .auctions-hero-action.btn-primary.bdr-btn-primary:active,
+html[data-theme='dark'] .hero-premium-mesh .auctions-hero-action.btn-primary.bdr-btn-primary:active {
+  background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%) !important;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6) !important;
+  transform: translateY(-1px) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Increased height and padding for the dashboard hero cards */
+.dashboard-hero {
+  padding: 38px 40px !important;
+  align-items: center !important;
+  min-height: 140px;
+}
+
+/* Responsive columns for market grids: 4 columns for large viewports */
+.market-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 1280px) {
+  .market-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .market-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .market-grid {
+    grid-template-columns: 1fr !important;
   }
 }

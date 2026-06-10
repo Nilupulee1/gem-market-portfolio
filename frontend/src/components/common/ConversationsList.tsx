@@ -52,12 +52,14 @@ interface ConversationsListProps {
   onSelectConversation?: (conversation: Conversation) => void;
   selectedConversationId?: string | null;
   className?: string;
+  extraControls?: React.ReactNode;
 }
 
 const ConversationsList: React.FC<ConversationsListProps> = ({
   onSelectConversation,
   selectedConversationId,
-  className
+  className,
+  extraControls
 }) => {
   const { user, token } = useAuthStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -182,6 +184,8 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+
+          {extraControls}
 
 
           <ListGroup variant="flush" className="conversations-list">

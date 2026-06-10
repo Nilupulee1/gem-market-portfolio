@@ -62,7 +62,7 @@ export interface ActiveBidItem {
   remainingTimeMs: number;
 }
 
-const watchlistStorageKey    = 'buyer-watchlist-auction-ids';
+const watchlistStorageKey = 'buyer-watchlist-auction-ids';
 const buyerDashboardCacheKey = 'buyer-dashboard-cache';
 
 type BuyerDashboardCache = {
@@ -86,8 +86,8 @@ const loadBuyerDashboardCache = (): BuyerDashboardCache | null => {
 const saveBuyerDashboardCache = (cache: BuyerDashboardCache) =>
   localStorage.setItem(buyerDashboardCacheKey, JSON.stringify(cache));
 
-const formatCurrency  = (v: number) => `Rs.${v.toLocaleString()}`;
-const formatDateTime  = (v: string) =>
+const formatCurrency = (v: number) => `Rs.${v.toLocaleString()}`;
+const formatDateTime = (v: string) =>
   new Date(v).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 const getCertificateAccessUrl = (cert?: { url?: string; accessUrl?: string }) => cert?.accessUrl || cert?.url || '';
 const isPdfCertificate = (cert?: { url?: string; accessUrl?: string; mimeType?: string }) => {
@@ -116,11 +116,11 @@ const formatShortDate = (value: string) =>
   new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
 const NAV_ITEMS: { view: BuyerView; icon: React.ReactNode; label: string }[] = [
-  { view: 'dashboard',   icon: <LayoutDashboard size={16} />, label: 'Dashboard'   },
-  { view: 'marketplace', icon: <Compass size={16} />,         label: 'Marketplace' },
-  { view: 'auctions',    icon: <Gavel size={16} />,           label: 'Auctions'    },
-  { view: 'watchlist',   icon: <Heart size={16} />,           label: 'Watchlist'   },
-  { view: 'messages',    icon: <MessageSquare size={16} />,   label: 'Messages'    },
+  { view: 'dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
+  { view: 'marketplace', icon: <Compass size={16} />, label: 'Marketplace' },
+  { view: 'auctions', icon: <Gavel size={16} />, label: 'Auctions' },
+  { view: 'watchlist', icon: <Heart size={16} />, label: 'Watchlist' },
+  { view: 'messages', icon: <MessageSquare size={16} />, label: 'Messages' },
 ];
 
 const QuickStat = ({
@@ -187,37 +187,37 @@ const ActiveBidsGrid = ({
    MAIN COMPONENT
    ════════════════════════════════════════════════════════ */
 const BuyerDashboard = () => {
-  const navigate    = useNavigate();
+  const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const unreadCount = useChatStore(s => s.unreadCount);
-  const cached      = loadBuyerDashboardCache();
+  const cached = loadBuyerDashboardCache();
 
-  const [view,        setView]       = useState<BuyerView>('dashboard');
-  const [query]                      = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [loading,     setLoading]    = useState(!cached);
+  const [view, setView] = useState<BuyerView>('dashboard');
+  const [query] = useState('');
+  const selectedType = 'all';
+  const [loading, setLoading] = useState(!cached);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [placingBid,  setPlacingBid] = useState(false);
-  const [nowMs,       setNowMs]      = useState(() => Date.now());
+  const [placingBid, setPlacingBid] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
-  const [allAuctions,  setAllAuctions]  = useState<Auction[]>(cached?.allAuctions  || []);
+  const [allAuctions, setAllAuctions] = useState<Auction[]>(cached?.allAuctions || []);
   const [approvedGems, setApprovedGems] = useState<Gem[]>(cached?.approvedGems || []);
-  const [dashboard,    setDashboard]    = useState<BuyerDashboardPayload | null>(cached?.dashboard || null);
-  const [activeBids,   setActiveBids]   = useState<ActiveBidItem[]>(cached?.activeBids   || []);
-  const [wonAuctions,  setWonAuctions]  = useState<Auction[]>(cached?.wonAuctions  || []);
-  const [bidHistory,   setBidHistory]   = useState<BidHistoryItem[]>(cached?.bidHistory   || []);
+  const [dashboard, setDashboard] = useState<BuyerDashboardPayload | null>(cached?.dashboard || null);
+  const [activeBids, setActiveBids] = useState<ActiveBidItem[]>(cached?.activeBids || []);
+  const [wonAuctions, setWonAuctions] = useState<Auction[]>(cached?.wonAuctions || []);
+  const [bidHistory, setBidHistory] = useState<BidHistoryItem[]>(cached?.bidHistory || []);
   const [watchlistIds, setWatchlistIds] = useState<string[]>(parseWatchlist);
 
-  const [selectedAuction,       setSelectedAuction]       = useState<Auction | null>(null);
-  const [selectedGemDetails,    setSelectedGemDetails]    = useState<Auction['gem'] | null>(null);
-  const [bidAmount,             setBidAmount]             = useState('');
-  const [showBidConfirm,        setShowBidConfirm]        = useState(false);
-  const [bidFeedback,           setBidFeedback]           = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [selectedSeller,        setSelectedSeller]        = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
+  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
+  const [selectedGemDetails, setSelectedGemDetails] = useState<Auction['gem'] | null>(null);
+  const [bidAmount, setBidAmount] = useState('');
+  const [showBidConfirm, setShowBidConfirm] = useState(false);
+  const [bidFeedback, setBidFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
   const [selectedGemForContact, setSelectedGemForContact] = useState<{ name: string; id: string; images?: string[] } | null>(null);
-  const [chatInitialContact,    setChatInitialContact]    = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
-  const [chatInitialGem,        setChatInitialGem]        = useState<{ name: string; id: string } | null>(null);
-  const [conversations,         setConversations]         = useState<Array<{ auction?: { _id: string }; gem?: { _id: string } }>>([]);
+  const [chatInitialContact, setChatInitialContact] = useState<{ _id?: string; name: string; email: string; phone?: string } | null>(null);
+  const [chatInitialGem, setChatInitialGem] = useState<{ name: string; id: string } | null>(null);
+  const [conversations, setConversations] = useState<Array<{ auction?: { _id: string }; gem?: { _id: string } }>>([]);
 
   const isBuyerAccount = user?.role === 'buyer';
 
@@ -264,12 +264,6 @@ const BuyerDashboard = () => {
     const id = window.setInterval(refresh, 3000);
     return () => window.clearInterval(id);
   }, [view]);
-
-  const uniqueTypes = useMemo(() => {
-    const s = new Set(allAuctions.map(a => a.gem.type));
-    approvedGems.forEach(g => s.add(g.type));
-    return ['all', ...Array.from(s)];
-  }, [allAuctions, approvedGems]);
 
   const filteredAuctions = useMemo(() =>
     allAuctions.filter(a => {
@@ -327,7 +321,7 @@ const BuyerDashboard = () => {
 
   const requestBidConfirmation = () => {
     if (!selectedAuction) return;
-    const amt  = Number(bidAmount);
+    const amt = Number(bidAmount);
     const minB = selectedAuction.currentBid + selectedAuction.minimumBidIncrement;
     if (!Number.isFinite(amt) || amt < minB) { setBidFeedback({ type: 'error', message: `Your bid must be at least ${formatCurrency(minB)}.` }); return; }
     setBidFeedback(null); setShowBidConfirm(true);
@@ -335,7 +329,7 @@ const BuyerDashboard = () => {
 
   const placeBid = async () => {
     if (!selectedAuction) return;
-    const amt  = Number(bidAmount);
+    const amt = Number(bidAmount);
     const minB = selectedAuction.currentBid + selectedAuction.minimumBidIncrement;
     if (!Number.isFinite(amt) || amt <= 0) return;
     if (amt < minB) { setBidFeedback({ type: 'error', message: `Your bid must be at least ${formatCurrency(minB)}.` }); setShowBidConfirm(false); return; }
@@ -357,33 +351,31 @@ const BuyerDashboard = () => {
      renderDashboard  (unchanged)
   ───────────────────────────────────────────────────── */
   const renderDashboard = () => {
-    const stats         = dashboard?.stats;
+    const stats = dashboard?.stats;
     const activeBidCards = activeBids.slice(0, 2);
     const savedAuctions = watchedAuctions.slice(0, 2);
-    const orderHistory  = wonAuctions.slice(0, 5);
-    const winningBids   = activeBids.filter(i => i.isWinning).length;
-    const leadRate      = activeBids.length ? Math.round((winningBids / activeBids.length) * 100) : 0;
+    const orderHistory = wonAuctions.slice(0, 5);
+    const winningBids = activeBids.filter(i => i.isWinning).length;
+    const leadRate = activeBids.length ? Math.round((winningBids / activeBids.length) * 100) : 0;
 
     const summaryCards = [
-      { label: 'Active Bids',      value: stats?.activeBids  || 0,       accent: '#0f766e', icon: <Gavel  size={18} /> },
-      { label: 'Completed Orders', value: stats?.wonAuctions || 0,       accent: '#eab308', icon: <Trophy size={18} /> },
-      { label: 'Winning Rate',     value: `${leadRate}%`,                 accent: '#16a34a', icon: <Target size={18} /> },
-      { label: 'Saved Gems',       value: watchlistIds.length,            accent: '#5b7cfa', icon: <Heart  size={18} /> },
+      { label: 'Active Bids', value: stats?.activeBids || 0, accent: '#0f766e', icon: <Gavel size={18} /> },
+      { label: 'Completed Orders', value: stats?.wonAuctions || 0, accent: '#eab308', icon: <Trophy size={18} /> },
+      { label: 'Winning Rate', value: `${leadRate}%`, accent: '#16a34a', icon: <Target size={18} /> },
+      { label: 'Saved Gems', value: watchlistIds.length, accent: '#5b7cfa', icon: <Heart size={18} /> },
     ];
 
     return (
       <div className="bdr-dashboard-page animate-fade-up">
-        <section className="bdr-dashboard-hero">
-          <div className="bdr-dashboard-hero-copy">
+        <section className="dashboard-hero hero-premium-mesh mb-4">
+          <div>
             <p className="dashboard-eyebrow mb-2">Buyer dashboard</p>
             <h4>Welcome back, {user?.name?.split(' ')[0]}.</h4>
             <p className="mb-0">Track live bids, saved gems, and completed orders from one focused workspace.</p>
           </div>
-          <div className="bdr-dashboard-hero-actions">
-            <div className="bdr-dashboard-pill-row">
-              <span className="dashboard-chip">{leadRate}% winning rate</span>
-              <span className="dashboard-chip dashboard-chip-soft">{stats?.totalBidsPlaced || 0} bids placed</span>
-            </div>
+          <div className="dashboard-chip-stack">
+            <span className="dashboard-chip">{leadRate}% winning rate</span>
+            <span className="dashboard-chip dashboard-chip-soft">{stats?.totalBidsPlaced || 0} bids placed</span>
           </div>
         </section>
 
@@ -636,21 +628,21 @@ const BuyerDashboard = () => {
         ) : (
           <div className="bdr-market-grid">
             {watchedAuctions.map(a => (
-              <article className="bdr-market-card" key={a._id}>
-                <div className="bdr-market-img-wrap">
-                  <img className="bdr-market-img" src={a.gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={a.gem.type} />
-                  <span className="bdr-market-badge bdr-badge-live">Live Auction</span>
+              <article className="portfolio-gem-card h-100 d-flex flex-column" key={a._id}>
+                <div className="portfolio-gem-img-wrap">
+                  <img className="portfolio-gem-img" src={a.gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={a.gem.type} />
+                  <span className="portfolio-gem-badge portfolio-gem-badge--pending">Live Auction</span>
                 </div>
-                <div className="bdr-market-body">
-                  <strong className="bdr-market-name">{a.gem.type}</strong>
-                  <p className="bdr-market-meta">{a.gem.origin} · {a.gem.carat} ct</p>
-                  <span className="bdr-market-price">{formatCurrency(a.currentBid)}</span>
-                  <div className="bdr-market-actions mt-2">
+                <div className="portfolio-gem-body d-flex flex-column flex-grow-1">
+                  <strong className="portfolio-gem-name">{a.gem.type}</strong>
+                  <p className="portfolio-gem-meta">{a.gem.origin} · {a.gem.carat} ct</p>
+                  <span className="bdr-market-price mb-2" style={{ display: 'block', fontSize: '15px', fontWeight: 800 }}>{formatCurrency(a.currentBid)}</span>
+                  <div className="portfolio-gem-actions mt-auto pt-2">
                     <button className="bdr-btn-danger" type="button" onClick={() => toggleWatchlist(a._id)}>
-                      <X size={13}/> Remove
+                      <X size={13} /> Remove
                     </button>
                     <button className="bdr-btn-primary" type="button" onClick={() => openDetails(a._id)}>
-                      <Eye size={13}/> View
+                      <Eye size={13} /> View
                     </button>
                   </div>
                 </div>
@@ -684,16 +676,16 @@ const BuyerDashboard = () => {
     switch (view) {
       case 'marketplace': return (
         <Marketplace auctions={filteredAuctions} approvedGems={approvedGems} query={query}
-          selectedType={selectedType} uniqueTypes={uniqueTypes} watchlistIds={watchlistIds}
-          nowMs={nowMs} onTypeChange={setSelectedType} onToggleWatchlist={toggleWatchlist}
+          selectedType={selectedType} watchlistIds={watchlistIds}
+          nowMs={nowMs} onToggleWatchlist={toggleWatchlist}
           onOpenDetails={openDetails} onOpenGemDetails={openGemDetails}
           onOpenSellerContact={openSellerContact} formatCurrency={formatCurrency}
           formatRemaining={formatRemaining} getLeadingBidderName={getLeadingBidderName} />
       );
-      case 'auctions':  return renderAuctions();
+      case 'auctions': return renderAuctions();
       case 'watchlist': return renderWatchlist();
-      case 'messages':  return <MessagesPage initialContact={chatInitialContact} initialGem={chatInitialGem} />;
-      default:          return renderDashboard();
+      case 'messages': return <MessagesPage initialContact={chatInitialContact} initialGem={chatInitialGem} />;
+      default: return renderDashboard();
     }
   };
 
@@ -744,7 +736,7 @@ const BuyerDashboard = () => {
 
           <div className="sidebar-button-group">
             <button type="button" className="bdr-signout-btn" onClick={handleSignOut}>
-              <LogOut size={15}/> Sign Out
+              <LogOut size={15} /> Sign Out
             </button>
           </div>
         </aside>

@@ -140,7 +140,7 @@ const AuctionManagement = () => {
 
   return (
     <div>
-      <section className="dashboard-hero admin-dashboard-hero animate-fade-up">
+      <section className="dashboard-hero hero-premium-mesh admin-dashboard-hero section-card--long animate-fade-up">
         <div>
           <p className="dashboard-eyebrow">Auctions</p>
           <h4>Auction Management</h4>

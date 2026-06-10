@@ -130,42 +130,44 @@ const MessagesPage: React.FC<MessagesPageProps> = ({ initialContact, initialGem 
       <div className="messages-shell">
         <Row className="g-0 align-items-stretch">
           {/* Conversations column (hidden when opening a direct chat) */}
-          {!isDirectOpen && !forceFullWidth && (
+          {!forceFullWidth && (
             <Col lg={3} md={4} className="conversations-column">
-              {user && (user.role === 'admin' || user.role === 'operational_manager') && partners.length > 0 && (
-                <div className="p-3 mb-2" style={{ background: 'var(--page-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                  <label className="mb-2 d-block" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                    {user.role === 'admin' ? 'Message Operational Manager' : 'Message Administrator'}
-                  </label>
-                  <select
-                    className="chat-gem-selector w-100"
-                    style={{ padding: '8px 12px', fontSize: '13px' }}
-                    value={directPartner?._id || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (!val) {
-                        setDirectPartner(null);
-                        return;
-                      }
-                      const partner = partners.find(p => p._id === val);
-                      if (partner) {
-                        setSelectedConversation(null);
-                        setDirectPartner(partner);
-                      }
-                    }}
-                  >
-                    <option value="">-- Choose recipient --</option>
-                    {partners.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
               <ConversationsList
                 onSelectConversation={setSelectedConversation}
                 selectedConversationId={selectedConversation?._id || (directPartner ? 'direct' : null)}
+                extraControls={
+                  user && (user.role === 'admin' || user.role === 'operational_manager') && partners.length > 0 && (
+                    <div className="p-3 mt-3" style={{ background: 'var(--page-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                      <label className="mb-2 d-block" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                        {user.role === 'admin' ? 'Message Operational Manager' : 'Message Admin / Manager'}
+                      </label>
+                      <select
+                        className="chat-gem-selector w-100"
+                        style={{ padding: '8px 12px', fontSize: '13px' }}
+                        value={directPartner?._id || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) {
+                            setDirectPartner(null);
+                            return;
+                          }
+                          const partner = partners.find(p => p._id === val);
+                          if (partner) {
+                            setSelectedConversation(null);
+                            setDirectPartner(partner);
+                          }
+                        }}
+                      >
+                        <option value="">-- Choose recipient --</option>
+                        {partners.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.name} ({p.role === 'admin' ? 'Admin' : 'Manager'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )
+                }
               />
             </Col>
           )}
