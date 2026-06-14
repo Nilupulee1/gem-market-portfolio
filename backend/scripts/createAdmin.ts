@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import User from '../src/models/User';
 import dotenv from 'dotenv';
 import path from 'path';
+import process from 'process';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
