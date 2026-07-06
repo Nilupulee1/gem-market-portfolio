@@ -6,6 +6,7 @@ import Auction from '../models/Auction';
 import User from '../models/User';
 import { AuctionStatus, GemStatus, UserRole } from '../types';
 import { emitActivity } from '../config/websocket';
+import { checkAndEndExpiredAuctions } from './auctionController';
 
 const extractCloudinaryPublicId = (url: string) => {
   try {
@@ -118,6 +119,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
 export const getStatistics = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
+    await checkAndEndExpiredAuctions();
     const totalUsers = await User.countDocuments();
     const totalGems = await Gem.countDocuments();
     const pendingGems = await Gem.countDocuments({ status: GemStatus.PENDING });
@@ -160,6 +162,7 @@ export const getStatistics = async (req: Request, res: Response) => {
 export const getAllAuctions = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
+    await checkAndEndExpiredAuctions();
     const auctions = await Auction.find()
       .populate('gem')
       .populate('seller', 'name email')

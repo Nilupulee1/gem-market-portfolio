@@ -560,10 +560,32 @@ export const placeBid = async (req: Request, res: Response) => {
   }
 };
 
+export const checkAndEndExpiredAuctions = async () => {
+  try {
+    const now = new Date();
+    const expiredActiveAuctions = await Auction.find({
+      status: AuctionStatus.ACTIVE,
+      endTime: { $lt: now }
+    });
+
+    for (const auction of expiredActiveAuctions) {
+      auction.status = AuctionStatus.ENDED;
+      if (auction.bids.length > 0) {
+        const highestBid = auction.bids[auction.bids.length - 1];
+        auction.winner = highestBid.bidder;
+      }
+      await auction.save();
+    }
+  } catch (error) {
+    console.error('Error ending expired auctions:', error);
+  }
+};
+
 export const getActiveAuctions = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
     console.log('📋 Fetching active auctions');
+    await checkAndEndExpiredAuctions();
 
     const auctions = await Auction.find({ status: AuctionStatus.ACTIVE })
       .populate('gem')
@@ -590,6 +612,7 @@ export const getMyAuctions = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
     console.log('📋 Fetching my auctions for user:', authReq.user?.userId);
+    await checkAndEndExpiredAuctions();
 
     const auctions = await Auction.find({ seller: authReq.user!.userId })
       .populate('gem')
@@ -616,6 +639,7 @@ export const getMyAuctions = async (req: Request, res: Response) => {
 export const getAuctionById = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
+    await checkAndEndExpiredAuctions();
     const auction = await Auction.findById(authReq.params.id)
       .populate('gem')
       .populate('seller', 'name email')

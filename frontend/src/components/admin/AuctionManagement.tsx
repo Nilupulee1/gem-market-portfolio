@@ -95,11 +95,17 @@ const AuctionManagement = () => {
 
   const getStatusBadge = (auction: Auction) => {
     const status = auction.status?.toLowerCase();
+    const hasEnded = new Date(auction.endTime).getTime() <= Date.now();
 
-    if (status === 'active') return <span className="auction-status-badge active">Live</span>;
+    if (status === 'active') {
+      if (hasEnded) {
+        return <span className="auction-status-badge ended">Ended</span>;
+      }
+      return <span className="auction-status-badge active">Live</span>;
+    }
     if (isAwaitingAdminApproval(auction)) return <span className="auction-status-badge ending-soon">Awaiting admin approval</span>;
     if (status === 'pending_payment') return <span className="auction-status-badge ending-soon">Payment pending</span>;
-    if (status === 'ended') return <span className="auction-status-badge ended">Ended</span>;
+    if (status === 'ended' || hasEnded) return <span className="auction-status-badge ended">Ended</span>;
     if (status === 'cancelled') return <span className="auction-status-badge ended">Cancelled</span>;
 
     return <span className="auction-status-badge">{auction.status || 'Unknown'}</span>;
