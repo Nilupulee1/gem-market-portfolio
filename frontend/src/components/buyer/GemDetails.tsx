@@ -52,6 +52,11 @@ const GemDetails = ({
 }: GemDetailsProps) => {
   const [countdown, setCountdown] = useState<CountdownTime>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [downloading, setDownloading] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [selectedAuction?._id, selectedGemDetails?._id]);
 
   useEffect(() => {
     if (!selectedAuction) return;
@@ -88,6 +93,9 @@ const GemDetails = ({
   if (!selectedAuction && !selectedGemDetails) return <></>;
 
   const gem = (selectedGemDetails || selectedAuction?.gem)!;
+  const images = Array.isArray(gem.images) ? gem.images.filter(Boolean) : [];
+  const mainImage = images[activeImageIndex] || images[0] || 'https://via.placeholder.com/900x700';
+  const hasMultipleImages = images.length > 1;
   const certificateUrl = getCertificateAccessUrl(gem.certificate);
   const hasCertificate = Boolean(certificateUrl);
 
@@ -134,12 +142,34 @@ const GemDetails = ({
             <div className="gd-hero">
               <span className="gd-hero-chip">{selectedAuction ? 'Auction Listing' : 'Gem Listing'}</span>
               <img
-                src={gem.images?.[0] || 'https://via.placeholder.com/900x700'}
+                src={mainImage}
                 alt={gem.type}
                 className="gd-hero-image"
                 onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/900x700'; }}
               />
             </div>
+
+            {hasMultipleImages && (
+              <div className="gd-thumb-row">
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`gd-thumb ${activeImageIndex === i ? 'active' : ''}`}
+                    onClick={() => setActiveImageIndex(i)}
+                    aria-label={`View image ${i + 1} of ${images.length}`}
+                  >
+                    <img src={img} alt={`${gem.type} ${i + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {hasMultipleImages && (
+              <div className="gd-thumb-count" aria-hidden="true" style={{ fontSize: '11px', color: 'var(--text-secondary, #64748b)', textAlign: 'center', marginTop: '2px' }}>
+                {activeImageIndex + 1} / {images.length}
+              </div>
+            )}
 
             {/* Story card */}
             <div className="gd-story-card">

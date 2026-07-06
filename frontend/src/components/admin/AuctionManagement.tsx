@@ -5,6 +5,7 @@ import { adminAPI, auctionAPI } from '../../api/axios';
 import type { DashboardStats } from '../../types/admin';
 
 import '../../styles/admin.css';
+import '../../styles/gemdetails.css';
 
 interface Auction {
   _id: string;
@@ -54,6 +55,11 @@ const AuctionManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [selectedAuction?._id]);
 
   useEffect(() => {
     void fetchAuctions();
@@ -143,6 +149,10 @@ const AuctionManagement = () => {
   };
 
   
+
+  const selectedAuctionImages = selectedAuction?.gem?.images?.filter(Boolean) ?? [];
+  const mainAuctionImage = selectedAuctionImages[activeImageIndex] || selectedAuctionImages[0] || 'https://via.placeholder.com/200';
+  const hasMultipleAuctionImages = selectedAuctionImages.length > 1;
 
   return (
     <div>
@@ -312,16 +322,39 @@ const AuctionManagement = () => {
           {selectedAuction && (
             <div>
               <div className="d-flex gap-4 mb-4 flex-wrap flex-md-nowrap">
-                <img
-                  src={selectedAuction.gem.images?.[0] || 'https://via.placeholder.com/200'}
-                  alt={selectedAuction.gem.type}
-                  style={{ width: '200px', height: '200px', objectFit: 'cover' }}
-                  className="rounded"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = 'https://via.placeholder.com/200';
-                  }}
-                />
+                <div className="d-flex flex-column align-items-center" style={{ width: '200px', flexShrink: 0 }}>
+                  <img
+                    src={mainAuctionImage}
+                    alt={selectedAuction.gem.type}
+                    style={{ width: '200px', height: '200px', objectFit: 'cover' }}
+                    className="rounded"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://via.placeholder.com/200';
+                    }}
+                  />
+                  {hasMultipleAuctionImages && (
+                    <div className="gd-thumb-row" style={{ marginTop: '10px', width: '100%', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+                      {selectedAuctionImages.map((img, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`gd-thumb ${activeImageIndex === i ? 'active' : ''}`}
+                          onClick={() => setActiveImageIndex(i)}
+                          style={{ minHeight: '44px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', overflow: 'hidden', padding: 0 }}
+                          aria-label={`View image ${i + 1} of ${selectedAuctionImages.length}`}
+                        >
+                          <img src={img} alt={`${selectedAuction.gem.type} ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {hasMultipleAuctionImages && (
+                    <div className="gd-thumb-count text-center mt-1" aria-hidden="true" style={{ fontSize: '11px', color: 'var(--text-secondary, #64748b)' }}>
+                      {activeImageIndex + 1} / {selectedAuctionImages.length}
+                    </div>
+                  )}
+                </div>
                 <div style={{ flexGrow: 1, minWidth: 0 }}>
                   <h5 className="mb-3">{selectedAuction.gem.type}</h5>
                   <div className="mb-2"><strong>Seller:</strong> {selectedAuction.seller.name}</div>

@@ -35,6 +35,11 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [selectedGem?._id]);
 
   useEffect(() => {
     fetchPendingGems();
@@ -170,7 +175,8 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
   }, [gems, filterType, filterCarat, sortOrder]);
 
   const selectedGemImages = selectedGem?.images?.filter(Boolean) ?? [];
-  const mainGemImage = selectedGemImages[0] || 'https://via.placeholder.com/900x700';
+  const mainGemImage = selectedGemImages[activeImageIndex] || selectedGemImages[0] || 'https://via.placeholder.com/900x700';
+  const hasMultipleImages = selectedGemImages.length > 1;
   const certificateUrl = selectedGem?.certificate?.accessUrl || selectedGem?.certificate?.url || '';
   const [downloading, setDownloading] = useState(false);
 
@@ -389,6 +395,28 @@ const PendingGems = ({ onApprove }: PendingGemsProps) => {
                     }}
                   />
                 </div>
+
+                {hasMultipleImages && (
+                  <div className="gd-thumb-row" style={{ marginTop: '10px' }}>
+                    {selectedGemImages.map((img, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`gd-thumb ${activeImageIndex === i ? 'active' : ''}`}
+                        onClick={() => setActiveImageIndex(i)}
+                        aria-label={`View image ${i + 1} of ${selectedGemImages.length}`}
+                      >
+                        <img src={img} alt={`${selectedGem.type} ${i + 1}`} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {hasMultipleImages && (
+                  <div className="gd-thumb-count" aria-hidden="true" style={{ fontSize: '11px', color: 'var(--text-secondary, #64748b)', textAlign: 'center', marginTop: '2px', marginBottom: '10px' }}>
+                    {activeImageIndex + 1} / {selectedGemImages.length}
+                  </div>
+                )}
 
                 <div className="admin-review-story-card">
                   <div className="admin-review-section-heading">
