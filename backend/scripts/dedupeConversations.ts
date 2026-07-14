@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import process from 'process';
+import process from 'node:process';
 import { connectDatabase } from '../src/config/database';
 import Conversation from '../src/models/Conversation';
 import Message from '../src/models/Message';
