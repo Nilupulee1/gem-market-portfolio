@@ -180,6 +180,11 @@ export const createAuction = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'You can only auction your own gems' });
     }
 
+    // Direct sale gems cannot be listed in auctions
+    if ((gem as any).listingMode === 'direct_sale') {
+      return res.status(400).json({ message: 'Direct sale gems cannot be listed in auctions. Only portfolio gems are eligible for auction.' });
+    }
+
     // Check if gem already has an active auction
     const existingAuction = await Auction.findOne({ 
       gem: gemId, 

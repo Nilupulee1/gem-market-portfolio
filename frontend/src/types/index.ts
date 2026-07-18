@@ -61,8 +61,13 @@ export interface Gem {
     authority: string;
     certificateNumber: string;
   };
+  fixedPrice?: number;
+  listingDurationDays?: number;
+  fixedPriceEndsAt?: string;
   status: GemStatus;
   adminFeedback?: string;
+  listingMode?: 'portfolio' | 'direct_sale';
+  portfolioVisibility?: 'public' | 'private';
   createdAt: string;
   updatedAt: string;
 }

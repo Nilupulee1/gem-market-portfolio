@@ -57,8 +57,13 @@ export interface IGem extends Document {
     authority: string;
     certificateNumber: string;
   };
+  fixedPrice?: number;
+  listingDurationDays?: number;
+  fixedPriceEndsAt?: Date;
   status: GemStatus;
   adminFeedback?: string;
+  listingMode?: 'portfolio' | 'direct_sale';
+  portfolioVisibility?: 'public' | 'private';
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Row, Col, Card, Button, Form, Modal, InputGroup, Alert } from 'react-bootstrap';
-import { Search, Plus, Clock, Target, Users, ChevronLeft, ChevronRight, Gavel, Calendar, Eye, Trash2 } from 'lucide-react';
+import { Search, Plus, Clock, Target, Users, ChevronLeft, ChevronRight, Gavel, Calendar, Eye } from 'lucide-react';
 import type { Gem, Auction } from '../../types';
 import { gemAPI, auctionAPI } from '../../api/axios';
 import CreateAuctionModal from './CreateAuctionModal';
@@ -211,10 +211,6 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
     }
   };
 
-  const handleDelete = (auction: Auction) => {
-    setSelectedAuction(auction);
-    setShowDeleteModal(true);
-  };
 
   const handleDeleteConfirm = async () => {
     if (!selectedAuction) return;
@@ -594,27 +590,17 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                         <Eye size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
                         View Details
                       </button>
-                      {status === 'pending' ? (
-                        <>
-                          <button
-                            type="button"
-                            className="bdr-btn-primary"
-                            style={{ flex: 1 }}
-                            onClick={() => void handlePayHere(auction)}
-                          >
-                            Pay Here
-                          </button>
-                          <button
-                            type="button"
-                            className="bdr-btn-danger"
-                            style={{ flex: 1 }}
-                            onClick={() => handleDelete(auction)}
-                          >
-                            <Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
-                            Delete
-                          </button>
-                        </>
-                      ) : status === 'ended' && auction.bids?.length > 0 && onContactWinner ? (
+                      {status === 'pending' && (
+                        <button
+                          type="button"
+                          className="bdr-btn-primary"
+                          style={{ flex: 1 }}
+                          onClick={() => void handlePayHere(auction)}
+                        >
+                          Pay Here
+                        </button>
+                      )}
+                      {status === 'ended' && auction.bids?.length > 0 && onContactWinner && (
                         <button
                           type="button"
                           className="bdr-btn-ghost"
@@ -641,16 +627,6 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                         >
                           <Users size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
                           Contact Buyers
-                        </button>
-                      ) : status !== 'ended' && (
-                        <button
-                          type="button"
-                          className="bdr-btn-danger"
-                          style={{ flex: 1 }}
-                          onClick={() => handleDelete(auction)}
-                        >
-                          <Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
-                          Delete
                         </button>
                       )}
                     </div>
@@ -917,16 +893,6 @@ const AuctionsPage = ({ onContactWinner }: AuctionsPageProps) => {
                         }}
                       >
                         Pay Here
-                      </Button>
-                      <Button
-                        className="bdr-btn-danger"
-                        type="button"
-                        onClick={() => {
-                          setShowViewModal(false);
-                          handleDelete(selectedAuction);
-                        }}
-                      >
-                        Delete
                       </Button>
                     </div>
                   )}

@@ -148,12 +148,19 @@ const CreateAuctionModal = ({ show, onHide, selectedGem, availableGems }: Create
                       className="surface-muted"
                     >
                       <option value="">Choose a gem from your vault...</option>
-                      {availableGems.map((gem) => (
-                        <option key={gem._id} value={gem._id}>
-                          {gem.type} - {gem.carat} ct ({gem.cut})
-                        </option>
-                      ))}
+                      {availableGems
+                        .filter(gem => gem.listingMode !== 'direct_sale')
+                        .map((gem) => (
+                          <option key={gem._id} value={gem._id}>
+                            {gem.type} - {gem.carat} ct ({gem.cut})
+                          </option>
+                        ))}
                     </Form.Select>
+                    {availableGems.some(g => g.listingMode === 'direct_sale') && (
+                      <Form.Text className="text-muted">
+                        Direct sale gems are not eligible for auction.
+                      </Form.Text>
+                    )}
                   </Form.Group>
                 )}
 

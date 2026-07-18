@@ -11,7 +11,7 @@ interface MyPortfolioProps {
   onRefresh: () => void;
 }
 
-const FILTER_OPTIONS = ['All Gems', 'Approved', 'Pending', 'Rejected', 'Sold', 'Removed'] as const;
+const FILTER_OPTIONS = ['All Gems', 'Approved', 'Pending', 'Rejected'] as const;
 
 const getGemStatusLabel = (status: string) => {
   switch (status) {
@@ -219,10 +219,15 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
 
     setActionError('');
     setListingType(value);
+    if (value !== 'fixed') {
+      setFixedPrice('');
+      setDuration('7');
+    }
   };
 
   useEffect(() => {
     if (!showEditModal || !selectedGem) return;
+    const hasFixedPrice = typeof selectedGem.fixedPrice === 'number' && selectedGem.fixedPrice > 0;
     setEditForm({
       type:        selectedGem.type,
       carat:       String(selectedGem.carat),
@@ -238,11 +243,11 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
     setCertificateFile(null);
     setCertificateAuthority(selectedGem.certificate?.authority || '');
     // defaults for listing — these may not be stored on gem
-    setListingType('portfolio');
-    setFixedPrice('');
+    setListingType(hasFixedPrice ? 'fixed' : 'portfolio');
+    setFixedPrice(hasFixedPrice ? String(selectedGem.fixedPrice) : '');
     setAuctionStartingBid('');
     setMinimumBidIncrement('');
-    setDuration('7');
+    setDuration(selectedGem.listingDurationDays ? String(selectedGem.listingDurationDays) : '7');
     setStartDate('');
   }, [showEditModal, selectedGem]);
 
@@ -264,8 +269,9 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
       setShowDeleteModal(false);
       setGemToDelete(null);
       await onRefresh();
-    } catch {
-      setActionError('Failed to delete gem. Please try again.');
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      setActionError(axiosError.response?.data?.message || 'Failed to delete gem. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -295,13 +301,18 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
         fd.append('description', editForm.description || '');
         if (certificateAuthority) fd.append('certificateAuthority', certificateAuthority);
         if (selectedGem) fd.append('certificateNumber', String(selectedGem._id).slice(0, 8));
+        fd.append('listingType', listingType);
+        if (listingType === 'fixed') {
+          fd.append('fixedPrice', fixedPrice);
+          fd.append('listingDurationDays', duration);
+        }
         imagesFiles.forEach(f => fd.append('images', f));
         if (certificateFile) fd.append('certificate', certificateFile);
 
         const res = await gemAPI.updateGem(selectedGem._id, fd);
         updatedGem = res.data.gem;
       } else {
-        const res = await gemAPI.updateGem(selectedGem._id, {
+        const payload: Record<string, unknown> = {
           type:        editForm.type,
           carat:       Number(editForm.carat),
           cut:         editForm.cut,
@@ -309,7 +320,13 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
           color:       editForm.color,
           origin:      editForm.origin,
           description: editForm.description,
-        });
+          listingType,
+        };
+        if (listingType === 'fixed') {
+          payload.fixedPrice = Number(fixedPrice);
+          payload.listingDurationDays = Number(duration || '7');
+        }
+        const res = await gemAPI.updateGem(selectedGem._id, payload);
         updatedGem = res.data.gem;
       }
 
@@ -585,12 +602,20 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
                     </Form.Group>
                   </Col>
                   {listingType === 'fixed' && (
-                    <Col md={4}>
-                      <Form.Group>
-                        <Form.Label>Fixed Price</Form.Label>
-                        <Form.Control className="gem-edit-input" type="number" value={fixedPrice} onChange={e => setFixedPrice(e.target.value)} />
-                      </Form.Group>
-                    </Col>
+                    <>
+                      <Col md={4}>
+                        <Form.Group>
+                          <Form.Label>Fixed Price</Form.Label>
+                          <Form.Control className="gem-edit-input" type="number" value={fixedPrice} onChange={e => setFixedPrice(e.target.value)} />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group>
+                          <Form.Label>Listing Duration (days)</Form.Label>
+                          <Form.Control className="gem-edit-input" type="number" min="1" value={duration} onChange={e => setDuration(e.target.value)} />
+                        </Form.Group>
+                      </Col>
+                    </>
                   )}
                   {listingType === 'auction' && (
                     <>
@@ -618,7 +643,7 @@ const MyPortfolio = ({ gems, onRefresh }: MyPortfolioProps) => {
         <Modal.Body className="port-modal-body">
           {actionError && <Alert variant="danger" className="port-alert-error">{actionError}</Alert>}
           <p style={{ color: 'var(--text-primary)', marginBottom: 16 }}>
-            Are you sure you want to remove this gem from your portfolio?
+            Are you sure you want to permanently delete this gem from your portfolio?
           </p>
           {gemToDelete && (
             <div className="port-delete-preview">

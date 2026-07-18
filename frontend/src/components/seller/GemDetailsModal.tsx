@@ -24,6 +24,9 @@ const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
   const certificateUrl = gem.certificate?.accessUrl || gem.certificate?.url || '';
   const mainImage = images[activeImageIndex] || images[0] || 'https://via.placeholder.com/900x700';
   const hasMultipleImages = images.length > 1;
+  const hasFixedPrice = typeof gem.fixedPrice === 'number' && gem.fixedPrice > 0;
+  const fixedPriceEndsAt = gem.fixedPriceEndsAt ? new Date(gem.fixedPriceEndsAt) : null;
+  const isFixedPriceActive = hasFixedPrice && (!fixedPriceEndsAt || fixedPriceEndsAt.getTime() > Date.now());
 
   // ── Same download logic as admin PendingGems.handleDownloadCertificate ──
   const handleDownloadCertificate = async () => {
@@ -181,6 +184,33 @@ const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
                 </div>
               </div>
             </div>
+
+            {hasFixedPrice && (
+              <div className="gd-surface-card">
+                <div className="gd-section-heading">
+                  <div>
+                    <p>Listing</p>
+                    <h3>Fixed Price</h3>
+                  </div>
+                </div>
+                <div className="gd-metrics-list">
+                  <div className="gd-metric-item">
+                    <span className="gd-metric-label">Price</span>
+                    <strong className="gd-metric-value">Rs. {gem.fixedPrice?.toLocaleString()}</strong>
+                  </div>
+                  <div className="gd-metric-item">
+                    <span className="gd-metric-label">Status</span>
+                    <strong className="gd-metric-value">{isFixedPriceActive ? 'Active' : 'Expired'}</strong>
+                  </div>
+                  {fixedPriceEndsAt && (
+                    <div className="gd-metric-item">
+                      <span className="gd-metric-label">Ends</span>
+                      <strong className="gd-metric-value">{fixedPriceEndsAt.toLocaleString()}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Certificate card — with download button (same as admin) */}
             <div className="gd-surface-card">

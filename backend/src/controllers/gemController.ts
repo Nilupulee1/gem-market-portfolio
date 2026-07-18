@@ -2,7 +2,10 @@ import { Request, Response } from 'express';
 import cloudinary from '../config/cloudinary';
 import { AuthRequest } from '../middleware/auth';
 import Gem from '../models/Gem';
-import { GemStatus } from '../types';
+import Auction from '../models/Auction';
+import Conversation from '../models/Conversation';
+import Message from '../models/Message';
+import { GemStatus, AuctionStatus } from '../types';
 
 const getCertificateAccessUrl = (certificate?: { url?: string; mimeType?: string }) => {
   const certificateUrl = certificate?.url;
@@ -52,6 +55,46 @@ const deleteCloudinaryAsset = async (url?: string) => {
   }
 };
 
+const normalizeFixedListing = <T extends {
+  fixedPrice?: number;
+  listingDurationDays?: number;
+  fixedPriceEndsAt?: Date | string;
+  status?: GemStatus;
+}>(gem: T) => {
+  if (!gem?.fixedPrice || gem.status !== GemStatus.APPROVED) {
+    return gem;
+  }
+
+  const expiresAt = gem.fixedPriceEndsAt ? new Date(gem.fixedPriceEndsAt) : null;
+  if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() > Date.now()) {
+    return gem;
+  }
+
+  return {
+    ...gem,
+    status: GemStatus.REMOVED,
+    fixedPrice: undefined,
+    listingDurationDays: undefined,
+    fixedPriceEndsAt: undefined,
+  };
+};
+
+export const expireFixedPriceListings = async () => {
+  const expiredGems = await Gem.find({
+    status: GemStatus.APPROVED,
+    fixedPrice: { $gt: 0 },
+    fixedPriceEndsAt: { $lt: new Date() },
+  });
+
+  for (const gem of expiredGems) {
+    gem.status = GemStatus.REMOVED;
+    gem.fixedPrice = undefined;
+    gem.listingDurationDays = undefined;
+    gem.fixedPriceEndsAt = undefined;
+    await gem.save();
+  }
+};
+
 export const createGem = async (req: Request, res: Response) => {
   try {
     const authReq = req as AuthRequest;
@@ -91,6 +134,9 @@ export const createGem = async (req: Request, res: Response) => {
     const imageUrls = gemImages.map(img => img.path);
     const certificateUrl = certificateFile.path;
 
+    const fixedPrice = authReq.body.fixedPrice !== undefined ? Number(authReq.body.fixedPrice) : undefined;
+    const listingDurationDays = authReq.body.listingDurationDays !== undefined ? Number(authReq.body.listingDurationDays) : undefined;
+
     const gemData = {
       seller: authReq.user!.userId,
       type: authReq.body.type,
@@ -107,7 +153,11 @@ export const createGem = async (req: Request, res: Response) => {
         authority: authReq.body.certificateAuthority,
         certificateNumber: authReq.body.certificateNumber
       },
-      status: GemStatus.PENDING
+      fixedPrice: Number.isFinite(fixedPrice as number) && (fixedPrice as number) > 0 ? fixedPrice : undefined,
+      listingDurationDays: Number.isFinite(listingDurationDays as number) && (listingDurationDays as number) > 0 ? listingDurationDays : undefined,
+      status: GemStatus.PENDING,
+      listingMode: (authReq.body.listingMode === 'direct_sale' ? 'direct_sale' : 'portfolio') as 'portfolio' | 'direct_sale',
+      portfolioVisibility: (authReq.body.portfolioVisibility === 'private' ? 'private' : 'public') as 'public' | 'private',
     };
 
     console.log('💎 Creating gem with data:', gemData);
@@ -119,7 +169,7 @@ export const createGem = async (req: Request, res: Response) => {
 
     res.status(201).json({
       message: 'Gem uploaded successfully and pending approval',
-      gem: withNormalizedCertificateUrl(gem.toObject())
+      gem: withNormalizedCertificateUrl(normalizeFixedListing(gem.toObject()))
     });
   } catch (error: any) {
     console.error('❌ Error creating gem:', error);
@@ -136,6 +186,8 @@ export const getMyGems = async (req: Request, res: Response) => {
   try {
     const authReq = req as AuthRequest;
     console.log('📋 Fetching gems for user:', authReq.user?.userId);
+
+    await expireFixedPriceListings();
     
     const gems = await Gem.find({ seller: authReq.user!.userId })
       .sort({ createdAt: -1 });
@@ -143,7 +195,7 @@ export const getMyGems = async (req: Request, res: Response) => {
     console.log('✅ Found gems:', gems.length);
     
     res.json({
-      gems: gems.map((gem) => withNormalizedCertificateUrl(gem.toObject()))
+      gems: gems.map((gem) => withNormalizedCertificateUrl(normalizeFixedListing(gem.toObject())))
     });
   } catch (error: any) {
     console.error('❌ Error fetching gems:', error);
@@ -158,8 +210,14 @@ export const getApprovedGems = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
     const { type, minCarat, maxCarat, origin } = req.query;
+
+    await expireFixedPriceListings();
     
-    const filter: any = { status: GemStatus.APPROVED };
+    const filter: any = {
+      status: GemStatus.APPROVED,
+      // Exclude private portfolio gems — buyers only see public portfolio or direct-sale gems
+      $nor: [{ listingMode: 'portfolio', portfolioVisibility: 'private' }]
+    };
     
     if (type) filter.type = type;
     if (origin) filter.origin = origin;
@@ -174,7 +232,7 @@ export const getApprovedGems = async (req: Request, res: Response) => {
       .sort({ createdAt: -1 });
     
     res.json({
-      gems: gems.map((gem) => withNormalizedCertificateUrl(gem.toObject()))
+      gems: gems.map((gem) => withNormalizedCertificateUrl(normalizeFixedListing(gem.toObject())))
     });
   } catch (error: any) {
     console.error('❌ Error fetching approved gems:', error);
@@ -188,6 +246,7 @@ export const getApprovedGems = async (req: Request, res: Response) => {
 export const getGemById = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
+    await expireFixedPriceListings();
     const gem = await Gem.findById(req.params.id)
       .populate('seller', 'name email');
     
@@ -196,7 +255,7 @@ export const getGemById = async (req: Request, res: Response) => {
     }
 
     res.json({
-      gem: withNormalizedCertificateUrl(gem.toObject())
+      gem: withNormalizedCertificateUrl(normalizeFixedListing(gem.toObject()))
     });
   } catch (error: any) {
     console.error('❌ Error fetching gem:', error);
@@ -224,7 +283,7 @@ export const updateGem = async (req: Request, res: Response) => {
     const files = authReq.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
     const previousCertificateUrl = gem.certificate?.url;
 
-    const allowedUpdates = ['type', 'carat', 'cut', 'clarity', 'color', 'origin', 'description'];
+    const allowedUpdates = ['type', 'carat', 'cut', 'clarity', 'color', 'origin', 'description', 'fixedPrice', 'listingDurationDays'];
     const updates = Object.keys(authReq.body);
     
     updates.forEach(update => {
@@ -239,6 +298,16 @@ export const updateGem = async (req: Request, res: Response) => {
 
     if (authReq.body.certificateNumber !== undefined) {
       gem.certificate.certificateNumber = authReq.body.certificateNumber;
+    }
+
+    if (authReq.body.fixedPrice !== undefined) {
+      const parsedFixedPrice = Number(authReq.body.fixedPrice);
+      gem.fixedPrice = Number.isFinite(parsedFixedPrice) && parsedFixedPrice > 0 ? parsedFixedPrice : undefined;
+    }
+
+    if (authReq.body.listingDurationDays !== undefined) {
+      const parsedDuration = Number(authReq.body.listingDurationDays);
+      gem.listingDurationDays = Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : undefined;
     }
 
     if (files?.images?.length) {
@@ -265,7 +334,7 @@ export const updateGem = async (req: Request, res: Response) => {
 
     res.json({
       message: 'Gem updated successfully',
-      gem: withNormalizedCertificateUrl(gem.toObject())
+      gem: withNormalizedCertificateUrl(normalizeFixedListing(gem.toObject()))
     });
   } catch (error: any) {
     console.error('❌ Error updating gem:', error);
@@ -290,13 +359,60 @@ export const deleteGem = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'You can only delete your own gems' });
     }
 
-    gem.status = GemStatus.REMOVED;
-    gem.adminFeedback = undefined;
-    await gem.save();
+    // Do not allow deleting a sold gem
+    if (gem.status === GemStatus.SOLD) {
+      return res.status(400).json({ message: 'Cannot delete a sold gem.' });
+    }
 
-    console.log('✅ Gem marked as removed:', authReq.params.id);
+    // Check if there are active or pending payment auctions for this gem
+    const activeAuction = await Auction.findOne({
+      gem: gem._id,
+      status: { $in: [AuctionStatus.ACTIVE, AuctionStatus.PENDING_PAYMENT] }
+    });
+    if (activeAuction) {
+      return res.status(400).json({ message: 'Cannot delete gem while it is listed in an active or pending auction.' });
+    }
 
-    res.json({ message: 'Gem removed successfully' });
+    // Delete images from Cloudinary
+    if (gem.images && gem.images.length > 0) {
+      for (const imageUrl of gem.images) {
+        await deleteCloudinaryAsset(imageUrl);
+      }
+    }
+
+    // Delete certificate from Cloudinary
+    if (gem.certificate?.url) {
+      await deleteCloudinaryAsset(gem.certificate.url);
+    }
+
+    // Find all auctions related to this gem to also clean up associated conversations/messages
+    const relatedAuctions = await Auction.find({ gem: gem._id });
+    const auctionIds = relatedAuctions.map(a => a._id);
+
+    // Delete related auctions
+    await Auction.deleteMany({ gem: gem._id });
+
+    // Delete conversations and messages related to this gem directly or via its auctions
+    await Conversation.deleteMany({
+      $or: [
+        { gem: gem._id },
+        { auction: { $in: auctionIds } }
+      ]
+    } as any);
+
+    await Message.deleteMany({
+      $or: [
+        { gem: gem._id },
+        { auction: { $in: auctionIds } }
+      ]
+    } as any);
+
+    // Finally delete the gem itself from MongoDB
+    await Gem.deleteOne({ _id: gem._id });
+
+    console.log('✅ Gem permanently deleted:', authReq.params.id);
+
+    res.json({ message: 'Gem deleted permanently' });
   } catch (error: any) {
     console.error('❌ Error deleting gem:', error);
     res.status(500).json({ 

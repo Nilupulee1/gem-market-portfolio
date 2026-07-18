@@ -22,7 +22,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
   const [certificateAuthority, setCertificateAuthority] = useState('');
   const [imagePreviews,        setImagePreviews]        = useState<string[]>([]);
 
-  const [listingType,      setListingType]      = useState<'portfolio' | 'fixed'>('portfolio');
+  const [listingType,      setListingType]      = useState<'portfolio' | 'direct_sale'>('portfolio');
   const [fixedPrice,       setFixedPrice]       = useState('');
   const [duration,         setDuration]         = useState('7');
   const [portfolioDisplay, setPortfolioDisplay] = useState<'public' | 'private'>('public');
@@ -83,8 +83,8 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
 
   const handleSubmit = async () => {
     setError(''); setSuccess('');
-    if (!agreeToTerms)                            { setError('Please agree to the terms of services'); return; }
-    if (listingType === 'fixed' && !fixedPrice)   { setError('Please enter fixed price'); return; }
+    if (!agreeToTerms)                                   { setError('Please agree to the terms of services'); return; }
+    if (listingType === 'direct_sale' && !fixedPrice)    { setError('Please enter a sale price for direct sale'); return; }
     if (!validateStep1() || !validateStep2()) return;
 
     setLoading(true);
@@ -99,6 +99,15 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
       fd.append('description', formData.story);
       fd.append('certificateAuthority', certificateAuthority);
       fd.append('certificateNumber', formData.gemName);
+      fd.append('listingMode', listingType);  // 'portfolio' or 'direct_sale'
+      if (listingType === 'portfolio') {
+        fd.append('portfolioVisibility', portfolioDisplay);  // 'public' or 'private'
+      }
+      if (listingType === 'direct_sale') {
+        fd.append('listingType', 'fixed');
+        fd.append('fixedPrice', fixedPrice);
+        fd.append('listingDurationDays', duration);
+      }
       images.forEach(img => fd.append('images', img));
       fd.append('certificate', certificate!);
 
@@ -356,13 +365,13 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
         <Card className="content-card animate-fade-up delay-1">
           <Card.Body className="p-4">
 
-            {/* Listing type - Auction removed */}
+            {/* Listing type */}
             <div className="mb-4">
               <h5 className="fw-bold mb-3">Listing Type</h5>
               <Row className="g-3">
                 {([
-                  { key: 'portfolio', title: 'Portfolio Only',   desc: 'Display in your collection only, not open for public sale' },
-                  { key: 'fixed',     title: 'Fixed Price',      desc: 'Set a premium "Buy Now" price for instant buyers' },
+                  { key: 'portfolio',   title: 'Portfolio',    desc: 'Showcase your gem in your collection. Choose public or private visibility.' },
+                  { key: 'direct_sale', title: 'Direct Sale',  desc: 'Set a fixed "Buy Now" price. Buyers can purchase immediately. Cannot be auctioned.' },
                 ] as const).map(({ key, title, desc }) => (
                   <Col md={6} key={key}>
                     <div
@@ -379,13 +388,13 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
               </Row>
             </div>
 
-            {/* Portfolio settings */}
+            {/* Portfolio visibility settings */}
             {listingType === 'portfolio' && (
               <div className="mb-4 animate-fade-up">
-                <h5 className="fw-bold mb-3">Portfolio Settings</h5>
+                <h5 className="fw-bold mb-3">Portfolio Visibility</h5>
                 {([
-                  { key: 'public',  title: 'Public Display',  desc: 'Visible to public search engines and users browsing portfolios.' },
-                  { key: 'private', title: 'Private Display', desc: 'Only visible in your private secure workspace vault.' },
+                  { key: 'public',  title: 'Public Display',  desc: 'Visible to buyers browsing the marketplace. Cannot be purchased — showcase only.' },
+                  { key: 'private', title: 'Private Display', desc: 'Only visible in your private vault. Hidden from all buyers.' },
                 ] as const).map(({ key, title, desc }, i) => (
                   <div
                     key={key}
@@ -401,14 +410,14 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
               </div>
             )}
 
-            {/* Fixed price */}
-            {listingType === 'fixed' && (
+            {/* Direct Sale price settings */}
+            {listingType === 'direct_sale' && (
               <div className="mb-4 animate-fade-up">
-                <h5 className="fw-bold mb-3">Fixed Price Details</h5>
+                <h5 className="fw-bold mb-3">Direct Sale Details</h5>
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="port-form-label">Fixed Price (Rs) *</Form.Label>
+                      <Form.Label className="port-form-label">Sale Price (Rs) *</Form.Label>
                       <Form.Control type="number" value={fixedPrice}
                         onChange={e => setFixedPrice(e.target.value)}
                         placeholder="50000" className="surface-muted" required />

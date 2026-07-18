@@ -7,6 +7,7 @@ import User from '../models/User';
 import { AuctionStatus, GemStatus, UserRole } from '../types';
 import { emitActivity } from '../config/websocket';
 import { checkAndEndExpiredAuctions } from './auctionController';
+import { expireFixedPriceListings } from './gemController';
 
 const extractCloudinaryPublicId = (url: string) => {
   try {
@@ -86,6 +87,9 @@ export const reviewGem = async (req: Request, res: Response) => {
     }
 
     gem.status = status;
+    if (status === GemStatus.APPROVED && gem.fixedPrice && gem.listingDurationDays) {
+      gem.fixedPriceEndsAt = new Date(Date.now() + gem.listingDurationDays * 24 * 60 * 60 * 1000);
+    }
     if (feedback) {
       gem.adminFeedback = feedback;
     }
@@ -120,6 +124,7 @@ export const getStatistics = async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   try {
     await checkAndEndExpiredAuctions();
+    await expireFixedPriceListings();
     const totalUsers = await User.countDocuments();
     const totalGems = await Gem.countDocuments();
     const pendingGems = await Gem.countDocuments({ status: GemStatus.PENDING });

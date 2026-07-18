@@ -37,6 +37,12 @@ const Marketplace = ({
   formatRemaining,
   getLeadingBidderName,
 }: MarketplaceProps) => {
+  const isActiveFixedListing = (gem: Gem) => {
+    if (!gem.fixedPrice) return false;
+    if (!gem.fixedPriceEndsAt) return true;
+    return new Date(gem.fixedPriceEndsAt).getTime() > nowMs;
+  };
+
   const filteredGems = approvedGems.filter((gem) => {
     const queryValue = query.trim().toLowerCase();
     const matchesQuery =
@@ -45,7 +51,7 @@ const Marketplace = ({
       gem.origin.toLowerCase().includes(queryValue) ||
       gem.color.toLowerCase().includes(queryValue);
     const matchesType = selectedType === 'all' || gem.type === selectedType;
-    return matchesQuery && matchesType;
+    return matchesQuery && matchesType && (!gem.fixedPrice || isActiveFixedListing(gem));
   });
 
   const totalVisible = auctions.length + filteredGems.length;
@@ -78,7 +84,7 @@ const Marketplace = ({
                 onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
               />
               <span className="portfolio-gem-badge portfolio-gem-badge--approved">
-                Direct Sale
+                {gem.fixedPrice ? 'Fixed Price' : 'Direct Sale'}
               </span>
             </div>
             <div className="portfolio-gem-body d-flex flex-column flex-grow-1">
@@ -90,7 +96,20 @@ const Marketplace = ({
                 {gem.cut} · {gem.color}
               </p>
               <div className="d-flex justify-content-between align-items-center mb-2">
-                <span className="bid-price" style={{ fontSize: '15px', fontWeight: 700 }}>Direct Sale</span>
+                <div>
+                  {gem.fixedPrice ? (
+                    <>
+                      <span className="bid-price" style={{ fontSize: '15px', fontWeight: 700 }}>{formatCurrency(gem.fixedPrice)}</span>
+                      {gem.fixedPriceEndsAt && (
+                        <div className="auction-timer" style={{ fontSize: '12px', marginTop: '2px' }}>
+                          Expires {formatRemaining(gem.fixedPriceEndsAt, nowMs)}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span className="bid-price" style={{ fontSize: '15px', fontWeight: 700 }}>Direct Sale</span>
+                  )}
+                </div>
               </div>
               <p className="portfolio-gem-meta mb-0">
                 Seller: <strong>{gem.seller.name}</strong>
