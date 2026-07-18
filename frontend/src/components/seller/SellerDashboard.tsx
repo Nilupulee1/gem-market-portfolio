@@ -14,7 +14,13 @@ import type { Gem } from "../../types";
 
 
 type TabType = 'dashboard' | 'portfolio' | 'auctions' | 'addGem' | 'messages';
-type ListingFilter = 'all' | 'approved' | 'pending' | 'rejected';
+type ListingFilter = 'all' | 'approved' | 'pending' | 'rejected' | 'sold' | 'removed';
+
+const getListingStyleStatus = (status: string) => {
+  if (status === 'sold') return 'approved';
+  if (status === 'removed') return 'rejected';
+  return status;
+};
 
 type ChatContact = {
   _id?: string;
@@ -119,9 +125,11 @@ const SellerDashboard = () => {
       .map((gem) => {
         const isApproved = gem.status === 'approved';
         const isRejected = gem.status === 'rejected';
-        const type = isApproved ? 'success' : isRejected ? 'danger' : 'info';
-        const icon = isApproved ? '✓' : isRejected ? '✕' : 'i';
-        const statusText = isApproved ? 'approved' : isRejected ? 'rejected' : 'submitted for review';
+        const isSold = gem.status === 'sold';
+        const isRemoved = gem.status === 'removed';
+        const type = isApproved ? 'success' : isSold ? 'success' : isRejected ? 'danger' : isRemoved ? 'warning' : 'info';
+        const icon = isApproved ? '✓' : isSold ? '✓' : isRejected ? '✕' : isRemoved ? '!' : 'i';
+        const statusText = isApproved ? 'approved' : isSold ? 'marked sold' : isRejected ? 'rejected' : isRemoved ? 'removed' : 'submitted for review';
 
         return {
           type,
@@ -387,6 +395,18 @@ const SellerDashboard = () => {
                         >
                           Rejected
                         </button>
+                        <button 
+                          className={`filter-button filter-button-approved ${listingFilter === 'sold' ? 'active' : ''}`}
+                          onClick={() => setListingFilter('sold')}
+                        >
+                          Sold
+                        </button>
+                        <button 
+                          className={`filter-button filter-button-rejected ${listingFilter === 'removed' ? 'active' : ''}`}
+                          onClick={() => setListingFilter('removed')}
+                        >
+                          Removed
+                        </button>
                       </div>
                     </div>
 
@@ -440,7 +460,7 @@ const SellerDashboard = () => {
                                   alt={gem.type}
                                   className="gem-image"
                                 />
-                                <div className={`gem-status-badge gem-status-${gem.status}`}>
+                                <div className={`gem-status-badge gem-status-${getListingStyleStatus(gem.status)}`}>
                                   {gem.status}
                                 </div>
                               </div>
@@ -453,14 +473,14 @@ const SellerDashboard = () => {
                                 </div>
                                 <div className="gem-actions">
                                   <button 
-                                    className={`gem-actions button btn-view-details btn-status-${gem.status}`}
+                                    className={`gem-actions button btn-view-details btn-status-${getListingStyleStatus(gem.status)}`}
                                     onClick={() => setActiveTab('portfolio')}
                                   >
                                     <Eye size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />
                                     View Details
                                   </button>
                                   <button 
-                                    className={`gem-actions button btn-manage btn-status-${gem.status}`}
+                                    className={`gem-actions button btn-manage btn-status-${getListingStyleStatus(gem.status)}`}
                                     onClick={() => setActiveTab('portfolio')}
                                   >
                                     <Edit2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} />

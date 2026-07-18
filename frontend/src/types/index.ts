@@ -11,6 +11,8 @@ export const GemStatus = {
   PENDING: 'pending',
   APPROVED: 'approved',
   REJECTED: 'rejected',
+  SOLD: 'sold',
+  REMOVED: 'removed',
 } as const;
 
 export type GemStatus = (typeof GemStatus)[keyof typeof GemStatus];

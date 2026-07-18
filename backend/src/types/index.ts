@@ -11,6 +11,8 @@ export enum GemStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected'
+  ,SOLD = 'sold',
+  REMOVED = 'removed'
 }
 
 export enum AuctionStatus {

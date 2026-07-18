@@ -727,6 +727,12 @@ export const updateAuctionStatus = async (req: Request, res: Response) => {
     if (status === AuctionStatus.ENDED && auction.bids.length > 0) {
       const highestBid = auction.bids[auction.bids.length - 1];
       auction.winner = highestBid.bidder;
+
+      const gem = await Gem.findById(auction.gem);
+      if (gem) {
+        gem.status = GemStatus.SOLD;
+        await gem.save();
+      }
     }
 
     await auction.save();

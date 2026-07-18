@@ -54,6 +54,8 @@ const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
       case 'approved': return 'gd-status-approved';
       case 'pending':  return 'gd-status-pending';
       case 'rejected': return 'gd-status-rejected';
+      case 'sold':     return 'gd-status-approved';
+      case 'removed':  return 'gd-status-rejected';
       default:         return 'gd-status-pending';
     }
   };
@@ -63,6 +65,8 @@ const GemDetailsModal = ({ show, onHide, gem }: GemDetailsModalProps) => {
       case 'approved': return 'Approved';
       case 'pending':  return 'Pending Review';
       case 'rejected': return 'Rejected';
+      case 'sold':     return 'Sold';
+      case 'removed':  return 'Removed';
       default:         return status;
     }
   };

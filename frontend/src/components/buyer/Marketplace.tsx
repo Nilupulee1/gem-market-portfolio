@@ -7,9 +7,11 @@ interface MarketplaceProps {
   approvedGems: Gem[];
   query: string;
   selectedType: string;
-  watchlistIds: string[];
+  watchlistAuctionIds: string[];
+  watchlistGemIds: string[];
   nowMs: number;
-  onToggleWatchlist: (auctionId: string) => void;
+  onToggleAuctionWatchlist: (auctionId: string) => void;
+  onToggleGemWatchlist: (gemId: string) => void;
   onOpenDetails: (auctionId: string) => void;
   onOpenGemDetails: (gemId: string) => void;
   onOpenSellerContact: (seller: { _id?: string; name: string; email: string; phone?: string }, gemName: string, gemId: string) => void;
@@ -23,9 +25,11 @@ const Marketplace = ({
   approvedGems,
   query,
   selectedType,
-  watchlistIds,
+  watchlistAuctionIds,
+  watchlistGemIds,
   nowMs,
-  onToggleWatchlist,
+  onToggleAuctionWatchlist,
+  onToggleGemWatchlist,
   onOpenDetails,
   onOpenGemDetails,
   onOpenSellerContact,
@@ -93,6 +97,10 @@ const Marketplace = ({
               </p>
               <div className="portfolio-gem-actions mt-auto pt-2">
                 <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                  <button className="watch-btn" type="button" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={() => onToggleGemWatchlist(gem._id)}>
+                    <Heart size={15} fill={watchlistGemIds.includes(gem._id) ? 'currentColor' : 'none'} />
+                    {watchlistGemIds.includes(gem._id) ? 'Saved' : 'Save'}
+                  </button>
                   <button className="ghost-btn" type="button" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={() => onOpenGemDetails(gem._id)}>
                     View Details
                   </button>
@@ -111,7 +119,7 @@ const Marketplace = ({
         ))}
 
         {auctions.map((auction) => {
-          const inWatchlist = watchlistIds.includes(auction._id);
+          const inWatchlist = watchlistAuctionIds.includes(auction._id);
           return (
             <motion.article key={auction._id} whileHover={{ y: -3 }} className="portfolio-gem-card h-100 d-flex flex-column">
               <div className="portfolio-gem-img-wrap">
@@ -143,7 +151,7 @@ const Marketplace = ({
                   Current leader: <strong>{getLeadingBidderName(auction)}</strong>
                 </p>
                 <div className="portfolio-gem-actions mt-auto pt-2">
-                  <button className="watch-btn" type="button" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={() => onToggleWatchlist(auction._id)}>
+                    <button className="watch-btn" type="button" style={{ padding: '8px 12px', fontSize: '13px' }} onClick={() => onToggleAuctionWatchlist(auction._id)}>
                     <Heart size={15} fill={inWatchlist ? 'currentColor' : 'none'} />
                     {inWatchlist ? 'Watched' : 'Watch'}
                   </button>

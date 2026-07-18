@@ -62,7 +62,12 @@ export interface ActiveBidItem {
   remainingTimeMs: number;
 }
 
-const watchlistStorageKey = 'buyer-watchlist-auction-ids';
+type WatchlistItem = {
+  kind: 'auction' | 'gem';
+  id: string;
+};
+
+const watchlistStorageKey = 'buyer-watchlist-items';
 const buyerDashboardCacheKey = 'buyer-dashboard-cache';
 
 type BuyerDashboardCache = {
@@ -103,11 +108,19 @@ const formatRemaining = (endTime: string, nowMs: number) => {
   const s = Math.floor((ms / 1000) % 60);
   return [d > 0 ? `${d}d` : null, d > 0 || h > 0 ? `${h}h` : null, d > 0 || h > 0 || m > 0 ? `${m}m` : null, `${s}s`].filter(Boolean).join(' ');
 };
-const parseWatchlist = () => {
-  try { const p = JSON.parse(localStorage.getItem(watchlistStorageKey) || ''); return Array.isArray(p) ? p : []; }
-  catch { return []; }
+const parseWatchlist = (): WatchlistItem[] => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(watchlistStorageKey) || '[]') as Array<string | WatchlistItem>;
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map(item => typeof item === 'string' ? ({ kind: 'auction', id: item } as WatchlistItem) : item)
+      .filter((item): item is WatchlistItem => Boolean(item?.id) && (item.kind === 'auction' || item.kind === 'gem'));
+  } catch {
+    return [];
+  }
 };
-const saveWatchlist = (ids: string[]) => localStorage.setItem(watchlistStorageKey, JSON.stringify(ids));
+const saveWatchlist = (items: WatchlistItem[]) => localStorage.setItem(watchlistStorageKey, JSON.stringify(items));
 const getLeadingBidderName = (auction?: Auction | null) => {
   const latest = auction?.bids?.[auction.bids.length - 1];
   return latest?.bidder?.name || 'No bids yet';
@@ -206,7 +219,7 @@ const BuyerDashboard = () => {
   const [activeBids, setActiveBids] = useState<ActiveBidItem[]>(cached?.activeBids || []);
   const [wonAuctions, setWonAuctions] = useState<Auction[]>(cached?.wonAuctions || []);
   const [bidHistory, setBidHistory] = useState<BidHistoryItem[]>(cached?.bidHistory || []);
-  const [watchlistIds, setWatchlistIds] = useState<string[]>(parseWatchlist);
+  const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>(parseWatchlist);
 
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [selectedGemDetails, setSelectedGemDetails] = useState<Auction['gem'] | null>(null);
@@ -272,13 +285,23 @@ const BuyerDashboard = () => {
         && (selectedType === 'all' || a.gem.type === selectedType);
     }), [allAuctions, query, selectedType]);
 
-  const watchedAuctions = useMemo(() => allAuctions.filter(a => watchlistIds.includes(a._id)), [allAuctions, watchlistIds]);
+  const watchedAuctionIds = useMemo(() => watchlistItems.filter(item => item.kind === 'auction').map(item => item.id), [watchlistItems]);
+  const watchedGemIds = useMemo(() => watchlistItems.filter(item => item.kind === 'gem').map(item => item.id), [watchlistItems]);
+  const watchedAuctions = useMemo(() => allAuctions.filter(a => watchedAuctionIds.includes(a._id)), [allAuctions, watchedAuctionIds]);
+  const watchedGems = useMemo(() => approvedGems.filter(g => watchedGemIds.includes(g._id)), [approvedGems, watchedGemIds]);
 
 
-  const toggleWatchlist = (id: string) => {
-    const updated = watchlistIds.includes(id) ? watchlistIds.filter(x => x !== id) : [...watchlistIds, id];
-    setWatchlistIds(updated); saveWatchlist(updated);
+  const toggleWatchlistItem = (kind: WatchlistItem['kind'], id: string) => {
+    const exists = watchlistItems.some(item => item.kind === kind && item.id === id);
+    const updated = exists
+      ? watchlistItems.filter(item => !(item.kind === kind && item.id === id))
+      : [...watchlistItems, { kind, id }];
+    setWatchlistItems(updated);
+    saveWatchlist(updated);
   };
+
+  const toggleAuctionWatchlist = (id: string) => toggleWatchlistItem('auction', id);
+  const toggleGemWatchlist = (id: string) => toggleWatchlistItem('gem', id);
 
   const openDetails = async (auctionId: string) => {
     try {
@@ -354,6 +377,7 @@ const BuyerDashboard = () => {
     const stats = dashboard?.stats;
     const activeBidCards = activeBids.slice(0, 2);
     const savedAuctions = watchedAuctions.slice(0, 2);
+    const savedGems = watchedGems.slice(0, 2);
     const orderHistory = wonAuctions.slice(0, 5);
     const winningBids = activeBids.filter(i => i.isWinning).length;
     const leadRate = activeBids.length ? Math.round((winningBids / activeBids.length) * 100) : 0;
@@ -362,7 +386,7 @@ const BuyerDashboard = () => {
       { label: 'Active Bids', value: stats?.activeBids || 0, accent: '#0f766e', icon: <Gavel size={18} /> },
       { label: 'Completed Orders', value: stats?.wonAuctions || 0, accent: '#eab308', icon: <Trophy size={18} /> },
       { label: 'Winning Rate', value: `${leadRate}%`, accent: '#16a34a', icon: <Target size={18} /> },
-      { label: 'Saved Gems', value: watchlistIds.length, accent: '#5b7cfa', icon: <Heart size={18} /> },
+      { label: 'Saved Gems', value: watchlistItems.length, accent: '#5b7cfa', icon: <Heart size={18} /> },
     ];
 
     return (
@@ -427,9 +451,9 @@ const BuyerDashboard = () => {
                           <button className="bdr-btn-primary" type="button" onClick={() => openDetails(item.auction._id)}>
                             {item.isWinning ? 'Increase Bid' : 'Rebid Now'}
                           </button>
-                          <button className="bdr-btn-ghost" type="button" onClick={() => toggleWatchlist(item.auction._id)}>
-                            <Heart size={13} fill={watchlistIds.includes(item.auction._id) ? 'currentColor' : 'none'} />
-                            {watchlistIds.includes(item.auction._id) ? 'Saved' : 'Save'}
+                          <button className="bdr-btn-ghost" type="button" onClick={() => toggleAuctionWatchlist(item.auction._id)}>
+                            <Heart size={13} fill={watchedAuctionIds.includes(item.auction._id) ? 'currentColor' : 'none'} />
+                            {watchedAuctionIds.includes(item.auction._id) ? 'Saved' : 'Save'}
                           </button>
                         </div>
                       </div>
@@ -445,14 +469,23 @@ const BuyerDashboard = () => {
               <div className="bdr-panel-header">
                 <div>
                   <p className="dashboard-eyebrow mb-1">Wishlist</p>
-                  <h5 className="mb-0">{watchlistIds.length} Total</h5>
+                  <h5 className="mb-0">{watchlistItems.length} Total</h5>
                 </div>
                 <button className="bdr-link-btn" type="button" onClick={() => setView('watchlist')}>View All Saved</button>
               </div>
-              {savedAuctions.length === 0 ? (
+              {savedAuctions.length === 0 && savedGems.length === 0 ? (
                 <div className="bdr-empty-state bdr-empty-state--tight">No saved gems yet. Add one from Marketplace.</div>
               ) : (
                 <div className="bdr-saved-list">
+                  {savedGems.map(gem => (
+                    <article key={gem._id} className="bdr-saved-item">
+                      <img className="bdr-saved-thumb" src={gem.images?.[0] || 'https://via.placeholder.com/112x84'} alt={gem.type} />
+                      <div className="bdr-saved-copy">
+                        <strong>{gem.type}</strong>
+                        <span>Direct Sale</span>
+                      </div>
+                    </article>
+                  ))}
                   {savedAuctions.map(a => (
                     <article key={a._id} className="bdr-saved-item">
                       <img className="bdr-saved-thumb" src={a.gem.images?.[0] || 'https://via.placeholder.com/112x84'} alt={a.gem.type} />
@@ -487,12 +520,10 @@ const BuyerDashboard = () => {
                       <th>Acquisition</th>
                       <th>Purchase date</th>
                       <th>View</th>
-                      <th>Documents</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orderHistory.map(auction => {
-                      const certificateUrl = getCertificateAccessUrl(auction.gem.certificate);
                       return (
                         <tr key={auction._id}>
                           <td className="bdr-history-ref">#{auction._id.slice(-7).toUpperCase()}</td>
@@ -508,13 +539,6 @@ const BuyerDashboard = () => {
                           <td>{formatShortDate(auction.endTime)}</td>
                           <td>
                             <button className="bdr-history-track" type="button" onClick={() => openDetails(auction._id)}>View</button>
-                          </td>
-                          <td>
-                            <div className="bdr-history-docs">
-                              {certificateUrl
-                                ? <a href={certificateUrl} target="_blank" rel="noreferrer">Certificate</a>
-                                : <span className="bdr-history-muted">Certificate</span>}
-                            </div>
                           </td>
                         </tr>
                       );
@@ -617,16 +641,37 @@ const BuyerDashboard = () => {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
             <p className="dashboard-eyebrow mb-1">Saved items</p>
-            <h5 className="mb-0">My Watchlist <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: 13 }}>({watchedAuctions.length})</span></h5>
+            <h5 className="mb-0">My Watchlist <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: 13 }}>({watchlistItems.length})</span></h5>
           </div>
         </div>
-        {watchedAuctions.length === 0 ? (
+        {watchedAuctions.length === 0 && watchedGems.length === 0 ? (
           <div className="bdr-market-empty">
             <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.4 }}>🔍</div>
             <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No items in watchlist. Add some from Marketplace.</p>
           </div>
         ) : (
           <div className="bdr-market-grid">
+            {watchedGems.map(gem => (
+              <article className="portfolio-gem-card h-100 d-flex flex-column" key={`watch-gem-${gem._id}`}>
+                <div className="portfolio-gem-img-wrap">
+                  <img className="portfolio-gem-img" src={gem.images?.[0] || 'https://via.placeholder.com/460x280'} alt={gem.type} />
+                  <span className="portfolio-gem-badge portfolio-gem-badge--approved">Direct Sale</span>
+                </div>
+                <div className="portfolio-gem-body d-flex flex-column flex-grow-1">
+                  <strong className="portfolio-gem-name">{gem.type}</strong>
+                  <p className="portfolio-gem-meta">{gem.origin} · {gem.carat} ct</p>
+                  <p className="portfolio-gem-meta">{gem.cut} · {gem.color}</p>
+                  <div className="portfolio-gem-actions mt-auto pt-2">
+                    <button className="bdr-btn-danger" type="button" onClick={() => toggleGemWatchlist(gem._id)}>
+                      <X size={13} /> Remove
+                    </button>
+                    <button className="bdr-btn-primary" type="button" onClick={() => openGemDetails(gem._id)}>
+                      <Eye size={13} /> View
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
             {watchedAuctions.map(a => (
               <article className="portfolio-gem-card h-100 d-flex flex-column" key={a._id}>
                 <div className="portfolio-gem-img-wrap">
@@ -638,7 +683,7 @@ const BuyerDashboard = () => {
                   <p className="portfolio-gem-meta">{a.gem.origin} · {a.gem.carat} ct</p>
                   <span className="bdr-market-price mb-2" style={{ display: 'block', fontSize: '15px', fontWeight: 800 }}>{formatCurrency(a.currentBid)}</span>
                   <div className="portfolio-gem-actions mt-auto pt-2">
-                    <button className="bdr-btn-danger" type="button" onClick={() => toggleWatchlist(a._id)}>
+                    <button className="bdr-btn-danger" type="button" onClick={() => toggleAuctionWatchlist(a._id)}>
                       <X size={13} /> Remove
                     </button>
                     <button className="bdr-btn-primary" type="button" onClick={() => openDetails(a._id)}>
@@ -676,8 +721,8 @@ const BuyerDashboard = () => {
     switch (view) {
       case 'marketplace': return (
         <Marketplace auctions={filteredAuctions} approvedGems={approvedGems} query={query}
-          selectedType={selectedType} watchlistIds={watchlistIds}
-          nowMs={nowMs} onToggleWatchlist={toggleWatchlist}
+            selectedType={selectedType} watchlistAuctionIds={watchedAuctionIds} watchlistGemIds={watchedGemIds}
+            nowMs={nowMs} onToggleAuctionWatchlist={toggleAuctionWatchlist} onToggleGemWatchlist={toggleGemWatchlist}
           onOpenDetails={openDetails} onOpenGemDetails={openGemDetails}
           onOpenSellerContact={openSellerContact} formatCurrency={formatCurrency}
           formatRemaining={formatRemaining} getLeadingBidderName={getLeadingBidderName} />

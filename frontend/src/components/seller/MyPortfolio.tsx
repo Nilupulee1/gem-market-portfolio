@@ -11,7 +11,29 @@ interface MyPortfolioProps {
   onRefresh: () => void;
 }
 
-const FILTER_OPTIONS = ['All Gems', 'Approved', 'Pending', 'Rejected'] as const;
+const FILTER_OPTIONS = ['All Gems', 'Approved', 'Pending', 'Rejected', 'Sold', 'Removed'] as const;
+
+const getGemStatusLabel = (status: string) => {
+  switch (status) {
+    case 'approved': return 'Approved';
+    case 'pending': return 'Pending';
+    case 'rejected': return 'Rejected';
+    case 'sold': return 'Sold';
+    case 'removed': return 'Removed';
+    default: return status;
+  }
+};
+
+const getGemStatusBadgeClass = (status: string) => {
+  switch (status) {
+    case 'approved': return 'portfolio-gem-badge--approved';
+    case 'pending': return 'portfolio-gem-badge--pending';
+    case 'rejected': return 'portfolio-gem-badge--rejected';
+    case 'sold': return 'portfolio-gem-badge--approved';
+    case 'removed': return 'portfolio-gem-badge--rejected';
+    default: return 'portfolio-gem-badge--pending';
+  }
+};
 
 const StatsBar = ({ gems }: { gems: GemType[] }) => {
   const approved = gems.filter(g => g.status === 'approved').length;
@@ -103,8 +125,8 @@ const GemCard = ({
           className="portfolio-gem-img"
           onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
         />
-        <span className={`portfolio-gem-badge ${gem.status === 'approved' ? 'portfolio-gem-badge--approved' : gem.status === 'pending' ? 'portfolio-gem-badge--pending' : 'portfolio-gem-badge--rejected'}`}>
-          {gem.status}
+        <span className={`portfolio-gem-badge ${getGemStatusBadgeClass(gem.status)}`}>
+          {getGemStatusLabel(gem.status)}
         </span>
       </div>
 

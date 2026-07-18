@@ -290,14 +290,13 @@ export const deleteGem = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'You can only delete your own gems' });
     }
 
-    // Check if gem is being used in an active auction
-    // You can add this check if needed
+    gem.status = GemStatus.REMOVED;
+    gem.adminFeedback = undefined;
+    await gem.save();
 
-    await Gem.findByIdAndDelete(authReq.params.id);
+    console.log('✅ Gem marked as removed:', authReq.params.id);
 
-    console.log('✅ Gem deleted:', authReq.params.id);
-
-    res.json({ message: 'Gem deleted successfully' });
+    res.json({ message: 'Gem removed successfully' });
   } catch (error: any) {
     console.error('❌ Error deleting gem:', error);
     res.status(500).json({ 
