@@ -23,6 +23,7 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
   const unreadCount = useChatStore((state) => state.unreadCount);
   const [activeBids, setActiveBids] = useState<Auction[]>([]);
   const [wonAuctions, setWonAuctions] = useState<Auction[]>([]);
+  const [liveAuctions, setLiveAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -53,16 +54,18 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
     try {
       setLoading(true);
       setErrorMessage('');
-      const [activeRes, wonRes, histRes] = await Promise.all([
+      const [activeRes, wonRes, histRes, liveRes] = await Promise.all([
         buyerAPI.getActiveBids(),
         buyerAPI.getWonAuctions(),
         buyerAPI.getBidHistory(),
+        auctionAPI.getActiveAuctions(),
       ]);
       setActiveBids(
         (activeRes.data?.activeBids || activeRes.data || []).map((b: any) => b.auction || b)
       );
       setWonAuctions(wonRes.data?.wonAuctions || wonRes.data || []);
       setBidHistory(histRes.data?.bidHistory || []);
+      setLiveAuctions(liveRes.data?.auctions || liveRes.data || []);
     } catch (err) {
       console.error(err);
       setErrorMessage('Failed to load auctions. Please refresh and try again.');
@@ -341,6 +344,75 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
     );
   };
 
+  const renderLiveAuctionCard = (auction: Auction) => {
+    const lotNumber = auction._id.slice(-4).toUpperCase();
+    const gemImage = auction.gem?.images?.[0] || 'https://via.placeholder.com/460x280';
+
+    return (
+      <article key={auction._id} className="portfolio-gem-card h-100 d-flex flex-column">
+        <div className="portfolio-gem-img-wrap">
+          <img
+            src={gemImage}
+            alt={auction.gem?.type}
+            className="portfolio-gem-img"
+            onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x280?text=Image+Not+Found'; }}
+          />
+          <div style={{
+            position: 'absolute', top: 12, left: 12,
+            backgroundColor: 'var(--badge-bg, rgba(0,0,0,0.6))',
+            color: 'var(--surface-text-on-accent, #fff)',
+            padding: '4px 10px', borderRadius: '4px',
+            fontSize: '12px', fontWeight: 600,
+            zIndex: 2,
+          }}>
+            Lot #{lotNumber}
+          </div>
+          <span className="portfolio-gem-badge portfolio-gem-badge--pending">Live</span>
+        </div>
+
+        <div className="portfolio-gem-body d-flex flex-column flex-grow-1" style={{ gap: '8px' }}>
+          <strong className="portfolio-gem-name">{auction.gem?.type}</strong>
+          <p className="portfolio-gem-meta">Seller: {auction.seller?.name || 'Unknown'}</p>
+          <div style={{
+            display: 'grid', gap: '8px', padding: '10px', borderRadius: '8px',
+            backgroundColor: 'var(--page-surface-muted, #f8f9fa)'
+          }}>
+            <div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '3px' }}>Current Bid</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(auction.currentBid || 0)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '3px' }}>Time Left</div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--success, #10b981)' }}>{formatRemaining(auction.endTime)}</div>
+            </div>
+          </div>
+          <p className="portfolio-gem-meta mb-0">{auction.bids?.length || 0} bids placed</p>
+          <div className="portfolio-gem-actions mt-auto pt-2">
+            <button
+              type="button"
+              className="bdr-btn-primary"
+              style={{ width: '100%', fontSize: '13px', padding: '8px', fontWeight: 700 }}
+              onClick={() => {
+                setBidAmount(String(auction.currentBid + (auction.minimumBidIncrement || 1000)));
+                openDetails(auction._id);
+              }}
+            >
+              Bid Now
+            </button>
+            <button
+              type="button"
+              className="bdr-btn-ghost"
+              style={{ width: '100%', fontSize: '13px', padding: '8px' }}
+              onClick={() => openDetails(auction._id)}
+            >
+              View Details
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  };
+
   return (
     <div className="bdr-shell">
       {/* ── Navbar ── */}
@@ -415,7 +487,7 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
               <div>
                 <p className="dashboard-eyebrow mb-2">Buyer Dashboard</p>
                 <h4>My Auctions &amp; Wins</h4>
-                <p className="mb-0">Track your active bids and won auctions.</p>
+                <p className="mb-0">Track your active bids, available live auctions, and won auctions.</p>
               </div>
             </div>
 
@@ -529,6 +601,26 @@ const BuyerAuctionsPage: React.FC<BuyerAuctionsPageProps> = ({ onContactSeller }
                 </Col>
               ))}
             </Row>
+
+            <div id="buyer-live-auctions" className="content-card mb-4 animate-fade-up delay-2">
+              <div className="card-body p-4">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                  <div>
+                    <p className="dashboard-eyebrow mb-2">Live marketplace</p>
+                    <h5 className="mb-0">Available auctions</h5>
+                  </div>
+                  <span className="dashboard-chip dashboard-chip-soft">{liveAuctions.length} live</span>
+                </div>
+
+                {liveAuctions.length === 0 ? (
+                  <div className="dashboard-empty-inline">No live auctions are available right now.</div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                    {liveAuctions.slice(0, 6).map((auction) => renderLiveAuctionCard(auction))}
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Tab + filter bar */}
             <div className="content-card mb-4 animate-fade-up delay-2" id="buyer-auctions-summary">

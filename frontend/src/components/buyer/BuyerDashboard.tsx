@@ -14,6 +14,7 @@ import { useChatStore } from '../../store/chatStore';
 import AuctionBid from './AuctionBid';
 import GemDetails from './GemDetails';
 import Marketplace from './Marketplace';
+import LiveAuctions from './LiveAuctions';
 import SellerContactModal from './SellerContactModal';
 import MessagesPage from './MessagesPage';
 import ActiveBidsCard from './ActiveBidsCard';
@@ -376,6 +377,7 @@ const BuyerDashboard = () => {
   const renderDashboard = () => {
     const stats = dashboard?.stats;
     const activeBidCards = activeBids.slice(0, 2);
+    const liveAuctionCards = filteredAuctions.filter(a => Date.parse(a.endTime) > nowMs).slice(0, 3);
     const savedAuctions = watchedAuctions.slice(0, 2);
     const savedGems = watchedGems.slice(0, 2);
     const orderHistory = wonAuctions.slice(0, 5);
@@ -461,6 +463,29 @@ const BuyerDashboard = () => {
                   ))}
                 </div>
               )}
+            </div>
+          </section>
+
+          <section className="content-card bdr-panel bdr-dashboard-live-auctions-panel">
+            <div className="card-body">
+              <div className="bdr-panel-header">
+                <div>
+                  <p className="dashboard-eyebrow mb-1">Live auctions</p>
+                  <h5 className="mb-0">Auction floor</h5>
+                </div>
+                <button className="bdr-link-btn" type="button" onClick={() => setView('auctions')}>View All</button>
+              </div>
+
+              <LiveAuctions
+                auctions={liveAuctionCards}
+                watchlistIds={watchedAuctionIds}
+                nowMs={nowMs}
+                onToggleWatchlist={toggleAuctionWatchlist}
+                onOpenDetails={openDetails}
+                formatCurrency={formatCurrency}
+                formatRemaining={formatRemaining}
+                showHeader={false}
+              />
             </div>
           </section>
 
@@ -558,10 +583,25 @@ const BuyerDashboard = () => {
   ───────────────────────────────────────────────────── */
   const renderAuctions = () => {
     const winningItems = activeBids.filter(i => i.isWinning);
+    const liveAuctionItems = filteredAuctions.filter(auction => Date.parse(auction.endTime) > nowMs);
 
 
     return (
       <>
+        <section className="content-card animate-fade-up" style={{ overflow: 'visible' }}>
+          <div className="card-body" style={{ overflow: 'visible' }}>
+            <LiveAuctions
+              auctions={liveAuctionItems}
+              watchlistIds={watchedAuctionIds}
+              nowMs={nowMs}
+              onToggleWatchlist={toggleAuctionWatchlist}
+              onOpenDetails={openDetails}
+              formatCurrency={formatCurrency}
+              formatRemaining={formatRemaining}
+            />
+          </div>
+        </section>
+
         {/* ── My Active Bids ── */}
         <section
           className="content-card animate-fade-up"

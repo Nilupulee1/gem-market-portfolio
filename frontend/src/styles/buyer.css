@@ -892,6 +892,45 @@ html[data-theme='dark'] .bdr-quick-stat {
   gap: 10px;
 }
 
+.bdr-dashboard-live-auctions-panel {
+  grid-column: 1 / -1;
+}
+
+.bdr-dashboard-live-auctions-panel .market-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.bdr-dashboard-live-auctions-panel .market-card {
+  max-width: none;
+}
+
+.bdr-dashboard-live-auctions-panel .market-body {
+  padding: 18px 18px 20px;
+}
+
+.bdr-dashboard-live-auctions-panel .market-body strong {
+  font-size: 19px;
+  overflow-wrap: anywhere;
+}
+
+.bdr-dashboard-live-auctions-panel .market-meta {
+  font-size: 13px;
+}
+
+.bdr-dashboard-live-auctions-panel .bid-btn:hover,
+.bdr-dashboard-live-auctions-panel .bid-btn:focus-visible {
+  background: #1745a3;
+}
+
+.bdr-dashboard-live-auctions-panel .ghost-btn:hover,
+.bdr-dashboard-live-auctions-panel .ghost-btn:focus-visible {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(47, 109, 225, 0.22);
+}
+
 .bdr-saved-list {
   display: flex;
   flex-direction: column;
