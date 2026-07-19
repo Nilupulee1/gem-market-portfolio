@@ -288,7 +288,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
           <div className="mb-4">
             <h5 className="fw-bold mb-1">Authenticity Documents</h5>
             <p className="text-muted small mb-3">
-              Upload certificates from recognized labs (GIA, IGI, GRSI, etc.) in PDF or image format.
+              Upload certificates from recognized labs (GIA, IGI, GRSI, etc.) in PDF format.
             </p>
 
             <div className="upload-dropzone p-5 text-center">
@@ -296,7 +296,7 @@ const AddGemForm = ({ onSuccess }: AddGemFormProps) => {
               <p className="fw-semibold mb-2" style={{ color: 'var(--ag-text-sub)' }}>
                 Click to upload gem certificate
               </p>
-              <p className="text-muted small mb-3">PDF, JPG, PNG accepted</p>
+              <p className="text-muted small mb-3">PDF accepted</p>
               <Form.Control
                 type="file" accept=".pdf,.jpg,.jpeg,.png"
                 onChange={handleCertificateChange} className="d-none" id="certificateUpload"
